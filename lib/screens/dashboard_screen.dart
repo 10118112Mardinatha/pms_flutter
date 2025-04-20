@@ -38,8 +38,55 @@ class _DashboardScreenState extends State<DashboardScreen> {
       case 'Obat Expired':
         return const Center(child: Text("Halaman Obat Expired"));
       default:
-        return const Center(child: Text("Dashboard Utama"));
+        return _buildDashboardContent();
     }
+  }
+
+  Widget _buildDashboardContent() {
+    return GridView.count(
+      crossAxisCount: MediaQuery.of(context).size.width > 800 ? 4 : 2,
+      crossAxisSpacing: 16,
+      mainAxisSpacing: 16,
+      children: [
+        _buildDashboardCard(Icons.people_alt, 'Jumlah Pelanggan', '123'),
+        _buildDashboardCard(Icons.local_hospital, 'Jumlah Dokter', '15'),
+        _buildDashboardCard(Icons.inventory_2, 'Jumlah Barang', '58'),
+        _buildDashboardCard(
+            Icons.shopping_bag, 'Total Pembelian', 'Rp 1.250.000'),
+        _buildDashboardCard(
+            Icons.point_of_sale, 'Total Penjualan', 'Rp 2.100.000'),
+        _buildDashboardCard(Icons.receipt_long, 'Total Resep', '87'),
+        _buildDashboardCard(Icons.medication_liquid, 'Obat Expired', '4'),
+        _buildDashboardCard(Icons.pending_actions, 'Pemesanan Aktif', '12'),
+      ],
+    );
+  }
+
+  Widget _buildDashboardCard(IconData icon, String title, String value) {
+    return Card(
+      elevation: 3,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 36, color: Colors.blue.shade700),
+            const SizedBox(height: 12),
+            Text(
+              value,
+              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              title,
+              style: const TextStyle(fontSize: 14, color: Colors.grey),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
