@@ -53,6 +53,7 @@ class _SidebarState extends State<Sidebar> {
                   children: [
                     _menuItem(Icons.dashboard, 'Dashboard'),
                     _divider(),
+                    _menuItem(Icons.trolley, 'Supplier'),
                     _menuItem(Icons.local_hospital, 'Dokter'),
                     _menuItem(Icons.people_alt, 'Pelanggan'),
                     _menuItem(Icons.shopping_bag, 'Pembelian'),

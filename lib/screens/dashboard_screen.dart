@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:pms_flutter/database/app_database.dart';
 import '../models/user_model.dart'; // Ganti sesuai path model user kamu
 import '../components/sidebar.dart';
 import '../components/topbar.dart';
+import '../screens/supplier_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   final UserModel user;
@@ -14,7 +16,7 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   String _selectedPage = 'Dashboard';
-
+  final AppDatabase db = AppDatabase();
   void _onMenuTap(String page) {
     setState(() {
       _selectedPage = page;
@@ -23,6 +25,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _getPage() {
     switch (_selectedPage) {
+      case 'Supplier':
+        return SupplierScreen(database: db);
       case 'Dokter':
         return const Center(child: Text("Halaman Dokter"));
       case 'Pelanggan':

@@ -261,15 +261,371 @@ class UsersCompanion extends UpdateCompanion<User> {
   }
 }
 
+class $SuppliersTable extends Suppliers
+    with TableInfo<$SuppliersTable, Supplier> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SuppliersTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+      'id', aliasedName, false,
+      hasAutoIncrement: true,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'));
+  static const VerificationMeta _kodeSupplierMeta =
+      const VerificationMeta('kodeSupplier');
+  @override
+  late final GeneratedColumn<String> kodeSupplier = GeneratedColumn<String>(
+      'kode_supplier', aliasedName, false,
+      additionalChecks:
+          GeneratedColumn.checkTextLength(minTextLength: 1, maxTextLength: 20),
+      type: DriftSqlType.string,
+      requiredDuringInsert: true);
+  static const VerificationMeta _namaSupplierMeta =
+      const VerificationMeta('namaSupplier');
+  @override
+  late final GeneratedColumn<String> namaSupplier = GeneratedColumn<String>(
+      'nama_supplier', aliasedName, false,
+      additionalChecks:
+          GeneratedColumn.checkTextLength(minTextLength: 1, maxTextLength: 50),
+      type: DriftSqlType.string,
+      requiredDuringInsert: true);
+  static const VerificationMeta _alamatMeta = const VerificationMeta('alamat');
+  @override
+  late final GeneratedColumn<String> alamat = GeneratedColumn<String>(
+      'alamat', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _teleponMeta =
+      const VerificationMeta('telepon');
+  @override
+  late final GeneratedColumn<String> telepon = GeneratedColumn<String>(
+      'telepon', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _keteranganMeta =
+      const VerificationMeta('keterangan');
+  @override
+  late final GeneratedColumn<String> keterangan = GeneratedColumn<String>(
+      'keterangan', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  @override
+  List<GeneratedColumn> get $columns =>
+      [id, kodeSupplier, namaSupplier, alamat, telepon, keterangan];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'suppliers';
+  @override
+  VerificationContext validateIntegrity(Insertable<Supplier> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('kode_supplier')) {
+      context.handle(
+          _kodeSupplierMeta,
+          kodeSupplier.isAcceptableOrUnknown(
+              data['kode_supplier']!, _kodeSupplierMeta));
+    } else if (isInserting) {
+      context.missing(_kodeSupplierMeta);
+    }
+    if (data.containsKey('nama_supplier')) {
+      context.handle(
+          _namaSupplierMeta,
+          namaSupplier.isAcceptableOrUnknown(
+              data['nama_supplier']!, _namaSupplierMeta));
+    } else if (isInserting) {
+      context.missing(_namaSupplierMeta);
+    }
+    if (data.containsKey('alamat')) {
+      context.handle(_alamatMeta,
+          alamat.isAcceptableOrUnknown(data['alamat']!, _alamatMeta));
+    }
+    if (data.containsKey('telepon')) {
+      context.handle(_teleponMeta,
+          telepon.isAcceptableOrUnknown(data['telepon']!, _teleponMeta));
+    }
+    if (data.containsKey('keterangan')) {
+      context.handle(
+          _keteranganMeta,
+          keterangan.isAcceptableOrUnknown(
+              data['keterangan']!, _keteranganMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  Supplier map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Supplier(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}id'])!,
+      kodeSupplier: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}kode_supplier'])!,
+      namaSupplier: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}nama_supplier'])!,
+      alamat: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}alamat']),
+      telepon: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}telepon']),
+      keterangan: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}keterangan']),
+    );
+  }
+
+  @override
+  $SuppliersTable createAlias(String alias) {
+    return $SuppliersTable(attachedDatabase, alias);
+  }
+}
+
+class Supplier extends DataClass implements Insertable<Supplier> {
+  final int id;
+  final String kodeSupplier;
+  final String namaSupplier;
+  final String? alamat;
+  final String? telepon;
+  final String? keterangan;
+  const Supplier(
+      {required this.id,
+      required this.kodeSupplier,
+      required this.namaSupplier,
+      this.alamat,
+      this.telepon,
+      this.keterangan});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['kode_supplier'] = Variable<String>(kodeSupplier);
+    map['nama_supplier'] = Variable<String>(namaSupplier);
+    if (!nullToAbsent || alamat != null) {
+      map['alamat'] = Variable<String>(alamat);
+    }
+    if (!nullToAbsent || telepon != null) {
+      map['telepon'] = Variable<String>(telepon);
+    }
+    if (!nullToAbsent || keterangan != null) {
+      map['keterangan'] = Variable<String>(keterangan);
+    }
+    return map;
+  }
+
+  SuppliersCompanion toCompanion(bool nullToAbsent) {
+    return SuppliersCompanion(
+      id: Value(id),
+      kodeSupplier: Value(kodeSupplier),
+      namaSupplier: Value(namaSupplier),
+      alamat:
+          alamat == null && nullToAbsent ? const Value.absent() : Value(alamat),
+      telepon: telepon == null && nullToAbsent
+          ? const Value.absent()
+          : Value(telepon),
+      keterangan: keterangan == null && nullToAbsent
+          ? const Value.absent()
+          : Value(keterangan),
+    );
+  }
+
+  factory Supplier.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Supplier(
+      id: serializer.fromJson<int>(json['id']),
+      kodeSupplier: serializer.fromJson<String>(json['kodeSupplier']),
+      namaSupplier: serializer.fromJson<String>(json['namaSupplier']),
+      alamat: serializer.fromJson<String?>(json['alamat']),
+      telepon: serializer.fromJson<String?>(json['telepon']),
+      keterangan: serializer.fromJson<String?>(json['keterangan']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'kodeSupplier': serializer.toJson<String>(kodeSupplier),
+      'namaSupplier': serializer.toJson<String>(namaSupplier),
+      'alamat': serializer.toJson<String?>(alamat),
+      'telepon': serializer.toJson<String?>(telepon),
+      'keterangan': serializer.toJson<String?>(keterangan),
+    };
+  }
+
+  Supplier copyWith(
+          {int? id,
+          String? kodeSupplier,
+          String? namaSupplier,
+          Value<String?> alamat = const Value.absent(),
+          Value<String?> telepon = const Value.absent(),
+          Value<String?> keterangan = const Value.absent()}) =>
+      Supplier(
+        id: id ?? this.id,
+        kodeSupplier: kodeSupplier ?? this.kodeSupplier,
+        namaSupplier: namaSupplier ?? this.namaSupplier,
+        alamat: alamat.present ? alamat.value : this.alamat,
+        telepon: telepon.present ? telepon.value : this.telepon,
+        keterangan: keterangan.present ? keterangan.value : this.keterangan,
+      );
+  Supplier copyWithCompanion(SuppliersCompanion data) {
+    return Supplier(
+      id: data.id.present ? data.id.value : this.id,
+      kodeSupplier: data.kodeSupplier.present
+          ? data.kodeSupplier.value
+          : this.kodeSupplier,
+      namaSupplier: data.namaSupplier.present
+          ? data.namaSupplier.value
+          : this.namaSupplier,
+      alamat: data.alamat.present ? data.alamat.value : this.alamat,
+      telepon: data.telepon.present ? data.telepon.value : this.telepon,
+      keterangan:
+          data.keterangan.present ? data.keterangan.value : this.keterangan,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Supplier(')
+          ..write('id: $id, ')
+          ..write('kodeSupplier: $kodeSupplier, ')
+          ..write('namaSupplier: $namaSupplier, ')
+          ..write('alamat: $alamat, ')
+          ..write('telepon: $telepon, ')
+          ..write('keterangan: $keterangan')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, kodeSupplier, namaSupplier, alamat, telepon, keterangan);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Supplier &&
+          other.id == this.id &&
+          other.kodeSupplier == this.kodeSupplier &&
+          other.namaSupplier == this.namaSupplier &&
+          other.alamat == this.alamat &&
+          other.telepon == this.telepon &&
+          other.keterangan == this.keterangan);
+}
+
+class SuppliersCompanion extends UpdateCompanion<Supplier> {
+  final Value<int> id;
+  final Value<String> kodeSupplier;
+  final Value<String> namaSupplier;
+  final Value<String?> alamat;
+  final Value<String?> telepon;
+  final Value<String?> keterangan;
+  const SuppliersCompanion({
+    this.id = const Value.absent(),
+    this.kodeSupplier = const Value.absent(),
+    this.namaSupplier = const Value.absent(),
+    this.alamat = const Value.absent(),
+    this.telepon = const Value.absent(),
+    this.keterangan = const Value.absent(),
+  });
+  SuppliersCompanion.insert({
+    this.id = const Value.absent(),
+    required String kodeSupplier,
+    required String namaSupplier,
+    this.alamat = const Value.absent(),
+    this.telepon = const Value.absent(),
+    this.keterangan = const Value.absent(),
+  })  : kodeSupplier = Value(kodeSupplier),
+        namaSupplier = Value(namaSupplier);
+  static Insertable<Supplier> custom({
+    Expression<int>? id,
+    Expression<String>? kodeSupplier,
+    Expression<String>? namaSupplier,
+    Expression<String>? alamat,
+    Expression<String>? telepon,
+    Expression<String>? keterangan,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (kodeSupplier != null) 'kode_supplier': kodeSupplier,
+      if (namaSupplier != null) 'nama_supplier': namaSupplier,
+      if (alamat != null) 'alamat': alamat,
+      if (telepon != null) 'telepon': telepon,
+      if (keterangan != null) 'keterangan': keterangan,
+    });
+  }
+
+  SuppliersCompanion copyWith(
+      {Value<int>? id,
+      Value<String>? kodeSupplier,
+      Value<String>? namaSupplier,
+      Value<String?>? alamat,
+      Value<String?>? telepon,
+      Value<String?>? keterangan}) {
+    return SuppliersCompanion(
+      id: id ?? this.id,
+      kodeSupplier: kodeSupplier ?? this.kodeSupplier,
+      namaSupplier: namaSupplier ?? this.namaSupplier,
+      alamat: alamat ?? this.alamat,
+      telepon: telepon ?? this.telepon,
+      keterangan: keterangan ?? this.keterangan,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (kodeSupplier.present) {
+      map['kode_supplier'] = Variable<String>(kodeSupplier.value);
+    }
+    if (namaSupplier.present) {
+      map['nama_supplier'] = Variable<String>(namaSupplier.value);
+    }
+    if (alamat.present) {
+      map['alamat'] = Variable<String>(alamat.value);
+    }
+    if (telepon.present) {
+      map['telepon'] = Variable<String>(telepon.value);
+    }
+    if (keterangan.present) {
+      map['keterangan'] = Variable<String>(keterangan.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SuppliersCompanion(')
+          ..write('id: $id, ')
+          ..write('kodeSupplier: $kodeSupplier, ')
+          ..write('namaSupplier: $namaSupplier, ')
+          ..write('alamat: $alamat, ')
+          ..write('telepon: $telepon, ')
+          ..write('keterangan: $keterangan')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $UsersTable users = $UsersTable(this);
+  late final $SuppliersTable suppliers = $SuppliersTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
-  List<DatabaseSchemaEntity> get allSchemaEntities => [users];
+  List<DatabaseSchemaEntity> get allSchemaEntities => [users, suppliers];
 }
 
 typedef $$UsersTableCreateCompanionBuilder = UsersCompanion Function({
@@ -415,10 +771,188 @@ typedef $$UsersTableProcessedTableManager = ProcessedTableManager<
     (User, BaseReferences<_$AppDatabase, $UsersTable, User>),
     User,
     PrefetchHooks Function()>;
+typedef $$SuppliersTableCreateCompanionBuilder = SuppliersCompanion Function({
+  Value<int> id,
+  required String kodeSupplier,
+  required String namaSupplier,
+  Value<String?> alamat,
+  Value<String?> telepon,
+  Value<String?> keterangan,
+});
+typedef $$SuppliersTableUpdateCompanionBuilder = SuppliersCompanion Function({
+  Value<int> id,
+  Value<String> kodeSupplier,
+  Value<String> namaSupplier,
+  Value<String?> alamat,
+  Value<String?> telepon,
+  Value<String?> keterangan,
+});
+
+class $$SuppliersTableFilterComposer
+    extends Composer<_$AppDatabase, $SuppliersTable> {
+  $$SuppliersTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get kodeSupplier => $composableBuilder(
+      column: $table.kodeSupplier, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get namaSupplier => $composableBuilder(
+      column: $table.namaSupplier, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get alamat => $composableBuilder(
+      column: $table.alamat, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get telepon => $composableBuilder(
+      column: $table.telepon, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get keterangan => $composableBuilder(
+      column: $table.keterangan, builder: (column) => ColumnFilters(column));
+}
+
+class $$SuppliersTableOrderingComposer
+    extends Composer<_$AppDatabase, $SuppliersTable> {
+  $$SuppliersTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get kodeSupplier => $composableBuilder(
+      column: $table.kodeSupplier,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get namaSupplier => $composableBuilder(
+      column: $table.namaSupplier,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get alamat => $composableBuilder(
+      column: $table.alamat, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get telepon => $composableBuilder(
+      column: $table.telepon, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get keterangan => $composableBuilder(
+      column: $table.keterangan, builder: (column) => ColumnOrderings(column));
+}
+
+class $$SuppliersTableAnnotationComposer
+    extends Composer<_$AppDatabase, $SuppliersTable> {
+  $$SuppliersTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get kodeSupplier => $composableBuilder(
+      column: $table.kodeSupplier, builder: (column) => column);
+
+  GeneratedColumn<String> get namaSupplier => $composableBuilder(
+      column: $table.namaSupplier, builder: (column) => column);
+
+  GeneratedColumn<String> get alamat =>
+      $composableBuilder(column: $table.alamat, builder: (column) => column);
+
+  GeneratedColumn<String> get telepon =>
+      $composableBuilder(column: $table.telepon, builder: (column) => column);
+
+  GeneratedColumn<String> get keterangan => $composableBuilder(
+      column: $table.keterangan, builder: (column) => column);
+}
+
+class $$SuppliersTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $SuppliersTable,
+    Supplier,
+    $$SuppliersTableFilterComposer,
+    $$SuppliersTableOrderingComposer,
+    $$SuppliersTableAnnotationComposer,
+    $$SuppliersTableCreateCompanionBuilder,
+    $$SuppliersTableUpdateCompanionBuilder,
+    (Supplier, BaseReferences<_$AppDatabase, $SuppliersTable, Supplier>),
+    Supplier,
+    PrefetchHooks Function()> {
+  $$SuppliersTableTableManager(_$AppDatabase db, $SuppliersTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SuppliersTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SuppliersTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SuppliersTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<int> id = const Value.absent(),
+            Value<String> kodeSupplier = const Value.absent(),
+            Value<String> namaSupplier = const Value.absent(),
+            Value<String?> alamat = const Value.absent(),
+            Value<String?> telepon = const Value.absent(),
+            Value<String?> keterangan = const Value.absent(),
+          }) =>
+              SuppliersCompanion(
+            id: id,
+            kodeSupplier: kodeSupplier,
+            namaSupplier: namaSupplier,
+            alamat: alamat,
+            telepon: telepon,
+            keterangan: keterangan,
+          ),
+          createCompanionCallback: ({
+            Value<int> id = const Value.absent(),
+            required String kodeSupplier,
+            required String namaSupplier,
+            Value<String?> alamat = const Value.absent(),
+            Value<String?> telepon = const Value.absent(),
+            Value<String?> keterangan = const Value.absent(),
+          }) =>
+              SuppliersCompanion.insert(
+            id: id,
+            kodeSupplier: kodeSupplier,
+            namaSupplier: namaSupplier,
+            alamat: alamat,
+            telepon: telepon,
+            keterangan: keterangan,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$SuppliersTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $SuppliersTable,
+    Supplier,
+    $$SuppliersTableFilterComposer,
+    $$SuppliersTableOrderingComposer,
+    $$SuppliersTableAnnotationComposer,
+    $$SuppliersTableCreateCompanionBuilder,
+    $$SuppliersTableUpdateCompanionBuilder,
+    (Supplier, BaseReferences<_$AppDatabase, $SuppliersTable, Supplier>),
+    Supplier,
+    PrefetchHooks Function()>;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
   $AppDatabaseManager(this._db);
   $$UsersTableTableManager get users =>
       $$UsersTableTableManager(_db, _db.users);
+  $$SuppliersTableTableManager get suppliers =>
+      $$SuppliersTableTableManager(_db, _db.suppliers);
 }

@@ -15,14 +15,36 @@ class Users extends Table {
   TextColumn get role => text().withDefault(const Constant('kasir'))();
 }
 
+class Suppliers extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get kodeSupplier => text().withLength(min: 1, max: 20)();
+  TextColumn get namaSupplier => text().withLength(min: 1, max: 50)();
+  TextColumn get alamat => text().nullable()();
+  TextColumn get telepon => text().nullable()();
+  TextColumn get keterangan => text().nullable()();
+}
+
 // Kelas utama database
-@DriftDatabase(tables: [Users])
+@DriftDatabase(tables: [Users, Suppliers])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+        onCreate: (Migrator m) async {
+          await m.createAll();
+        },
+        onUpgrade: (Migrator m, int from, int to) async {
+          if (from == 1) {
+            // Tambahkan migrasi dari versi 1 ke 2
+            await m.createTable(suppliers);
+          }
+          // Tambah logika migrasi lain jika perlu
+        },
+      );
   // Ambil semua user
   Future<List<User>> getAllUsers() => select(users).get();
 
@@ -42,6 +64,21 @@ class AppDatabase extends _$AppDatabase {
 
   // Insert user, bisa kamu expand dengan validasi tambahan jika perlu
   Future<int> insertUser(UsersCompanion user) => into(users).insert(user);
+
+  // SUPPLIER
+
+  Future<List<Supplier>> getAllSuppliers() => select(suppliers).get();
+
+  Future<int> insertSupplier(SuppliersCompanion supplier) {
+    return into(suppliers).insert(supplier);
+  }
+
+  Future<void> updateSupplier(Supplier supplier) async {
+    await update(suppliers).replace(supplier);
+  }
+
+  Future<int> deleteSupplier(int id) =>
+      (delete(suppliers)..where((tbl) => tbl.id.equals(id))).go();
 }
 
 // Fungsi membuka koneksi database
