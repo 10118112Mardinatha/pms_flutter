@@ -17,15 +17,24 @@ class Users extends Table {
 
 class Suppliers extends Table {
   IntColumn get id => integer().autoIncrement()();
-  TextColumn get kodeSupplier => text().withLength(min: 1, max: 20)();
+  TextColumn get kodeSupplier => text().withLength(min: 1, max: 20).unique()();
   TextColumn get namaSupplier => text().withLength(min: 1, max: 50)();
   TextColumn get alamat => text().nullable()();
   TextColumn get telepon => text().nullable()();
   TextColumn get keterangan => text().nullable()();
 }
 
+class Doctors extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get kodeDoctor => text().withLength(min: 1, max: 20).unique()();
+  TextColumn get namaDoctor => text().withLength(min: 1, max: 50)();
+  TextColumn get alamat => text().nullable()();
+  TextColumn get telepon => text().nullable()();
+  IntColumn get nilaipenjualan => integer().nullable()();
+}
+
 // Kelas utama database
-@DriftDatabase(tables: [Users, Suppliers])
+@DriftDatabase(tables: [Users, Suppliers, Doctors])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
@@ -79,6 +88,20 @@ class AppDatabase extends _$AppDatabase {
 
   Future<int> deleteSupplier(int id) =>
       (delete(suppliers)..where((tbl) => tbl.id.equals(id))).go();
+
+// DOCTOR
+  Future<List<Doctor>> getAllDoctors() => select(doctors).get();
+
+  Future<int> insertDoctors(DoctorsCompanion doctor) {
+    return into(doctors).insert(doctor);
+  }
+
+  Future<void> updateDoctors(Doctor doctor) async {
+    await update(doctors).replace(doctor);
+  }
+
+  Future<int> deleteDoctor(int id) =>
+      (delete(doctors)..where((tbl) => tbl.id.equals(id))).go();
 }
 
 // Fungsi membuka koneksi database
