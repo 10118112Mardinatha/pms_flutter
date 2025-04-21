@@ -148,40 +148,72 @@ class _SupplierScreenState extends State<SupplierScreen> {
               ),
             ],
           ),
-          body: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: DataTable(
-              columns: const [
-                DataColumn(label: Text('Kode')),
-                DataColumn(label: Text('Nama')),
-                DataColumn(label: Text('Alamat')),
-                DataColumn(label: Text('Telepon')),
-                DataColumn(label: Text('Keterangan')),
-                DataColumn(label: Text('Aksi')),
-              ],
-              rows: suppliers.map((s) {
-                return DataRow(
-                  cells: [
-                    DataCell(Text(s.kodeSupplier)),
-                    DataCell(Text(s.namaSupplier)),
-                    DataCell(Text(s.alamat ?? '-')),
-                    DataCell(Text(s.telepon ?? '-')),
-                    DataCell(Text(s.keterangan ?? '-')),
-                    DataCell(Row(
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.edit, color: Colors.blue),
-                          onPressed: () => _showForm(supplier: s),
+          body: Center(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                constraints: const BoxConstraints(minWidth: 800),
+                child: Column(
+                  children: [
+                    SizedBox(
+                      height:
+                          400, // agar area tabel tetap terlihat besar walau kosong
+                      child: DataTable(
+                        headingRowColor:
+                            MaterialStateProperty.all(Colors.grey[200]),
+                        dataRowColor: MaterialStateProperty.all(Colors.white),
+                        border: TableBorder.all(color: Colors.grey),
+                        columns: const [
+                          DataColumn(label: Text('Kode')),
+                          DataColumn(label: Text('Nama')),
+                          DataColumn(label: Text('Alamat')),
+                          DataColumn(label: Text('Telepon')),
+                          DataColumn(label: Text('Keterangan')),
+                          DataColumn(label: Text('Aksi')),
+                        ],
+                        rows: suppliers.isNotEmpty
+                            ? suppliers.map((s) {
+                                return DataRow(
+                                  cells: [
+                                    DataCell(Text(s.kodeSupplier)),
+                                    DataCell(Text(s.namaSupplier)),
+                                    DataCell(Text(s.alamat ?? '-')),
+                                    DataCell(Text(s.telepon ?? '-')),
+                                    DataCell(Text(s.keterangan ?? '-')),
+                                    DataCell(Row(
+                                      children: [
+                                        IconButton(
+                                          icon: const Icon(Icons.edit,
+                                              color: Colors.blue),
+                                          onPressed: () =>
+                                              _showForm(supplier: s),
+                                        ),
+                                        IconButton(
+                                          icon: const Icon(Icons.delete,
+                                              color: Colors.red),
+                                          onPressed: () =>
+                                              _deleteSupplier(s.id),
+                                        ),
+                                      ],
+                                    )),
+                                  ],
+                                );
+                              }).toList()
+                            : [],
+                      ),
+                    ),
+                    if (suppliers.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.only(top: 8),
+                        child: Text(
+                          'Belum ada data supplier.',
+                          style: TextStyle(color: Colors.grey),
                         ),
-                        IconButton(
-                          icon: const Icon(Icons.delete, color: Colors.red),
-                          onPressed: () => _deleteSupplier(s.id),
-                        ),
-                      ],
-                    )),
+                      ),
                   ],
-                );
-              }).toList(),
+                ),
+              ),
             ),
           ),
         );
