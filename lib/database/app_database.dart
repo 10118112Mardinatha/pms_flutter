@@ -33,8 +33,23 @@ class Doctors extends Table {
   IntColumn get nilaipenjualan => integer().nullable()();
 }
 
+class Barangs extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get kodeBarang => text()();
+  TextColumn get namaBarang => text()();
+  TextColumn get kelompok => text()();
+  TextColumn get satuan => text()();
+  IntColumn get stokAktual => integer().withDefault(const Constant(0))();
+  IntColumn get hargaBeli => integer().withDefault(const Constant(0))();
+  IntColumn get hargaJual => integer().withDefault(const Constant(0))();
+  IntColumn get jualDisc1 => integer().nullable()();
+  IntColumn get jualDisc2 => integer().nullable()();
+  IntColumn get jualDisc3 => integer().nullable()();
+  IntColumn get jualDisc4 => integer().nullable()();
+}
+
 // Kelas utama database
-@DriftDatabase(tables: [Users, Suppliers, Doctors])
+@DriftDatabase(tables: [Users, Suppliers, Doctors, Barangs])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
@@ -102,6 +117,20 @@ class AppDatabase extends _$AppDatabase {
 
   Future<int> deleteDoctor(int id) =>
       (delete(doctors)..where((tbl) => tbl.id.equals(id))).go();
+
+//Barang
+  Future<List<Barang>> getAllBarangs() => select(barangs).get();
+
+  Future<int> insertBarangs(BarangsCompanion barang) {
+    return into(barangs).insert(barang);
+  }
+
+  Future<void> updateBarangs(Barang barang) async {
+    await update(barangs).replace(barang);
+  }
+
+  Future<int> deleteBarangs(int id) =>
+      (delete(barangs)..where((tbl) => tbl.id.equals(id))).go();
 }
 
 // Fungsi membuka koneksi database
