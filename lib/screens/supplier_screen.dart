@@ -243,9 +243,16 @@ class _SupplierScreenState extends State<SupplierScreen> {
   }
 
   Future<void> _exportToExcel() async {
-    var excel = Excel.createExcel();
-    final sheet = excel['Suppliers'];
+    var excel = Excel.createExcel(); // Ini akan buat sheet default 'Sheet1'
+
+    // Ambil sheet default (langsung Sheet1)
+    final String defaultSheet = excel.getDefaultSheet()!;
+    final Sheet sheet = excel[defaultSheet];
+
+    // Isi judul kolom
     sheet.appendRow(['Kode', 'Nama', 'Alamat', 'Telepon', 'Keterangan']);
+
+    // Isi data baris
     for (var s in filteredSuppliers) {
       sheet.appendRow([
         s.kodeSupplier,
@@ -255,10 +262,19 @@ class _SupplierScreenState extends State<SupplierScreen> {
         s.keterangan ?? '-',
       ]);
     }
+
+    // Encode menjadi file
     final fileBytes = excel.encode();
     if (fileBytes != null) {
+      final now = DateTime.now();
+      final formattedDate =
+          "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}_${now.hour.toString().padLeft(2, '0')}-${now.minute.toString().padLeft(2, '0')}";
+      final fileName = 'suppliers_$formattedDate.xlsx';
+
       await Printing.sharePdf(
-          bytes: Uint8List.fromList(fileBytes), filename: 'suppliers.xlsx');
+        bytes: Uint8List.fromList(fileBytes),
+        filename: fileName,
+      );
     }
   }
 
@@ -310,7 +326,6 @@ class _SupplierScreenState extends State<SupplierScreen> {
                 type: FileType.custom,
                 allowedExtensions: ['xlsx'],
               );
-
               if (result != null && result.files.single.path != null) {
                 final file = File(result.files.single.path!);
 
@@ -335,11 +350,7 @@ class _SupplierScreenState extends State<SupplierScreen> {
 
                 if (confirm == true) {
                   await importSuppliersFromExcel(
-                    file: file,
-                    db: db, // instance database kamu
-                    onFinished: _loadSuppliers,
-                  );
-
+                      file: file, db: db, onFinished: _loadSuppliers);
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Import berhasil!')),
                   );
@@ -361,7 +372,7 @@ class _SupplierScreenState extends State<SupplierScreen> {
             child: ElevatedButton.icon(
               onPressed: () => _showForm(),
               icon: const Icon(Icons.add),
-              label: const Text('Tambah'),
+              label: const Text('Tambah Supplier'),
             ),
           ),
         ],
@@ -375,10 +386,9 @@ class _SupplierScreenState extends State<SupplierScreen> {
             Text(
               'Cari berdasarkan:',
               style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-                color: Colors.grey[800],
-              ),
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey[800]),
             ),
             const SizedBox(height: 8),
             Row(
@@ -391,14 +401,11 @@ class _SupplierScreenState extends State<SupplierScreen> {
                       _applySearch();
                     });
                   },
-                  items: searchOptions
-                      .map((option) => DropdownMenuItem(
-                            value: option,
-                            child: Text(option),
-                          ))
-                      .toList(),
+                  items: searchOptions.map((option) {
+                    return DropdownMenuItem(value: option, child: Text(option));
+                  }).toList(),
                 ),
-                const SizedBox(width: 25),
+                const SizedBox(width: 16),
                 Expanded(
                   child: TextField(
                     controller: _searchController,
@@ -427,18 +434,18 @@ class _SupplierScreenState extends State<SupplierScreen> {
             ),
 
             const SizedBox(height: 24),
-            const Divider(),
+            const Divider(thickness: 1),
             const SizedBox(height: 8),
 
-            // === JUDUL DAN DROPDOWN BARIS ===
+            // === HEADER DAFTAR SUPPLIER DAN DROPDOWN BARIS ===
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Daftar Supplier',
-                  style: Theme.of(context).textTheme.titleMedium!.copyWith(
+                  '📋 Daftar Supplier',
+                  style: Theme.of(context).textTheme.titleLarge!.copyWith(
                         fontWeight: FontWeight.bold,
-                        color: Colors.blueGrey[800],
+                        color: Colors.blueGrey[900],
                       ),
                 ),
                 Row(
@@ -447,12 +454,10 @@ class _SupplierScreenState extends State<SupplierScreen> {
                     const SizedBox(width: 8),
                     DropdownButton<int>(
                       value: _rowsPerPage,
-                      items: _rowsPerPageOptions
-                          .map((count) => DropdownMenuItem(
-                                value: count,
-                                child: Text('$count'),
-                              ))
-                          .toList(),
+                      items: _rowsPerPageOptions.map((count) {
+                        return DropdownMenuItem(
+                            value: count, child: Text('$count'));
+                      }).toList(),
                       onChanged: (value) {
                         setState(() {
                           _rowsPerPage = value!;
@@ -464,61 +469,84 @@ class _SupplierScreenState extends State<SupplierScreen> {
               ],
             ),
 
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
 
-            // === TABEL ===
-            Flexible(
+            SizedBox(
+              width: double.infinity,
+              child: DataTable(
+                headingRowColor:
+                    MaterialStateProperty.all(Colors.blue.shade100),
+                border: TableBorder.all(color: Colors.grey.shade300),
+                columnSpacing: 30,
+                dataRowHeight: 0,
+                headingTextStyle: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+                columns: const [
+                  DataColumn(label: Text('No')), // Kolom Nomor Urut
+                  DataColumn(label: Text('Kode')),
+                  DataColumn(label: Text('Nama')),
+                  DataColumn(label: Text('Alamat')),
+                  DataColumn(label: Text('Telepon')),
+                  DataColumn(label: Text('Keterangan')),
+                  DataColumn(label: Text('Aksi')),
+                ],
+                rows: const [],
+              ),
+            ),
+
+            Expanded(
               child: SingleChildScrollView(
-                scrollDirection: Axis.vertical,
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(minWidth: 800),
-                    child: DataTable(
-                      headingRowColor:
-                          MaterialStateProperty.all(Colors.blue.shade100),
-                      dataRowColor: MaterialStateProperty.all(Colors.white),
-                      border: TableBorder.all(color: Colors.grey.shade300),
-                      columnSpacing: 30,
-                      dataRowHeight: 60,
-                      headingTextStyle: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      dataTextStyle: const TextStyle(fontSize: 15),
-                      columns: const [
-                        DataColumn(label: Text('Kode')),
-                        DataColumn(label: Text('Nama')),
-                        DataColumn(label: Text('Alamat')),
-                        DataColumn(label: Text('Telepon')),
-                        DataColumn(label: Text('Keterangan')),
-                        DataColumn(label: Text('Aksi')),
-                      ],
-                      rows: filteredSuppliers
-                          .take(_rowsPerPage)
-                          .map((s) => DataRow(cells: [
-                                DataCell(Text(s.kodeSupplier)),
-                                DataCell(Text(s.namaSupplier)),
-                                DataCell(Text(s.alamat ?? '-')),
-                                DataCell(Text(s.telepon ?? '-')),
-                                DataCell(Text(s.keterangan ?? '-')),
-                                DataCell(Row(
-                                  children: [
-                                    IconButton(
-                                      icon: const Icon(Icons.edit,
-                                          color: Colors.blue),
-                                      onPressed: () => _showForm(supplier: s),
-                                    ),
-                                    IconButton(
-                                      icon: const Icon(Icons.delete,
-                                          color: Colors.red),
-                                      onPressed: () => _deleteSupplier(s.id),
-                                    ),
-                                  ],
-                                )),
-                              ]))
-                          .toList(),
-                    ),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: DataTable(
+                    headingRowHeight: 0,
+                    dataRowColor: MaterialStateProperty.all(Colors.white),
+                    border: TableBorder.all(color: Colors.grey.shade300),
+                    columnSpacing: 30,
+                    dataRowHeight: 60,
+                    dataTextStyle: const TextStyle(fontSize: 15),
+                    columns: const [
+                      DataColumn(label: SizedBox.shrink()), // No
+                      DataColumn(label: SizedBox.shrink()), // Kode
+                      DataColumn(label: SizedBox.shrink()), // Nama
+                      DataColumn(label: SizedBox.shrink()), // Alamat
+                      DataColumn(label: SizedBox.shrink()), // Telepon
+                      DataColumn(label: SizedBox.shrink()), // Keterangan
+                      DataColumn(label: SizedBox.shrink()), // Aksi
+                    ],
+                    rows: filteredSuppliers
+                        .take(_rowsPerPage)
+                        .toList()
+                        .asMap()
+                        .entries
+                        .map((entry) {
+                      final index = entry.key;
+                      final s = entry.value;
+                      return DataRow(cells: [
+                        DataCell(Text('${index + 1}')), // No
+                        DataCell(Text(s.kodeSupplier)),
+                        DataCell(Text(s.namaSupplier)),
+                        DataCell(Text(s.alamat ?? '-')),
+                        DataCell(Text(s.telepon ?? '-')),
+                        DataCell(Text(s.keterangan ?? '-')),
+                        DataCell(Row(
+                          children: [
+                            IconButton(
+                              tooltip: 'Edit Data',
+                              icon: const Icon(Icons.edit, color: Colors.blue),
+                              onPressed: () => _showForm(supplier: s),
+                            ),
+                            IconButton(
+                              tooltip: 'Hapus Data',
+                              icon: const Icon(Icons.delete, color: Colors.red),
+                              onPressed: () => _deleteSupplier(s.id),
+                            ),
+                          ],
+                        )),
+                      ]);
+                    }).toList(),
                   ),
                 ),
               ),
