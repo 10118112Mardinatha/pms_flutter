@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:pms_flutter/database/app_database.dart';
+import '../screens/barang_screen.dart';
 
 class Sidebar extends StatefulWidget {
   final Function(String) onMenuTap;
-
-  const Sidebar({super.key, required this.onMenuTap});
+  final AppDatabase database;
+  const Sidebar({super.key, required this.onMenuTap, required this.database});
 
   @override
   State<Sidebar> createState() => _SidebarState();
@@ -12,6 +14,7 @@ class Sidebar extends StatefulWidget {
 class _SidebarState extends State<Sidebar> {
   bool _isCollapsed = false;
   final FocusNode _logoFocusNode = FocusNode();
+  bool _isBarangExpanded = false;
 
   @override
   void initState() {
@@ -61,7 +64,10 @@ class _SidebarState extends State<Sidebar> {
                     _menuItem(Icons.shopping_cart_checkout, 'Pemesanan'),
                     _menuItem(Icons.bar_chart, 'Laporan'),
                     _menuItem(Icons.receipt_long, 'Resep'),
-                    _buildBarangExpansion(),
+                    _expansionMenuItem(Icons.inventory, 'Barang', [
+                      _submenuItem(Icons.medical_services, 'Obat / Jasa'),
+                      _submenuItem(Icons.warning, 'Obat Expired'),
+                    ]),
                     _divider(),
                     _menuItem(Icons.person_add_alt_1, 'User'),
                   ],
@@ -133,28 +139,38 @@ class _SidebarState extends State<Sidebar> {
 
   Widget _divider() => const Divider(thickness: 1, indent: 8, endIndent: 8);
 
-  Widget _buildBarangExpansion() {
-    return Theme(
-      data: Theme.of(context).copyWith(
-        dividerColor: Colors.transparent,
-        visualDensity: VisualDensity.compact,
+  Widget _submenuItem(IconData icon, String title) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 32.0),
+      child: ListTile(
+        leading: Icon(icon, size: 20),
+        title: !_isCollapsed
+            ? Text(title, style: const TextStyle(fontSize: 14))
+            : null,
+        onTap: () => widget.onMenuTap(title),
       ),
-      child: ExpansionTile(
-        leading: const Icon(Icons.inventory_2),
-        title: _isCollapsed ? const SizedBox.shrink() : const Text('Barang'),
-        children: [
-          ListTile(
-            leading: const Icon(Icons.medical_services),
-            title: _isCollapsed ? null : const Text('Obat / Jasa'),
-            onTap: () => widget.onMenuTap('Obat / Jasa'),
-          ),
-          ListTile(
-            leading: const Icon(Icons.warning_amber),
-            title: _isCollapsed ? null : const Text('Obat Expired'),
-            onTap: () => widget.onMenuTap('Obat Expired'),
-          ),
-        ],
-      ),
+    );
+  }
+
+  Widget _expansionMenuItem(
+      IconData icon, String title, List<Widget> children) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ListTile(
+          leading: Icon(icon),
+          title: !_isCollapsed ? Text(title) : null,
+          trailing: !_isCollapsed
+              ? Icon(_isBarangExpanded ? Icons.expand_less : Icons.expand_more)
+              : null,
+          onTap: () {
+            setState(() {
+              _isBarangExpanded = !_isBarangExpanded;
+            });
+          },
+        ),
+        if (_isBarangExpanded) ...children,
+      ],
     );
   }
 }

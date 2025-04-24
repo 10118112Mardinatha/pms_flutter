@@ -2,10 +2,24 @@ import 'package:drift/drift.dart';
 import 'package:flutter/material.dart';
 import 'database/app_database.dart';
 import 'screens/login_screen.dart';
+import 'package:window_manager/window_manager.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await windowManager.ensureInitialized();
 
+  WindowOptions windowOptions = const WindowOptions(
+    center: true,
+    title: "Aplikasi dengan Title Bar",
+    backgroundColor: Colors.white,
+  );
+
+  windowManager.waitUntilReadyToShow(windowOptions, () async {
+    await windowManager.show();
+    await windowManager.focus();
+
+    await windowManager.setResizable(false);
+  });
   final db = AppDatabase();
 
   // Cek apakah sudah ada user

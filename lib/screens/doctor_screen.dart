@@ -10,42 +10,42 @@ import 'dart:typed_data';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:file_picker/file_picker.dart';
 
-class SupplierScreen extends StatefulWidget {
+class DoctorScreen extends StatefulWidget {
   final AppDatabase database;
 
-  const SupplierScreen({super.key, required this.database});
+  const DoctorScreen({super.key, required this.database});
 
   @override
-  State<SupplierScreen> createState() => _SupplierScreenState();
+  State<DoctorScreen> createState() => _DoctorScreenState();
 }
 
-class _SupplierScreenState extends State<SupplierScreen> {
+class _DoctorScreenState extends State<DoctorScreen> {
   late AppDatabase db;
-  List<Supplier> allSuppliers = [];
-  List<Supplier> filteredSuppliers = [];
+  List<Doctor> allDoctors = [];
+  List<Doctor> filteredDoctors = [];
   String searchField = 'Nama';
   String searchText = '';
   final TextEditingController _searchController = TextEditingController();
   int _rowsPerPage = 10;
   final List<int> _rowsPerPageOptions = [10, 20, 30];
-  final searchOptions = ['Kode', 'Nama', 'Alamat', 'Telepon', 'Keterangan'];
+  final searchOptions = ['Kode', 'Nama', 'Alamat', 'Telepon', 'Penjualan'];
 
   @override
   void initState() {
     super.initState();
     db = widget.database;
-    _loadSuppliers();
+    _loadDoctors();
   }
 
-  Future<void> _loadSuppliers() async {
-    final data = await db.getAllSuppliers();
+  Future<void> _loadDoctors() async {
+    final data = await db.getAllDoctors();
     setState(() {
-      allSuppliers = data;
+      allDoctors = data;
       _applySearch();
     });
   }
 
-  Future<void> importSuppliersFromExcel({
+  Future<void> importDoctorsFromExcel({
     required File file,
     required AppDatabase db,
     required VoidCallback onFinished,
@@ -57,31 +57,31 @@ class _SupplierScreenState extends State<SupplierScreen> {
       if (sheet == null) return;
 
       for (var row in sheet.rows.skip(1)) {
-        final kodeSupplier = row[0]?.value.toString() ?? '';
-        final namaSupplier = row[1]?.value.toString() ?? '';
+        final kodeDoctor = row[0]?.value.toString() ?? '';
+        final namaDoctor = row[1]?.value.toString() ?? '';
         final alamat = row[2]?.value.toString();
         final telepon = row[3]?.value.toString();
-        final keterangan = row[4]?.value.toString();
+        final nilaipenjualan = row[4]?.value;
 
-        if (kodeSupplier.isEmpty || namaSupplier.isEmpty) continue;
+        if (kodeDoctor.isEmpty || namaDoctor.isEmpty) continue;
 
         // Cek apakah kodeSupplier sudah ada
-        final exists = await (db.select(db.suppliers)
-              ..where((tbl) => tbl.kodeSupplier.equals(kodeSupplier)))
+        final exists = await (db.select(db.doctors)
+              ..where((tbl) => tbl.kodeDoctor.equals(kodeDoctor)))
             .getSingleOrNull();
 
         if (exists != null) {
-          debugPrint('Kode $kodeSupplier sudah ada, dilewati.');
+          debugPrint('Kode $kodeDoctor sudah ada, dilewati.');
           continue;
         }
 
-        await db.into(db.suppliers).insert(
-              SuppliersCompanion(
-                kodeSupplier: drift.Value(kodeSupplier),
-                namaSupplier: drift.Value(namaSupplier),
+        await db.into(db.doctors).insert(
+              DoctorsCompanion(
+                kodeDoctor: drift.Value(kodeDoctor),
+                namaDoctor: drift.Value(namaDoctor),
                 alamat: drift.Value(alamat),
                 telepon: drift.Value(telepon),
-                keterangan: drift.Value(keterangan),
+                nilaipenjualan: drift.Value(nilaipenjualan),
               ),
             );
       }
@@ -93,13 +93,13 @@ class _SupplierScreenState extends State<SupplierScreen> {
 
   void _applySearch() {
     setState(() {
-      filteredSuppliers = allSuppliers.where((s) {
+      filteredDoctors = allDoctors.where((s) {
         final value = switch (searchField) {
-          'Kode' => s.kodeSupplier,
-          'Nama' => s.namaSupplier,
+          'Kode' => s.kodeDoctor,
+          'Nama' => s.namaDoctor,
           'Alamat' => s.alamat ?? '',
           'Telepon' => s.telepon ?? '',
-          'Keterangan' => s.keterangan ?? '',
+          'Penjualan' => s.nilaipenjualan.toString() ?? '',
           _ => '',
         };
         return value.toLowerCase().contains(searchText.toLowerCase());
@@ -107,19 +107,20 @@ class _SupplierScreenState extends State<SupplierScreen> {
     });
   }
 
-  void _showForm({Supplier? supplier}) {
+//
+  void _showForm({Doctor? doctor}) {
     final formKey = GlobalKey<FormState>();
-    final kodeCtrl = TextEditingController(text: supplier?.kodeSupplier ?? '');
-    final namaCtrl = TextEditingController(text: supplier?.namaSupplier ?? '');
-    final alamatCtrl = TextEditingController(text: supplier?.alamat ?? '');
-    final teleponCtrl = TextEditingController(text: supplier?.telepon ?? '');
-    final keteranganCtrl =
-        TextEditingController(text: supplier?.keterangan ?? '');
+    final kodeCtrl = TextEditingController(text: doctor?.kodeDoctor ?? '');
+    final namaCtrl = TextEditingController(text: doctor?.namaDoctor ?? '');
+    final alamatCtrl = TextEditingController(text: doctor?.alamat ?? '');
+    final teleponCtrl = TextEditingController(text: doctor?.telepon ?? '');
+    final nilaipenjualanCtrl =
+        TextEditingController(text: doctor?.nilaipenjualan.toString() ?? '');
 
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: Text(supplier == null ? 'Tambah Supplier' : 'Edit Supplier'),
+        title: Text(doctor == null ? 'Tambah Dokter' : 'Edit Dokter'),
         content: SizedBox(
           width: 400,
           child: Form(
@@ -129,20 +130,20 @@ class _SupplierScreenState extends State<SupplierScreen> {
               children: [
                 TextFormField(
                   controller: kodeCtrl,
-                  decoration: InputDecoration(labelText: 'Kode Supplier'),
+                  decoration: InputDecoration(labelText: 'Kode Dokter'),
                   validator: (value) {
                     if (value == null || value.isEmpty)
                       return 'Wajib diisi tidak boleh kosong';
-                    final exists = allSuppliers.any((s) =>
-                        s.kodeSupplier == value &&
-                        (supplier == null || s.id != supplier.id));
+                    final exists = allDoctors.any((s) =>
+                        s.kodeDoctor == value &&
+                        (doctor == null || s.id != doctor.id));
                     if (exists) return 'Kode sudah digunakan';
                     return null;
                   },
                 ),
                 TextFormField(
                   controller: namaCtrl,
-                  decoration: InputDecoration(labelText: 'Nama Supplier'),
+                  decoration: InputDecoration(labelText: 'Nama Doktor'),
                   validator: (value) => value == null || value.isEmpty
                       ? 'Wajib diisi tidak boleh kosong'
                       : null,
@@ -162,8 +163,8 @@ class _SupplierScreenState extends State<SupplierScreen> {
                       : null,
                 ),
                 TextFormField(
-                  controller: keteranganCtrl,
-                  decoration: InputDecoration(labelText: 'Keterangan'),
+                  controller: nilaipenjualanCtrl,
+                  decoration: InputDecoration(labelText: 'Penjualan'),
                   validator: (value) => value == null || value.isEmpty
                       ? 'Wajib diisi tidak boleh kosong'
                       : null,
@@ -180,36 +181,36 @@ class _SupplierScreenState extends State<SupplierScreen> {
           ElevatedButton(
             onPressed: () async {
               if (formKey.currentState!.validate()) {
-                if (supplier == null) {
-                  await db.insertSupplier(SuppliersCompanion(
-                    kodeSupplier: Value(kodeCtrl.text),
-                    namaSupplier: Value(namaCtrl.text),
+                if (doctor == null) {
+                  await db.insertDoctors(DoctorsCompanion(
+                    kodeDoctor: Value(kodeCtrl.text),
+                    namaDoctor: Value(namaCtrl.text),
                     alamat: Value(
                         alamatCtrl.text.isNotEmpty ? alamatCtrl.text : null),
                     telepon: Value(
                         teleponCtrl.text.isNotEmpty ? teleponCtrl.text : null),
-                    keterangan: Value(keteranganCtrl.text.isNotEmpty
-                        ? keteranganCtrl.text
+                    nilaipenjualan: Value(nilaipenjualanCtrl.text.isNotEmpty
+                        ? int.tryParse(nilaipenjualanCtrl.text)
                         : null),
                   ));
                 } else {
-                  await db.updateSupplier(
-                    supplier.copyWith(
-                      kodeSupplier: kodeCtrl.text,
-                      namaSupplier: namaCtrl.text,
+                  await db.updateDoctors(
+                    doctor.copyWith(
+                      kodeDoctor: kodeCtrl.text,
+                      namaDoctor: namaCtrl.text,
                       alamat: Value(
                           alamatCtrl.text.isNotEmpty ? alamatCtrl.text : null),
                       telepon: Value(teleponCtrl.text.isNotEmpty
                           ? teleponCtrl.text
                           : null),
-                      keterangan: Value(keteranganCtrl.text.isNotEmpty
-                          ? keteranganCtrl.text
+                      nilaipenjualan: Value(nilaipenjualanCtrl.text.isNotEmpty
+                          ? int.tryParse(nilaipenjualanCtrl.text)
                           : null),
                     ),
                   );
                 }
                 if (context.mounted) Navigator.pop(context);
-                await _loadSuppliers();
+                await _loadDoctors();
               }
             },
             child: const Text('Simpan'),
@@ -219,7 +220,7 @@ class _SupplierScreenState extends State<SupplierScreen> {
     );
   }
 
-  void _deleteSupplier(int id) async {
+  void _deleteDoctor(int id) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
@@ -237,8 +238,8 @@ class _SupplierScreenState extends State<SupplierScreen> {
     );
 
     if (confirm == true) {
-      await db.deleteSupplier(id);
-      await _loadSuppliers(); // <-- refresh data di layar
+      await db.deleteDoctor(id);
+      await _loadDoctors(); // <-- refresh data di layar
     }
   }
 
@@ -250,17 +251,17 @@ class _SupplierScreenState extends State<SupplierScreen> {
     final Sheet sheet = excel[defaultSheet];
 
     // Isi judul kolom
-    sheet.appendRow(['No', 'Kode', 'Nama', 'Alamat', 'Telepon', 'Keterangan']);
+    sheet.appendRow(['No', 'Kode', 'Nama', 'Alamat', 'Telepon', 'Penjualan']);
 
     // Isi data baris
-    for (int i = 0; i < filteredSuppliers.length; i++) {
-      var s = filteredSuppliers[i];
+    for (int i = 0; i < filteredDoctors.length; i++) {
+      var s = filteredDoctors[i];
       sheet.appendRow([
-        s.kodeSupplier,
-        s.namaSupplier,
+        s.kodeDoctor,
+        s.namaDoctor,
         s.alamat ?? '-',
         s.telepon ?? '-',
-        s.keterangan ?? '-',
+        s.nilaipenjualan ?? '-',
       ]);
     }
 
@@ -270,7 +271,7 @@ class _SupplierScreenState extends State<SupplierScreen> {
       final now = DateTime.now();
       final formattedDate =
           "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}_${now.hour.toString().padLeft(2, '0')}-${now.minute.toString().padLeft(2, '0')}";
-      final fileName = 'suppliers_$formattedDate.xlsx';
+      final fileName = 'Dokter_$formattedDate.xlsx';
 
       await Printing.sharePdf(
         bytes: Uint8List.fromList(fileBytes),
@@ -285,14 +286,14 @@ class _SupplierScreenState extends State<SupplierScreen> {
       pw.Page(
         build: (context) {
           return pw.Table.fromTextArray(
-            headers: ['Kode', 'Nama', 'Alamat', 'Telepon', 'Keterangan'],
-            data: filteredSuppliers.map((s) {
+            headers: ['Kode', 'Nama', 'Alamat', 'Telepon', 'Penjualan'],
+            data: filteredDoctors.map((s) {
               return [
-                s.kodeSupplier,
-                s.namaSupplier,
+                s.kodeDoctor,
+                s.namaDoctor,
                 s.alamat ?? '-',
                 s.telepon ?? '-',
-                s.keterangan ?? '-',
+                s.nilaipenjualan ?? '-',
               ];
             }).toList(),
           );
@@ -320,7 +321,7 @@ class _SupplierScreenState extends State<SupplierScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Manajemen Supplier',
+                  'Manajemen Dokter',
                   style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w600,
@@ -363,8 +364,8 @@ class _SupplierScreenState extends State<SupplierScreen> {
                         );
 
                         if (confirm == true) {
-                          await importSuppliersFromExcel(
-                              file: file, db: db, onFinished: _loadSuppliers);
+                          await importDoctorsFromExcel(
+                              file: file, db: db, onFinished: _loadDoctors);
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(content: Text('Import berhasil!')),
                           );
@@ -387,7 +388,7 @@ class _SupplierScreenState extends State<SupplierScreen> {
                     child: ElevatedButton.icon(
                       onPressed: () => _showForm(),
                       icon: const Icon(Icons.add),
-                      label: const Text('Tambah Supplier'),
+                      label: const Text('Tambah Dokter'),
                     ),
                   ),
                 ])
@@ -453,7 +454,7 @@ class _SupplierScreenState extends State<SupplierScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  '📋 Daftar Supplier',
+                  '📋 Daftar Dokter',
                   style: Theme.of(context).textTheme.titleLarge!.copyWith(
                         fontWeight: FontWeight.bold,
                         fontSize: 15,
@@ -485,7 +486,7 @@ class _SupplierScreenState extends State<SupplierScreen> {
 
             Expanded(
               child: SingleChildScrollView(
-                child: SizedBox(
+                child: Container(
                   width: double.infinity,
                   child: DataTable(
                     headingRowColor:
@@ -501,10 +502,10 @@ class _SupplierScreenState extends State<SupplierScreen> {
                       DataColumn(label: Text('Nama')),
                       DataColumn(label: Text('Alamat')),
                       DataColumn(label: Text('Telepon')),
-                      DataColumn(label: Text('Keterangan')),
-                      DataColumn(label: Text('Aksi')),
+                      DataColumn(label: Text('Penjualan')),
+                      DataColumn(label: Text('Aksi')), // Aksi
                     ],
-                    rows: filteredSuppliers
+                    rows: filteredDoctors
                         .take(_rowsPerPage)
                         .toList()
                         .asMap()
@@ -516,14 +517,14 @@ class _SupplierScreenState extends State<SupplierScreen> {
                         DataCell(Text('${index + 1}')), // No
                         DataCell(
                           Tooltip(
-                            message: 'Kode Supplier',
-                            child: Text(s.kodeSupplier),
+                            message: 'Kode Dokter',
+                            child: Text(s.kodeDoctor),
                           ),
                         ),
                         DataCell(
                           Tooltip(
-                            message: 'Nama Supplier',
-                            child: Text(s.namaSupplier),
+                            message: 'Nama',
+                            child: Text(s.namaDoctor),
                           ),
                         ),
                         DataCell(
@@ -540,8 +541,9 @@ class _SupplierScreenState extends State<SupplierScreen> {
                         ),
                         DataCell(
                           Tooltip(
-                            message: 'Keterengan',
-                            child: Text(s.keterangan ?? '-'),
+                            message: 'Nilai Penjualan',
+                            child: Text(
+                                'Rp. ${s.nilaipenjualan?.toString() ?? '0'}'),
                           ),
                         ),
                         DataCell(Row(
@@ -549,12 +551,12 @@ class _SupplierScreenState extends State<SupplierScreen> {
                             IconButton(
                               tooltip: 'Edit Data',
                               icon: const Icon(Icons.edit, color: Colors.blue),
-                              onPressed: () => _showForm(supplier: s),
+                              onPressed: () => _showForm(doctor: s),
                             ),
                             IconButton(
                               tooltip: 'Hapus Data',
                               icon: const Icon(Icons.delete, color: Colors.red),
-                              onPressed: () => _deleteSupplier(s.id),
+                              onPressed: () => _deleteDoctor(s.id),
                             ),
                           ],
                         )),

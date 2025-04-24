@@ -4,6 +4,8 @@ import '../models/user_model.dart'; // Ganti sesuai path model user kamu
 import '../components/sidebar.dart';
 import '../components/topbar.dart';
 import '../screens/supplier_screen.dart';
+import '../screens/barang_screen.dart';
+import '../screens/doctor_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   final UserModel user;
@@ -28,7 +30,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       case 'Supplier':
         return SupplierScreen(database: db);
       case 'Dokter':
-        return const Center(child: Text("Halaman Dokter"));
+        return DoctorScreen(database: db);
       case 'Pelanggan':
         return const Center(child: Text("Halaman Pelanggan"));
       case 'Pembelian':
@@ -37,10 +39,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
         return const Center(child: Text("Halaman Penjualan"));
       case 'Resep':
         return const Center(child: Text("Halaman Resep"));
-      case 'Barang':
-        return const Center(child: Text("Halaman Barang"));
+      case 'Obat / Jasa':
+        return BarangScreen(database: db);
       case 'Obat Expired':
-        return const Center(child: Text("Halaman Obat Expired"));
+        return Center(child: Text('Halaman Obat Expired'));
       default:
         return _buildDashboardContent();
     }
@@ -98,7 +100,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Scaffold(
       body: Row(
         children: [
-          Sidebar(onMenuTap: _onMenuTap),
+          Sidebar(
+            onMenuTap: _onMenuTap,
+            database: AppDatabase(),
+          ),
           Expanded(
             child: Column(
               children: [
