@@ -9,6 +9,7 @@ void main() async {
   await windowManager.ensureInitialized();
 
   WindowOptions windowOptions = const WindowOptions(
+    size: Size(1350, 700),
     center: true,
     title: "Aplikasi dengan Title Bar",
     backgroundColor: Colors.white,
@@ -17,7 +18,7 @@ void main() async {
   windowManager.waitUntilReadyToShow(windowOptions, () async {
     await windowManager.show();
     await windowManager.focus();
-
+    await windowManager.setMinimumSize(Size(1350, 700));
     await windowManager.setResizable(false);
   });
   final db = AppDatabase();

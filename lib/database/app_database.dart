@@ -15,15 +15,6 @@ class Users extends Table {
   TextColumn get role => text().withDefault(const Constant('kasir'))();
 }
 
-class Doctors extends Table {
-  IntColumn get id => integer().autoIncrement()();
-  TextColumn get kodeDoctor => text().withLength(min: 1, max: 20).unique()();
-  TextColumn get namaDoctor => text().withLength(min: 1, max: 50)();
-  TextColumn get alamat => text().nullable()();
-  TextColumn get telepon => text().nullable()();
-  IntColumn get nilaipenjualan => integer().nullable()();
-}
-
 class Suppliers extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get kodeSupplier => text().withLength(min: 1, max: 20)();
@@ -33,9 +24,18 @@ class Suppliers extends Table {
   TextColumn get keterangan => text().nullable()();
 }
 
+class Doctors extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get kodeDoctor => text().withLength(min: 1, max: 20).unique()();
+  TextColumn get namaDoctor => text().withLength(min: 1, max: 50)();
+  TextColumn get alamat => text().nullable()();
+  TextColumn get telepon => text().nullable()();
+  IntColumn get nilaipenjualan => integer().nullable()();
+}
+
 class Barangs extends Table {
   IntColumn get id => integer().autoIncrement()();
-  TextColumn get kodeBarang => text().withLength(min: 1, max: 20)();
+  TextColumn get kodeBarang => text().withLength(min: 1, max: 20).unique()();
   TextColumn get namaBarang => text()();
   TextColumn get kelompok => text()();
   TextColumn get satuan => text()();
@@ -48,16 +48,13 @@ class Barangs extends Table {
   IntColumn get jualDisc4 => integer().nullable()();
 }
 
-class Pembelian extends Table {
+class Pembelians extends Table {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get noFaktur => integer().withDefault(const Constant(0))();
-  TextColumn get kodeSupplier => text()
-      .withLength(min: 1, max: 20)
-      .customConstraint('REFERENCES suppliers(kode_supplier)')();
+  TextColumn get kodeSupplier => text().withLength(min: 1, max: 20)();
   TextColumn get namaSuppliers => text()();
-  TextColumn get kodeBarang => text()
-      .withLength(min: 1, max: 20)
-      .customConstraint('REFERENCES barangs(kode_barang)')(); // 🔗 relasi
+  TextColumn get kodeBarang =>
+      text().withLength(min: 1, max: 20)(); // 🔗 relasi
   TextColumn get namaBarang => text()();
   DateTimeColumn get tanggalBeli => dateTime()();
   DateTimeColumn get expired => dateTime()();
@@ -74,11 +71,30 @@ class Pembelian extends Table {
   IntColumn get totalHarga => integer().nullable()();
 }
 
-class Penjualan extends Table {
+class Pembelianstmp extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get kodeBarang =>
+      text().withLength(min: 1, max: 20)(); // 🔗 relasi
+  TextColumn get namaBarang => text()();
+  DateTimeColumn get expired => dateTime()();
+  TextColumn get kelompok => text()();
+  TextColumn get satuan => text()();
+  IntColumn get hargaBeli => integer().withDefault(const Constant(0))();
+  IntColumn get hargaJual => integer().withDefault(const Constant(0))();
+  IntColumn get jualDisc1 => integer().nullable()();
+  IntColumn get jualDisc2 => integer().nullable()();
+  IntColumn get jualDisc3 => integer().nullable()();
+  IntColumn get jualDisc4 => integer().nullable()();
+  IntColumn get ppn => integer().nullable()();
+  IntColumn get jumlahBeli => integer().nullable()();
+  IntColumn get totalHarga => integer().nullable()();
+}
+
+class Penjualans extends Table {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get noFaktur => integer().withDefault(const Constant(0))();
   TextColumn get kodeBarang =>
-      text().customConstraint('REFERENCES barangs(kode_barang)')();
+      text().withLength(min: 1, max: 20)(); // 🔗 relasi
   TextColumn get namaBarang => text()();
   DateTimeColumn get tanggalBeli => dateTime()();
   DateTimeColumn get expired => dateTime()();
@@ -89,8 +105,20 @@ class Penjualan extends Table {
   IntColumn get jualDiscon => integer().nullable()();
   IntColumn get jumlahJual => integer().nullable()();
   IntColumn get totalHargaSebelumDisc => integer().nullable()();
-  IntColumn get totalHargaSetelahisc => integer().nullable()();
+  IntColumn get totalHargaSetelahDisc => integer().nullable()();
   IntColumn get totalDisc => integer().nullable()();
+}
+
+class Pelanggans extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get kodPelanggan => text().withLength(min: 1, max: 20).unique()();
+  TextColumn get namaPelanggan => text().withLength(min: 1, max: 50)();
+  TextColumn get alamat => text().nullable()();
+  TextColumn get kelompok => text().nullable()();
+  IntColumn get limitpiutang => integer().nullable()();
+  IntColumn get discount => integer().nullable()();
+  IntColumn get totalPenjualan => integer().nullable()();
+  IntColumn get saldoPiutang => integer().nullable()();
 }
 
 // Kelas utama database
@@ -99,30 +127,27 @@ class Penjualan extends Table {
   Suppliers,
   Doctors,
   Barangs,
-  Pembelian,
-  Penjualan,
+  Penjualans,
+  Pembelians,
+  Pembelianstmp,
+  Pelanggans,
 ])
 class AppDatabase extends _$AppDatabase {
-  AppDatabase() : super(_openConnection());
+  AppDatabase._internal() : super(_openConnection());
+
+  static final AppDatabase _instance = AppDatabase._internal();
+
+  factory AppDatabase() {
+    return _instance;
+  }
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 1;
 
-  @override
-  MigrationStrategy get migration => MigrationStrategy(onCreate: (m) async {
-        await m.createAll();
-      }, onUpgrade: (m, from, to) async {
-        if (from < 6) {
-          await m.createTable(suppliers);
-          await m.createTable(doctors);
-          await m.createTable(barangs);
-          await m.createTable(pembelian);
-          await m.createTable(penjualan);
-        }
-      });
-
-  // USERS
+  // Ambil semua user
   Future<List<User>> getAllUsers() => select(users).get();
+
+  // Login hanya berdasarkan username dan password
   Future<User?> login(String username, String password) {
     return (select(users)
           ..where((tbl) => tbl.username.equals(username))
@@ -130,22 +155,21 @@ class AppDatabase extends _$AppDatabase {
         .getSingleOrNull();
   }
 
+  // Cek apakah user dengan username tertentu sudah ada
   Future<User?> getUserByUsername(String username) {
     return (select(users)..where((tbl) => tbl.username.equals(username)))
         .getSingleOrNull();
   }
 
+  // Insert user, bisa kamu expand dengan validasi tambahan jika perlu
   Future<int> insertUser(UsersCompanion user) => into(users).insert(user);
 
-  // SUPPLIERS
+  // SUPPLIER
+
   Future<List<Supplier>> getAllSuppliers() => select(suppliers).get();
+
   Future<int> insertSupplier(SuppliersCompanion supplier) {
     return into(suppliers).insert(supplier);
-  }
-
-  Future<Supplier?> getSupplierByKode(String kode) {
-    return (select(suppliers)..where((tbl) => tbl.kodeSupplier.equals(kode)))
-        .getSingleOrNull();
   }
 
   Future<void> updateSupplier(Supplier supplier) async {
@@ -155,8 +179,18 @@ class AppDatabase extends _$AppDatabase {
   Future<int> deleteSupplier(int id) =>
       (delete(suppliers)..where((tbl) => tbl.id.equals(id))).go();
 
-  // DOCTORS
+  Future<List<Supplier>> searchSupplier(String query) {
+    return (select(suppliers)
+          ..where((tbl) =>
+              tbl.namaSupplier.like('%$query%') |
+              tbl.kodeSupplier.like('%$query%'))
+          ..limit(10))
+        .get();
+  }
+
+// DOCTOR
   Future<List<Doctor>> getAllDoctors() => select(doctors).get();
+
   Future<int> insertDoctors(DoctorsCompanion doctor) {
     return into(doctors).insert(doctor);
   }
@@ -168,73 +202,7 @@ class AppDatabase extends _$AppDatabase {
   Future<int> deleteDoctor(int id) =>
       (delete(doctors)..where((tbl) => tbl.id.equals(id))).go();
 
-  //Pembelian
-  // Tambah pembelian
-  Future<int> insertPembelian(PembelianCompanion pembelians) {
-    return into(pembelian).insert(pembelians);
-  }
-
-// Ambil semua data pembelian
-  Future<List<PembelianData>> getAllPembelian() => select(pembelian).get();
-
-// Ambil pembelian berdasarkan kode barang
-  Future<List<PembelianData>> getPembelianByKodeBarang(String kodeBarang) {
-    return (select(pembelian)
-          ..where((tbl) => tbl.kodeBarang.equals(kodeBarang)))
-        .get();
-  }
-
-// Ambil pembelian berdasarkan kode supplier
-  Future<List<PembelianData>> getPembelianByKodeSupplier(String kodeSupplier) {
-    return (select(pembelian)
-          ..where((tbl) => tbl.kodeSupplier.equals(kodeSupplier)))
-        .get();
-  }
-
-// Update pembelian
-  Future<bool> updatePembelian(PembelianData pembelians) {
-    return update(pembelian).replace(pembelians);
-  }
-
-// Hapus pembelian
-  Future<int> deletePembelian(int id) {
-    return (delete(pembelian)..where((tbl) => tbl.id.equals(id))).go();
-  }
-
-//*PENJUALAN*
-  Future<int> insertPenjualan(PenjualanCompanion penjualans) {
-    return into(penjualan).insert(penjualans);
-  }
-
-  Future<List<PenjualanData>> getAllPenjualan() {
-    return select(penjualan).get();
-  }
-
-  Future<List<PenjualanData>> getPenjualanByNoFaktur(int noFaktur) {
-    return (select(penjualan)..where((tbl) => tbl.noFaktur.equals(noFaktur)))
-        .get();
-  }
-
-  Future<List<PenjualanData>> getPenjualanByKodeBarang(String kodeBarang) {
-    return (select(penjualan)
-          ..where((tbl) => tbl.kodeBarang.equals(kodeBarang)))
-        .get();
-  }
-
-  Future<List<PenjualanData>> getPenjualanByTanggal(DateTime tanggal) {
-    return (select(penjualan)..where((tbl) => tbl.tanggalBeli.equals(tanggal)))
-        .get();
-  }
-
-  Future<bool> updatePenjualan(PenjualanData penjualans) {
-    return update(penjualan).replace(penjualans);
-  }
-
-  Future<int> deletePenjualan(int id) {
-    return (delete(penjualan)..where((tbl) => tbl.id.equals(id))).go();
-  }
-
-  //barang
+//Barang
   Future<List<Barang>> getAllBarangs() => select(barangs).get();
 
   Future<int> insertBarangs(BarangsCompanion barang) {
@@ -247,9 +215,89 @@ class AppDatabase extends _$AppDatabase {
 
   Future<int> deleteBarangs(int id) =>
       (delete(barangs)..where((tbl) => tbl.id.equals(id))).go();
+
+  Future<List<Barang>> searchBarang(String query) {
+    return (select(barangs)
+          ..where((tbl) =>
+              tbl.namaBarang.like('%$query%') | tbl.kodeBarang.like('%$query%'))
+          ..limit(10))
+        .get();
+  }
+
+//penjualan
+  Future<List<Penjualan>> getAllPenjualans() => select(penjualans).get();
+
+  Future<int> insertPenjualan(PenjualansCompanion entry) {
+    return into(penjualans).insert(entry);
+  }
+
+  Future<bool> updatePenjualan(Penjualan entry) {
+    return update(penjualans).replace(entry);
+  }
+
+  Future<int> deletePenjualan(int id) {
+    return (delete(penjualans)..where((tbl) => tbl.id.equals(id))).go();
+  }
+
+//pembelian
+
+  Future<List<Pembelian>> getAllPembelians() {
+    return select(pembelians).get();
+  }
+
+  Future<int> insertPembelian(PembeliansCompanion entry) {
+    return into(pembelians).insert(entry);
+  }
+
+  Future<bool> updatePembelian(Pembelian entry) {
+    return update(pembelians).replace(entry);
+  }
+
+  Future<int> deletePembelian(int id) {
+    return (delete(pembelians)..where((tbl) => tbl.id.equals(id))).go();
+  }
+
+//pembelian tmp
+  Future<List<PembelianstmpData>> getAllPembeliansTmp() {
+    return select(pembelianstmp).get();
+  }
+
+  Future<int> insertPembelianTmp(PembelianstmpCompanion entry) {
+    return into(pembelianstmp).insert(entry);
+  }
+
+  Future<bool> updatePembelianTmp(PembelianstmpData entry) {
+    return update(pembelianstmp).replace(entry);
+  }
+
+  Future<int> deletePembelianTmp(int id) {
+    return (delete(pembelianstmp)..where((tbl) => tbl.id.equals(id))).go();
+  }
+
+  Future<int> getTotalHargaPembelianTmp() async {
+    final result = await customSelect(
+      'SELECT SUM(total_harga) as total FROM pembelianstmp',
+      readsFrom: {pembelianstmp},
+    ).getSingle();
+
+    return result.data['total'] as int? ?? 0;
+  }
+
+  // PELANGGAN
+  Future<List<Pelanggan>> getAllPelanggans() => select(pelanggans).get();
+  Future<int> insertPelanggans(PelanggansCompanion pelanggan) {
+    return into(pelanggans).insert(pelanggan);
+  }
+
+  Future<void> updatePelanggans(Pelanggan pelanggan) async {
+    await update(pelanggans).replace(pelanggan);
+  }
+
+  Future<int> deletePelanggan(int id) =>
+      (delete(pelanggans)..where((tbl) => tbl.id.equals(id))).go();
 }
 
-// FUNGSI OPEN DATABASE
+// Fungsi membuka koneksi database
 LazyDatabase _openConnection() {
   return LazyDatabase(() async {
     final dir = await getApplicationDocumentsDirectory();
