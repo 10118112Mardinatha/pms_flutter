@@ -117,7 +117,8 @@ class _PelangganScreenState extends State<PelangganScreen> {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: Text(PelangganScreen == null ? 'Tambah Dokter' : 'Edit Dokter'),
+        title: Text(
+            PelangganScreen == null ? 'Tambah Pelanggan' : 'Edit Pelanggan'),
         content: SizedBox(
           width: 400,
           child: Form(
@@ -127,7 +128,7 @@ class _PelangganScreenState extends State<PelangganScreen> {
               children: [
                 TextFormField(
                   controller: kodeCtrl,
-                  decoration: InputDecoration(labelText: 'Kode Dokter'),
+                  decoration: InputDecoration(labelText: 'Kode Pelangan'),
                   validator: (value) {
                     if (value == null || value.isEmpty)
                       return 'Wajib diisi tidak boleh kosong';
@@ -140,7 +141,7 @@ class _PelangganScreenState extends State<PelangganScreen> {
                 ),
                 TextFormField(
                   controller: namaCtrl,
-                  decoration: InputDecoration(labelText: 'Nama Doktor'),
+                  decoration: InputDecoration(labelText: 'Nama Pelanggan'),
                   validator: (value) => value == null || value.isEmpty
                       ? 'Wajib diisi tidak boleh kosong'
                       : null,
@@ -154,7 +155,7 @@ class _PelangganScreenState extends State<PelangganScreen> {
                 ),
                 TextFormField(
                   controller: kelompokCtrl,
-                  decoration: InputDecoration(labelText: 'Penjualan'),
+                  decoration: InputDecoration(labelText: 'Kelompok'),
                   validator: (value) => value == null || value.isEmpty
                       ? 'Wajib diisi tidak boleh kosong'
                       : null,
@@ -304,7 +305,7 @@ class _PelangganScreenState extends State<PelangganScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Manajemen Dokter',
+                  'Manajemen Pelanggan',
                   style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w600,

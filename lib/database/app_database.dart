@@ -295,6 +295,15 @@ class AppDatabase extends _$AppDatabase {
 
   Future<int> deletePelanggan(int id) =>
       (delete(pelanggans)..where((tbl) => tbl.id.equals(id))).go();
+
+  Future<List<Pelanggan>> searchPelanggan(String query) {
+    return (select(pelanggans)
+          ..where((tbl) =>
+              tbl.namaPelanggan.like('%$query%') |
+              tbl.kodPelanggan.like('%$query%'))
+          ..limit(10))
+        .get();
+  }
 }
 
 // Fungsi membuka koneksi database

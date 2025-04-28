@@ -36,6 +36,7 @@ class _PembelianScreenState extends State<PembelianScreen> {
   final tanggalBeliCtrl = TextEditingController(); // definisikan di atas
   DateTime? tanggalBeli; // tanggal aslinya tetap disimpan di sini
   final TextEditingController totalSeluruhCtrl = TextEditingController();
+  String totalpembelian = '';
 
   Supplier? selectedSupplier;
   DateTime? _selectedDate;
@@ -168,8 +169,7 @@ class _PembelianScreenState extends State<PembelianScreen> {
     _kodeSupplierController.clear();
     _SupplierController.clear();
     tanggalBeli = null;
-    tanggalBeliCtrl
-        .clear(); // Kalau kamu pakai TextEditingController untuk tanggal
+    tanggalBeliCtrl.clear();
     totalSeluruhCtrl.clear();
     _loadPembelians();
   }
@@ -353,41 +353,121 @@ class _PembelianScreenState extends State<PembelianScreen> {
                     controller: hargaBeliCtrl,
                     decoration: InputDecoration(labelText: 'Harga Beli'),
                     keyboardType: TextInputType.number,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Harap masukkan angka';
+                      }
+                      // Menggunakan regex untuk memeriksa apakah input hanya angka
+                      if (!RegExp(r'^[0-9]+$').hasMatch(value)) {
+                        return 'Hanya angka yang diperbolehkan';
+                      }
+                      return null; // Valid
+                    },
                   ),
                   TextFormField(
                     controller: hargaJualCtrl,
                     decoration: InputDecoration(labelText: 'Harga Jual'),
                     keyboardType: TextInputType.number,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Harap masukkan angka';
+                      }
+                      // Menggunakan regex untuk memeriksa apakah input hanya angka
+                      if (!RegExp(r'^[0-9]+$').hasMatch(value)) {
+                        return 'Hanya angka yang diperbolehkan';
+                      }
+                      return null; // Valid
+                    },
                   ),
                   TextFormField(
                     controller: disc1Ctrl,
                     decoration: InputDecoration(labelText: 'Disc 1'),
                     keyboardType: TextInputType.number,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Harap masukkan angka';
+                      }
+                      // Menggunakan regex untuk memeriksa apakah input hanya angka
+                      if (!RegExp(r'^[0-9]+$').hasMatch(value)) {
+                        return 'Hanya angka yang diperbolehkan';
+                      }
+                      return null; // Valid
+                    },
                   ),
                   TextFormField(
                     controller: disc2Ctrl,
                     decoration: InputDecoration(labelText: 'Disc 2'),
                     keyboardType: TextInputType.number,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Harap masukkan angka';
+                      }
+                      // Menggunakan regex untuk memeriksa apakah input hanya angka
+                      if (!RegExp(r'^[0-9]+$').hasMatch(value)) {
+                        return 'Hanya angka yang diperbolehkan';
+                      }
+                      return null; // Valid
+                    },
                   ),
                   TextFormField(
                     controller: disc3Ctrl,
                     decoration: InputDecoration(labelText: 'Disc 3'),
                     keyboardType: TextInputType.number,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Harap masukkan angka';
+                      }
+                      // Menggunakan regex untuk memeriksa apakah input hanya angka
+                      if (!RegExp(r'^[0-9]+$').hasMatch(value)) {
+                        return 'Hanya angka yang diperbolehkan';
+                      }
+                      return null; // Valid
+                    },
                   ),
                   TextFormField(
                     controller: disc4Ctrl,
                     decoration: InputDecoration(labelText: 'Disc 4'),
                     keyboardType: TextInputType.number,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Harap masukkan angka';
+                      }
+                      // Menggunakan regex untuk memeriksa apakah input hanya angka
+                      if (!RegExp(r'^[0-9]+$').hasMatch(value)) {
+                        return 'Hanya angka yang diperbolehkan';
+                      }
+                      return null; // Valid
+                    },
                   ),
                   TextFormField(
                     controller: ppnCtrl,
                     decoration: InputDecoration(labelText: 'PPN'),
                     keyboardType: TextInputType.number,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Harap masukkan angka';
+                      }
+                      // Menggunakan regex untuk memeriksa apakah input hanya angka
+                      if (!RegExp(r'^[0-9]+$').hasMatch(value)) {
+                        return 'Hanya angka yang diperbolehkan';
+                      }
+                      return null; // Valid
+                    },
                   ),
                   TextFormField(
                     controller: jumlahBeliCtrl,
                     decoration: InputDecoration(labelText: 'Jumlah Beli'),
                     keyboardType: TextInputType.number,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Harap masukkan angka';
+                      }
+                      // Menggunakan regex untuk memeriksa apakah input hanya angka
+                      if (!RegExp(r'^[0-9]+$').hasMatch(value)) {
+                        return 'Hanya angka yang diperbolehkan';
+                      }
+                      return null; // Valid
+                    },
                   ),
                   TextFormField(
                     controller: totalHargaCtrl,
@@ -469,7 +549,7 @@ class _PembelianScreenState extends State<PembelianScreen> {
 
   Future<void> updateTotalSeluruh() async {
     final total = await db.getTotalHargaPembelianTmp();
-    totalSeluruhCtrl.text = total == 0 ? '' : 'Total : Rp. ${total.toString()}';
+    totalpembelian = total == 0 ? '' : 'Rp. ${total.toString()}';
   }
 
   void _deletePembelian(int id) async {
@@ -524,6 +604,13 @@ class _PembelianScreenState extends State<PembelianScreen> {
                     onPressed: prosesbatal,
                     icon: const Icon(Icons.close),
                     label: const Text('Batal'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors
+                          .red, // Mengatur warna latar belakang menjadi merah
+                    ),
+                  ),
+                  SizedBox(
+                    width: 15,
                   ),
                   ElevatedButton.icon(
                     onPressed: prosesPembelian,
@@ -533,11 +620,15 @@ class _PembelianScreenState extends State<PembelianScreen> {
                 ])
               ],
             ),
+
+            Divider(thickness: 1),
             SizedBox(height: 10),
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              mainAxisAlignment: MainAxisAlignment.start,
               children: [
-                Expanded(
+                SizedBox(
+                  height: 35,
+                  width: 250,
                   child: TextFormField(
                     controller: _nofaktur,
                     decoration: InputDecoration(
@@ -546,8 +637,10 @@ class _PembelianScreenState extends State<PembelianScreen> {
                     ),
                   ),
                 ),
-                SizedBox(width: 30), // Spacing between the text fields
-                Expanded(
+                SizedBox(width: 250), // Spacing between the text fields
+                SizedBox(
+                  height: 35,
+                  width: 250,
                   child: TypeAheadField<Supplier>(
                     textFieldConfiguration: TextFieldConfiguration(
                       decoration: InputDecoration(
@@ -578,10 +671,13 @@ class _PembelianScreenState extends State<PembelianScreen> {
               ],
             ),
             const SizedBox(height: 15),
+
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              mainAxisAlignment: MainAxisAlignment.start,
               children: [
-                Expanded(
+                SizedBox(
+                  height: 35,
+                  width: 250,
                   child: TextFormField(
                     controller: tanggalBeliCtrl,
                     readOnly: true,
@@ -610,8 +706,10 @@ class _PembelianScreenState extends State<PembelianScreen> {
                   ),
                 ),
 
-                SizedBox(width: 30), // Spacing between the text fields
-                Expanded(
+                SizedBox(width: 250), // Spacing between the text fields
+                SizedBox(
+                  height: 35,
+                  width: 250,
                   child: TextFormField(
                     controller: _kodeSupplierController,
                     decoration: InputDecoration(
@@ -623,15 +721,15 @@ class _PembelianScreenState extends State<PembelianScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 15),
+            const SizedBox(height: 10),
+
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Expanded(
-                  child: TextFormField(
-                    controller: totalSeluruhCtrl,
-                    decoration: InputDecoration(),
-                    readOnly: true,
+                  child: Text(
+                    'Total : ${totalpembelian}',
+                    style: TextStyle(fontSize: 20),
                   ),
                 ),
                 SizedBox(width: 30), // Spacing between the text fields
@@ -643,8 +741,10 @@ class _PembelianScreenState extends State<PembelianScreen> {
               ],
             ),
 
-            const SizedBox(height: 15),
-
+            const SizedBox(height: 5),
+            Divider(
+              thickness: 0.5,
+            ),
             // === HEADER DAFTAR SUPPLIER DAN DROPDOWN BARIS ===
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -670,7 +770,7 @@ class _PembelianScreenState extends State<PembelianScreen> {
                         MaterialStateProperty.all(Colors.blue.shade100),
                     dataRowColor: MaterialStateProperty.all(Colors.white),
                     border: TableBorder.all(color: Colors.grey.shade300),
-                    headingRowHeight: 50,
+                    headingRowHeight: 30,
                     headingTextStyle: const TextStyle(fontSize: 11),
                     columnSpacing: 20,
                     dataTextStyle: const TextStyle(fontSize: 10),
