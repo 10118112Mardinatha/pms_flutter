@@ -10,6 +10,8 @@ import '../components/topbar.dart';
 import '../screens/supplier_screen.dart';
 import '../screens/barang_screen.dart';
 import '../screens/doctor_screen.dart';
+import '../screens/rak_screen.dart';
+import '../screens/user_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   final UserModel user;
@@ -23,6 +25,7 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   String _selectedPage = 'Dashboard';
   final AppDatabase db = AppDatabase();
+
   void _onMenuTap(String page) {
     setState(() {
       _selectedPage = page;
@@ -41,12 +44,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
         return PembelianScreen(database: db);
       case 'Penjualan':
         return PenjualanScreen(database: db);
-      case 'Laporan':
-        return TestlaporanScreen(database: db);
       case 'Resep':
         return const Center(child: Text("Halaman Resep"));
+      case 'Rak':
+        return RakScreen(database: db);
+      case 'Laporan Pembelian':
+        return TestlaporanScreen(database: db);
       case 'Obat / Jasa':
         return BarangScreen(database: db);
+      case 'User':
+        return TambahUserScreen(
+            database: db, currentUserId: int.parse(widget.user.id));
       case 'Obat Expired':
         return Center(child: Text('Halaman Obat Expired'));
       default:
@@ -109,11 +117,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Sidebar(
             onMenuTap: _onMenuTap,
             database: AppDatabase(),
+            role: widget.user.role,
           ),
           Expanded(
             child: Column(
               children: [
-                TopBar(user: widget.user),
+                TopBar(
+                  user: widget.user,
+                  db: db,
+                ),
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.all(16),

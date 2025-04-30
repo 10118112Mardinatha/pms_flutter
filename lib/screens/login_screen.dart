@@ -31,12 +31,23 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = false);
 
     if (user != null) {
-      // Konversi User (Dari DB) ke UserModel (Model Aplikasi)
+      if (user.aktif != true) {
+        // Akun tidak aktif
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Akun Anda tidak aktif. Silakan hubungi admin.'),
+            backgroundColor: Colors.orangeAccent,
+          ),
+        );
+        return;
+      }
+
+      // Konversi ke UserModel
       final userModel = UserModel(
         id: user.id.toString(),
         username: user.username,
-        email: '',
         role: user.role,
+        aktif: user.aktif,
         avatar: null,
       );
 

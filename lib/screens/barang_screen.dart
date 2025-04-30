@@ -142,6 +142,7 @@ class _BarangScreenState extends State<BarangScreen> {
         TextEditingController(text: barang?.jualDisc3.toString() ?? '');
     final dic4Ctrl =
         TextEditingController(text: barang?.jualDisc4.toString() ?? '');
+
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
@@ -149,15 +150,15 @@ class _BarangScreenState extends State<BarangScreen> {
         content: SizedBox(
           width: 400,
           child: SingleChildScrollView(
-            // Membungkus konten form agar bisa digulir
             child: Form(
               key: formKey,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  // Form utama
                   TextFormField(
                     controller: kodeCtrl,
-                    decoration: InputDecoration(labelText: 'Kode Barang'),
+                    decoration: const InputDecoration(labelText: 'Kode Barang'),
                     validator: (value) {
                       if (value == null || value.isEmpty)
                         return 'Wajib diisi tidak boleh kosong';
@@ -170,74 +171,82 @@ class _BarangScreenState extends State<BarangScreen> {
                   ),
                   TextFormField(
                     controller: namaBrgCtrl,
-                    decoration: InputDecoration(labelText: 'Nama Barang'),
+                    decoration: const InputDecoration(labelText: 'Nama Barang'),
                     validator: (value) => value == null || value.isEmpty
                         ? 'Wajib diisi tidak boleh kosong'
                         : null,
                   ),
                   TextFormField(
                     controller: kelompoktCtrl,
-                    decoration: InputDecoration(labelText: 'Kelompok'),
+                    decoration: const InputDecoration(labelText: 'Kelompok'),
                     validator: (value) => value == null || value.isEmpty
                         ? 'Wajib diisi tidak boleh kosong'
                         : null,
                   ),
                   TextFormField(
                     controller: satuanCtrl,
-                    decoration: InputDecoration(labelText: 'Satuan'),
+                    decoration: const InputDecoration(labelText: 'Satuan'),
                     validator: (value) => value == null || value.isEmpty
                         ? 'Wajib diisi tidak boleh kosong'
                         : null,
                   ),
                   TextFormField(
                     controller: stokCtrl,
-                    decoration: InputDecoration(labelText: 'Stok Aktual'),
+                    decoration: const InputDecoration(labelText: 'Stok Aktual'),
                     validator: (value) => value == null || value.isEmpty
                         ? 'Wajib diisi tidak boleh kosong'
                         : null,
                   ),
                   TextFormField(
                     controller: hargaBCtrl,
-                    decoration: InputDecoration(labelText: 'Harga Beli'),
+                    decoration: const InputDecoration(labelText: 'Harga Beli'),
                     validator: (value) => value == null || value.isEmpty
                         ? 'Wajib diisi tidak boleh kosong'
                         : null,
                   ),
                   TextFormField(
                     controller: hargaJCtrl,
-                    decoration: InputDecoration(labelText: 'Harga Jual'),
+                    decoration: const InputDecoration(labelText: 'Harga Jual'),
                     validator: (value) => value == null || value.isEmpty
                         ? 'Wajib diisi tidak boleh kosong'
                         : null,
                   ),
-                  TextFormField(
-                    controller: dic1Ctrl,
-                    decoration: InputDecoration(labelText: 'Jual Dic 1'),
-                    validator: (value) => value == null || value.isEmpty
-                        ? 'Wajib diisi tidak boleh kosong'
-                        : null,
-                  ),
-                  TextFormField(
-                    controller: dic2Ctrl,
-                    decoration: InputDecoration(labelText: 'Jual Dic 2'),
-                    validator: (value) => value == null || value.isEmpty
-                        ? 'Wajib diisi tidak boleh kosong'
-                        : null,
-                  ),
-                  TextFormField(
-                    controller: dic3Ctrl,
-                    decoration: InputDecoration(labelText: 'Jual Dic 3'),
-                    validator: (value) => value == null || value.isEmpty
-                        ? 'Wajib diisi tidak boleh kosong'
-                        : null,
-                  ),
-                  TextFormField(
-                    controller: dic4Ctrl,
-                    decoration: InputDecoration(labelText: 'Jual Dic 4'),
-                    validator: (value) => value == null || value.isEmpty
-                        ? 'Wajib diisi tidak boleh kosong'
-                        : null,
-                  ),
+
+                  // Khusus kalau EDIT, munculkan diskon
+                  if (barang != null) ...[
+                    TextFormField(
+                      controller: dic1Ctrl,
+                      decoration:
+                          const InputDecoration(labelText: 'Jual Disc 1'),
+                      validator: (value) => value == null || value.isEmpty
+                          ? 'Wajib diisi tidak boleh kosong'
+                          : null,
+                    ),
+                    TextFormField(
+                      controller: dic2Ctrl,
+                      decoration:
+                          const InputDecoration(labelText: 'Jual Disc 2'),
+                      validator: (value) => value == null || value.isEmpty
+                          ? 'Wajib diisi tidak boleh kosong'
+                          : null,
+                    ),
+                    TextFormField(
+                      controller: dic3Ctrl,
+                      decoration:
+                          const InputDecoration(labelText: 'Jual Disc 3'),
+                      validator: (value) => value == null || value.isEmpty
+                          ? 'Wajib diisi tidak boleh kosong'
+                          : null,
+                    ),
+                    TextFormField(
+                      controller: dic4Ctrl,
+                      decoration:
+                          const InputDecoration(labelText: 'Jual Disc 4'),
+                      validator: (value) => value == null || value.isEmpty
+                          ? 'Wajib diisi tidak boleh kosong'
+                          : null,
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -252,6 +261,7 @@ class _BarangScreenState extends State<BarangScreen> {
             onPressed: () async {
               if (formKey.currentState!.validate()) {
                 if (barang == null) {
+                  // Tambah Barang
                   await db.insertBarangs(BarangsCompanion(
                     kodeBarang: Value(kodeCtrl.text),
                     namaBarang: Value(namaBrgCtrl.text),
@@ -260,12 +270,13 @@ class _BarangScreenState extends State<BarangScreen> {
                     stokAktual: Value(int.tryParse(stokCtrl.text) ?? 0),
                     hargaBeli: Value(int.tryParse(hargaBCtrl.text) ?? 0),
                     hargaJual: Value(int.tryParse(hargaJCtrl.text) ?? 0),
-                    jualDisc1: Value(int.tryParse(dic1Ctrl.text) ?? 0),
-                    jualDisc2: Value(int.tryParse(dic2Ctrl.text) ?? 0),
-                    jualDisc3: Value(int.tryParse(dic3Ctrl.text) ?? 0),
-                    jualDisc4: Value(int.tryParse(dic4Ctrl.text) ?? 0),
+                    jualDisc1: const Value(0),
+                    jualDisc2: const Value(0),
+                    jualDisc3: const Value(0),
+                    jualDisc4: const Value(0),
                   ));
                 } else {
+                  // Edit Barang
                   await db.updateBarangs(
                     barang.copyWith(
                       kodeBarang: kodeCtrl.text,
@@ -275,10 +286,10 @@ class _BarangScreenState extends State<BarangScreen> {
                       stokAktual: int.tryParse(stokCtrl.text) ?? 0,
                       hargaBeli: int.tryParse(hargaBCtrl.text) ?? 0,
                       hargaJual: int.tryParse(hargaJCtrl.text) ?? 0,
-                      jualDisc1: Value(int.tryParse(dic1Ctrl.text)),
-                      jualDisc2: Value(int.tryParse(dic2Ctrl.text)),
-                      jualDisc3: Value(int.tryParse(dic3Ctrl.text)),
-                      jualDisc4: Value(int.tryParse(dic4Ctrl.text)),
+                      jualDisc1: Value(int.tryParse(dic1Ctrl.text) ?? 0),
+                      jualDisc2: Value(int.tryParse(dic2Ctrl.text) ?? 0),
+                      jualDisc3: Value(int.tryParse(dic3Ctrl.text) ?? 0),
+                      jualDisc4: Value(int.tryParse(dic4Ctrl.text) ?? 0),
                     ),
                   );
                 }
@@ -499,7 +510,7 @@ class _BarangScreenState extends State<BarangScreen> {
                     child: ElevatedButton.icon(
                       onPressed: () => _showForm(),
                       icon: const Icon(Icons.add),
-                      label: const Text('Tambah Supplier'),
+                      label: const Text('Tambah Barang'),
                     ),
                   ),
                 ])
@@ -560,7 +571,7 @@ class _BarangScreenState extends State<BarangScreen> {
             const SizedBox(height: 15),
             const Divider(thickness: 1),
 
-            // === HEADER DAFTAR SUPPLIER DAN DROPDOWN BARIS ===
+            // === HEADER DAFTAR Barang DAN DROPDOWN BARIS ===
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [

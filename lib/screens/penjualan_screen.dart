@@ -22,26 +22,43 @@ class PenjualanScreen extends StatefulWidget {
 
 class _PenjualanScreenState extends State<PenjualanScreen> {
   late AppDatabase db;
-  List<Penjualan> allPenjualan = [];
+  List<PenjualanstmpData> allPenjualantmp = [];
   bool iscekumum = true;
   bool iscekpelanggan = false;
   bool iscekresep = false;
   final tanggaljualCtrl = TextEditingController(); // definisikan di atas
   DateTime? tanggaljual;
   final TextEditingController _barangController = TextEditingController();
+  final TextEditingController _jumlahbarangController = TextEditingController();
   final TextEditingController _pelangganController = TextEditingController();
+  final TextEditingController _nofakturController = TextEditingController();
+
+  String kodebarang = '';
+
+  String satuan = '';
+  String kelompok = '';
+  int hargabeli = 0;
+  int hargajual = 0;
+  int jualdiscon = 0;
+  int jumlahjual = 0;
+  int totalharga = 0;
+  int totalhargastlhdiskon = 0;
+  int totaldiskon = 0;
+
   @override
   void initState() {
     super.initState();
     db = widget.database;
     _loadPenjualan();
     tanggaljualCtrl.text = DateTime.now().toIso8601String().split('T').first;
+    _setNoFaktur();
   }
 
   Future<void> _loadPenjualan() async {
-    final data = await db.getAllPenjualans();
+    final data = await db.getAllPenjualansTmp();
     setState(() {
-      allPenjualan = data;
+      allPenjualantmp = data;
+      _setNoFaktur();
     });
   }
 
@@ -50,12 +67,68 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
     super.dispose();
   }
 
+  Future<String> generateNoFaktur(AppDatabase db) async {
+    final now = DateTime.now();
+    final datePart =
+        "${now.year % 100}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}";
+    final prefix = "PB-$datePart";
+
+    int counter = 1;
+    String noFaktur;
+
+    while (true) {
+      noFaktur = "$prefix${counter.toString().padLeft(4, '0')}";
+
+      final existing = await (db.select(db.penjualans)
+            ..where((tbl) => tbl.noFaktur.equals(noFaktur)))
+          .getSingleOrNull();
+
+      if (existing == null) {
+        break;
+      }
+
+      counter++;
+    }
+
+    return noFaktur;
+  }
+
+  Future<void> _setNoFaktur() async {
+    final noFaktur =
+        await generateNoFaktur(AppDatabase()); // ganti dengan instance db kamu
+    setState(() {
+      _nofakturController.text = noFaktur;
+    });
+  }
+
   String formatDate(DateTime date) {
     return DateFormat('dd-MM-yyyy').format(date);
   }
 
   Future<void> ProsesPenjualan() async {
-    return;
+    String namabarang = _barangController.text;
+    jumlahjual = int.tryParse(_jumlahbarangController.text) ?? 0;
+    totalharga = (hargajual * jumlahjual);
+    totalhargastlhdiskon = totalharga - jualdiscon;
+    totaldiskon = totalharga - totalhargastlhdiskon;
+
+    if (namabarang != '') {
+      await db.insertPenjualanTmp(PenjualanstmpCompanion(
+          kodeBarang: Value(kodebarang),
+          namaBarang: Value(_barangController.text),
+          kelompok: Value(kelompok),
+          satuan: Value(satuan),
+          hargaBeli: Value(hargabeli),
+          hargaJual: Value(hargajual),
+          jualDiscon: Value(jualdiscon),
+          jumlahJual: Value(jumlahjual),
+          totalHargaSebelumDisc: Value(totalharga),
+          totalHargaSetelahDisc: Value(totalhargastlhdiskon),
+          totalDisc: Value(totaldiskon)));
+    }
+    _barangController.clear();
+    _jumlahbarangController.clear();
+    _loadPenjualan();
   }
 
   @override
@@ -78,7 +151,7 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
                 ),
                 Row(children: [
                   ElevatedButton.icon(
-                    onPressed: ProsesPenjualan,
+                    onPressed: _loadPenjualan,
                     icon: const Icon(Icons.close),
                     label: const Text('Batal'),
                     style: ElevatedButton.styleFrom(
@@ -90,7 +163,7 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
                     width: 15,
                   ),
                   ElevatedButton.icon(
-                    onPressed: ProsesPenjualan,
+                    onPressed: _setNoFaktur,
                     icon: const Icon(Icons.save),
                     label: const Text('Simpan/Bayar'),
                   ),
@@ -116,11 +189,13 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
                     height: 35,
                     width: 200,
                     child: TextFormField(
+                      controller: _nofakturController,
                       decoration: InputDecoration(
                         contentPadding: EdgeInsets.all(5),
                         border: OutlineInputBorder(),
                         labelText: 'No Faktur',
                       ),
+                      readOnly: true,
                     ),
                   ),
                   SizedBox(width: 15),
@@ -265,6 +340,12 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
                     },
                     onSuggestionSelected: (Barang suggestion) {
                       _barangController.text = suggestion.namaBarang;
+                      kodebarang = suggestion.kodeBarang;
+                      kelompok = suggestion.kelompok;
+                      satuan = suggestion.satuan;
+                      hargabeli = suggestion.hargaBeli;
+                      hargajual = suggestion.hargaJual;
+                      jualdiscon = suggestion.jualDisc1!;
                     },
                   ),
                 ),
@@ -273,6 +354,7 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
                   height: 35,
                   width: 75,
                   child: TextFormField(
+                    controller: _jumlahbarangController,
                     decoration: InputDecoration(
                       contentPadding: EdgeInsets.all(5),
                       border: OutlineInputBorder(),
@@ -307,15 +389,52 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
                     columns: const [
                       DataColumn(label: Text('Kode')),
                       DataColumn(label: Text('Nama')),
-                      DataColumn(label: Text('Expired')),
                       DataColumn(label: Text('Kelompok')),
                       DataColumn(label: Text('Satuan')),
+                      DataColumn(label: Text('Harga beli')),
                       DataColumn(label: Text('Harga Jual')),
+                      DataColumn(label: Text('Jual Disc')),
                       DataColumn(label: Text('Jumlah')),
                       DataColumn(label: Text('Total')),
+                      DataColumn(label: Text('Total stlh disc')),
+                      DataColumn(label: Text('Total Disc')),
                       DataColumn(label: Text('Aksi')),
                     ],
-                    rows: [],
+                    rows: allPenjualantmp.map((p) {
+                      return DataRow(
+                        cells: [
+                          DataCell(Text(p.kodeBarang)),
+                          DataCell(Text(p.namaBarang)),
+                          DataCell(Text(p.kelompok)),
+                          DataCell(Text(p.satuan)),
+                          DataCell(Text(p.hargaBeli.toString())),
+                          DataCell(Text(p.hargaJual.toString())),
+                          DataCell(Text((p.jualDiscon ?? 0).toString())),
+                          DataCell(Text((p.jumlahJual ?? 0).toString())),
+                          DataCell(
+                              Text((p.totalHargaSebelumDisc ?? 0).toString())),
+                          DataCell(
+                              Text((p.totalHargaSetelahDisc ?? 0).toString())),
+                          DataCell(Text((p.totalDisc ?? 0).toString())),
+                          DataCell(Row(
+                            children: [
+                              IconButton(
+                                tooltip: 'Edit Data',
+                                icon:
+                                    const Icon(Icons.edit, color: Colors.blue),
+                                onPressed: () => (data: p),
+                              ),
+                              IconButton(
+                                tooltip: 'Hapus Data',
+                                icon:
+                                    const Icon(Icons.delete, color: Colors.red),
+                                onPressed: () => (p.id),
+                              ),
+                            ],
+                          )),
+                        ],
+                      );
+                    }).toList(),
                   ),
                 ),
               ),

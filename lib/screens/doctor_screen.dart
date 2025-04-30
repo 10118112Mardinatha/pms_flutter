@@ -224,8 +224,8 @@ class _DoctorScreenState extends State<DoctorScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Hapus Supplier'),
-        content: const Text('Yakin ingin menghapus supplier ini?'),
+        title: const Text('Hapus Dokter'),
+        content: const Text('Yakin ingin menghapus data dokter ini?'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context, false),

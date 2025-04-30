@@ -26,10 +26,11 @@ void main() async {
   // Cek apakah sudah ada user
   final users = await db.getAllUsers();
   if (users.isEmpty) {
-    await db.insertUser(UsersCompanion(
+    await db.insertUser(const UsersCompanion(
       username: Value('admin'),
       password: Value('admin123'),
       role: Value('admin'),
+      aktif: Value(true),
     ));
   }
 

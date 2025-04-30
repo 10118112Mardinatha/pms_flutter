@@ -12,7 +12,9 @@ class Users extends Table {
   TextColumn get username =>
       text().withLength(min: 4, max: 32).unique()(); // ✅ Unik
   TextColumn get password => text()();
-  TextColumn get role => text().withDefault(const Constant('kasir'))();
+  TextColumn get role => text()();
+  BoolColumn get aktif => boolean().withDefault(const Constant(true))();
+  TextColumn get avatar => text().nullable()();
 }
 
 class Suppliers extends Table {
@@ -39,6 +41,7 @@ class Barangs extends Table {
   TextColumn get namaBarang => text()();
   TextColumn get kelompok => text()();
   TextColumn get satuan => text()();
+  TextColumn get noRak => text()();
   IntColumn get stokAktual => integer().withDefault(const Constant(0))();
   IntColumn get hargaBeli => integer().withDefault(const Constant(0))();
   IntColumn get hargaJual => integer().withDefault(const Constant(0))();
@@ -50,7 +53,7 @@ class Barangs extends Table {
 
 class Pembelians extends Table {
   IntColumn get id => integer().autoIncrement()();
-  IntColumn get noFaktur => integer().withDefault(const Constant(0))();
+  TextColumn get noFaktur => text()();
   TextColumn get kodeSupplier => text().withLength(min: 1, max: 20)();
   TextColumn get namaSuppliers => text()();
   TextColumn get kodeBarang =>
@@ -92,7 +95,7 @@ class Pembelianstmp extends Table {
 
 class Penjualans extends Table {
   IntColumn get id => integer().autoIncrement()();
-  IntColumn get noFaktur => integer().withDefault(const Constant(0))();
+  TextColumn get noFaktur => text()();
   TextColumn get kodeBarang =>
       text().withLength(min: 1, max: 20)(); // 🔗 relasi
   TextColumn get namaBarang => text()();
@@ -109,16 +112,75 @@ class Penjualans extends Table {
   IntColumn get totalDisc => integer().nullable()();
 }
 
+class Penjualanstmp extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get kodeBarang => text().withLength(min: 1, max: 20)();
+  TextColumn get namaBarang => text()();
+  TextColumn get kelompok => text()();
+  TextColumn get satuan => text()();
+  IntColumn get hargaBeli => integer().withDefault(const Constant(0))();
+  IntColumn get hargaJual => integer().withDefault(const Constant(0))();
+  IntColumn get jualDiscon => integer().nullable()();
+  IntColumn get jumlahJual => integer().nullable()();
+  IntColumn get totalHargaSebelumDisc => integer().nullable()();
+  IntColumn get totalHargaSetelahDisc => integer().nullable()();
+  IntColumn get totalDisc => integer().nullable()();
+}
+
 class Pelanggans extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get kodPelanggan => text().withLength(min: 1, max: 20).unique()();
   TextColumn get namaPelanggan => text().withLength(min: 1, max: 50)();
+  IntColumn get usia => integer().nullable()();
   TextColumn get alamat => text().nullable()();
   TextColumn get kelompok => text().nullable()();
   IntColumn get limitpiutang => integer().nullable()();
-  IntColumn get discount => integer().nullable()();
-  IntColumn get totalPenjualan => integer().nullable()();
+  TextColumn get keterangan => text().nullable()();
+  IntColumn get jualDiscon => integer().nullable()();
+  IntColumn get totalHargaSetelahDisc => integer().nullable()();
   IntColumn get saldoPiutang => integer().nullable()();
+}
+
+class Reseps extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get noResep => text().withLength(min: 1, max: 20).unique()();
+  TextColumn get kodeBarang => text().withLength(min: 1, max: 50)();
+  TextColumn get namaBarang => text().withLength(min: 1, max: 50)();
+  TextColumn get kodPelanggan => text().withLength(min: 1, max: 50)();
+  TextColumn get namaDoctor => text().withLength(min: 1, max: 50)();
+  TextColumn get kodeDoctor => text().nullable()();
+  IntColumn get jualDiscon => integer().nullable()();
+  DateTimeColumn get tanggal => dateTime()();
+  IntColumn get totalHargaSetelahDisc => integer().nullable()();
+  TextColumn get satuan => text()();
+  IntColumn get jumlahJual => integer().nullable()();
+  IntColumn get usia => integer().nullable()();
+  TextColumn get namaPelanggan => text().withLength(min: 1, max: 50)();
+  TextColumn get alamat => text().nullable()();
+  IntColumn get noTelp => integer().nullable()();
+  TextColumn get kelompok => text().nullable()();
+  TextColumn get keterangan => text().nullable()();
+}
+
+class Resepstmp extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get kodeBarang => text().withLength(min: 1, max: 50)();
+  TextColumn get namaBarang => text().withLength(min: 1, max: 50)();
+  IntColumn get hargaJual => integer().withDefault(const Constant(0))();
+  IntColumn get jualDiscon => integer().nullable()();
+  IntColumn get totalHargaSetelahDisc => integer().nullable()();
+  TextColumn get satuan => text()();
+  IntColumn get jumlahJual => integer().nullable()();
+  TextColumn get kelompok => text().nullable()();
+  IntColumn get totalHarga => integer().nullable()();
+}
+
+class Raks extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get kodeRak => text().withLength(min: 1, max: 20)();
+  TextColumn get namaRak => text().withLength(min: 1, max: 50)();
+  TextColumn get lokasi => text()();
+  TextColumn get keterangan => text().nullable()();
 }
 
 // Kelas utama database
@@ -128,9 +190,13 @@ class Pelanggans extends Table {
   Doctors,
   Barangs,
   Penjualans,
+  Penjualanstmp,
   Pembelians,
   Pembelianstmp,
   Pelanggans,
+  Reseps,
+  Resepstmp,
+  Raks,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase._internal() : super(_openConnection());
@@ -143,6 +209,15 @@ class AppDatabase extends _$AppDatabase {
 
   @override
   int get schemaVersion => 1;
+  //USERS
+  Future<void> deleteUser(int id) async {
+    await (delete(users)..where((tbl) => tbl.id.equals(id))).go();
+  }
+
+  Future<void> toggleUserActive(int id, bool isActive) async {
+    await (update(users)..where((tbl) => tbl.id.equals(id)))
+        .write(UsersCompanion(aktif: Value(isActive)));
+  }
 
   // Ambil semua user
   Future<List<User>> getAllUsers() => select(users).get();
@@ -161,8 +236,54 @@ class AppDatabase extends _$AppDatabase {
         .getSingleOrNull();
   }
 
+  Future<User?> getUserById(int id) async {
+    final result = await (select(users)..where((tbl) => tbl.id.equals(id)))
+        .getSingleOrNull();
+    return result;
+  }
+
   // Insert user, bisa kamu expand dengan validasi tambahan jika perlu
   Future<int> insertUser(UsersCompanion user) => into(users).insert(user);
+  // Metode untuk memverifikasi password berdasarkan userId
+  Future<bool> verifyPassword(int userId, String password) async {
+    // Mengambil data user berdasarkan userId
+    final result = await (select(users)
+          ..where((u) => u.id.equals(userId))
+          ..limit(1))
+        .get();
+
+    if (result.isNotEmpty) {
+      // Ambil password yang disimpan
+      final storedPassword = result.first.password;
+      return storedPassword == password; // Periksa apakah password cocok
+    }
+    return false;
+  }
+
+  Future<void> updateUser(User user) async {
+    await update(users).replace(user);
+  }
+
+  Future<User?> getLoggedInUser() async {
+    return (select(users)..limit(1)).getSingleOrNull();
+  }
+
+// Update username
+  Future<void> updateUsername(int id, String newUsername) {
+    return (update(users)..where((tbl) => tbl.id.equals(id)))
+        .write(UsersCompanion(username: Value(newUsername)));
+  }
+
+// Update password
+  Future<void> updatePassword(int id, String newPassword) {
+    return (update(users)..where((tbl) => tbl.id.equals(id)))
+        .write(UsersCompanion(password: Value(newPassword)));
+  }
+
+  Future<void> updateAvatar(int id, String newAvatarPath) {
+    return (update(users)..where((tbl) => tbl.id.equals(id)))
+        .write(UsersCompanion(avatar: Value(newAvatarPath)));
+  }
 
   // SUPPLIER
 
@@ -239,6 +360,22 @@ class AppDatabase extends _$AppDatabase {
     return (delete(penjualans)..where((tbl) => tbl.id.equals(id))).go();
   }
 
+  //penjualanstmp
+  Future<List<PenjualanstmpData>> getAllPenjualansTmp() =>
+      select(penjualanstmp).get();
+
+  Future<int> insertPenjualanTmp(PenjualanstmpCompanion entry) {
+    return into(penjualanstmp).insert(entry);
+  }
+
+  Future<bool> updatePenjualanTmp(PenjualanstmpData entry) {
+    return update(penjualanstmp).replace(entry);
+  }
+
+  Future<int> deletePenjualanTmp(int id) {
+    return (delete(penjualanstmp)..where((tbl) => tbl.id.equals(id))).go();
+  }
+
 //pembelian
 
   Future<List<Pembelian>> getAllPembelians() {
@@ -303,6 +440,65 @@ class AppDatabase extends _$AppDatabase {
               tbl.kodPelanggan.like('%$query%'))
           ..limit(10))
         .get();
+  }
+
+//Reseps
+
+  Future<List<Resep>> getAllReseps() {
+    return select(reseps).get();
+  }
+
+  Future<int> insertReseps(ResepsCompanion entry) {
+    return into(reseps).insert(entry);
+  }
+
+  Future<bool> updateResep(Resep entry) {
+    return update(reseps).replace(entry);
+  }
+
+  Future<int> deleteReseps(int id) {
+    return (delete(reseps)..where((tbl) => tbl.id.equals(id))).go();
+  }
+
+//pembelian tmp
+  Future<List<ResepstmpData>> getAllResepsTmp() {
+    return select(resepstmp).get();
+  }
+
+  Future<int> insertResepsTmp(ResepstmpCompanion entry) {
+    return into(resepstmp).insert(entry);
+  }
+
+  Future<bool> updateResepsTmp(ResepstmpData entry) {
+    return update(resepstmp).replace(entry);
+  }
+
+  Future<int> deleteResepTmp(int id) {
+    return (delete(resepstmp)..where((tbl) => tbl.id.equals(id))).go();
+  }
+
+  Future<int> getTotalHargaResepTmp() async {
+    final result = await customSelect(
+      'SELECT SUM(total_harga) as total FROM pembelianstmp',
+      readsFrom: {resepstmp},
+    ).getSingle();
+
+    return result.data['total'] as int? ?? 0;
+  }
+
+  //Rak
+  Future<List<Rak>> getAllRaks() => select(raks).get();
+
+  Future<int> insertRaks(RaksCompanion entry) {
+    return into(raks).insert(entry);
+  }
+
+  Future<bool> updateRaks(Rak entry) {
+    return update(raks).replace(entry);
+  }
+
+  Future<int> deleteRaks(int id) {
+    return (delete(raks)..where((tbl) => tbl.id.equals(id))).go();
   }
 }
 

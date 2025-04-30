@@ -12,31 +12,35 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 
-class PembelianScreen extends StatefulWidget {
+class ResepScreen extends StatefulWidget {
   final AppDatabase database;
 
-  const PembelianScreen({super.key, required this.database});
+  const ResepScreen({super.key, required this.database});
 
   @override
-  State<PembelianScreen> createState() => _PembelianScreenState();
+  State<ResepScreen> createState() => _ResepScreenState();
 }
 
-class _PembelianScreenState extends State<PembelianScreen> {
+class _ResepScreenState extends State<ResepScreen> {
   late AppDatabase db;
-  List<PembelianstmpData> allPembeliantmp = [];
-  List<Pembelians> filteredPembelians = [];
+  List<ResepstmpData> allReseptmp = [];
+  List<Reseps> filteredReseps = [];
   String searchField = 'Nama';
   String searchText = '';
-  Pembelian? data;
+  Resep? data;
   final TextEditingController _searchController = TextEditingController();
-  final TextEditingController _nofaktur = TextEditingController();
-  final TextEditingController _SupplierController = TextEditingController();
-  final TextEditingController _kodeSupplierController = TextEditingController();
-  final expiredCtrl = TextEditingController();
-  final tanggalBeliCtrl = TextEditingController(); // definisikan di atas
+  final TextEditingController _noResep = TextEditingController();
+  final TextEditingController _DokterController = TextEditingController();
+  final TextEditingController _kodeDokterontroller = TextEditingController();
+  final TextEditingController _PelangganController = TextEditingController();
+  final TextEditingController _kodePelangganController =
+      TextEditingController();
+  final TextEditingController _kodeDokerController = TextEditingController();
+  final tanggalCtrl = TextEditingController();
+
   DateTime? tanggalBeli; // tanggal aslinya tetap disimpan di sini
   final TextEditingController totalSeluruhCtrl = TextEditingController();
-  String totalpembelian = '';
+  String totalResep = '';
 
   Supplier? selectedSupplier;
   DateTime? _selectedDate;
@@ -48,26 +52,27 @@ class _PembelianScreenState extends State<PembelianScreen> {
   void initState() {
     super.initState();
     db = widget.database;
-    _loadPembelians();
+    _loadReseps();
   }
 
-  Future<void> _loadPembelians() async {
-    final data = await db.getAllPembeliansTmp();
+  Future<void> _loadReseps() async {
+    final data = await db.getAllResepsTmp();
     setState(() {
-      allPembeliantmp = data;
+      allReseptmp = data;
     });
     updateTotalSeluruh();
   }
 
-  Future<void> prosesPembelian() async {
-    final noFaktur = _nofaktur.text;
-    final kodeSupplier = _kodeSupplierController.text;
-    final namaSupplier = _SupplierController.text;
+  Future<void> prosesResep() async {
+    final noResep = _noResep.text;
+    final kodePelanggan = _kodePelangganController.text;
+    final namaPelanngan = _PelangganController.text;
+    final namaDokter = _DokterController;
     final tanggal = tanggalBeli;
 
-    if (kodeSupplier.isEmpty ||
-        namaSupplier.isEmpty ||
-        noFaktur == 0 ||
+    if (kodePelanggan.isEmpty ||
+        namaPelanngan.isEmpty ||
+        noResep == 0 ||
         tanggal == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('No Faktur, Supplier, dan Tanggal wajib diisi')),
@@ -75,7 +80,7 @@ class _PembelianScreenState extends State<PembelianScreen> {
       return;
     }
 
-    final items = await db.getAllPembeliansTmp();
+    final items = await db.getAllResepsTmp();
 
     if (items.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -84,28 +89,25 @@ class _PembelianScreenState extends State<PembelianScreen> {
       return;
     }
 
-    // Gunakan batch untuk insert semua data ke tabel pembelians
+    // Gunakan batch untuk insert semua data ke tabel Reseps
     await db.batch((batch) {
       batch.insertAll(
-        db.pembelians,
+        db.reseps,
         items
-            .map((item) => PembeliansCompanion(
-                  noFaktur: Value(noFaktur),
-                  kodeSupplier: Value(kodeSupplier),
-                  namaSuppliers: Value(namaSupplier),
+            .map((item) => ResepsCompanion(
+                  noResep: Value(noResep),
+                  kodeDoctor: Value(doctor),
+                  kodPelanggan: Value(kodePelanggan),
                   kodeBarang: Value(item.kodeBarang),
                   namaBarang: Value(item.namaBarang),
-                  tanggalBeli: Value(tanggal),
-                  expired: Value(item.expired),
+                  tanggal: Value(tanggal),
+                  usia: Value(item.us),
                   kelompok: Value(item.kelompok),
                   satuan: Value(item.satuan),
-                  hargaBeli: Value(item.hargaBeli),
+                  namaPelanggan: Value(namaPelanngan),
                   hargaJual: Value(item.hargaJual),
-                  jualDisc1: Value(item.jualDisc1),
-                  jualDisc2: Value(item.jualDisc2),
-                  jualDisc3: Value(item.jualDisc3),
-                  jualDisc4: Value(item.jualDisc4),
-                  ppn: Value(item.ppn),
+                 noTelp: Value(item.kete),
+                  keterangan: Value(item.),
                   jumlahBeli: Value(item.jumlahBeli),
                   totalHarga: Value(item.totalHarga),
                 ))
@@ -139,8 +141,8 @@ class _PembelianScreenState extends State<PembelianScreen> {
       }
     });
 
-    // Bersihkan tabel pembelianstmp
-    await db.delete(db.pembelianstmp).go();
+    // Bersihkan tabel Resepstmp
+    await db.delete(db.Resepstmp).go();
 
     // Reset form input
     _nofaktur.clear();
@@ -152,17 +154,17 @@ class _PembelianScreenState extends State<PembelianScreen> {
     totalSeluruhCtrl.clear();
 
     // Refresh tampilan
-    _loadPembelians();
+    _loadReseps();
 
     // Notifikasi sukses
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Data pembelian berhasil diproses.')),
+      SnackBar(content: Text('Data Resep berhasil diproses.')),
     );
   }
 
   Future<void> prosesbatal() async {
-    // Bersihkan tabel pembelianstmp
-    await db.delete(db.pembelianstmp).go();
+    // Bersihkan tabel Resepstmp
+    await db.delete(db.Resepstmp).go();
 
     // Reset form input
     _nofaktur.clear();
@@ -171,10 +173,10 @@ class _PembelianScreenState extends State<PembelianScreen> {
     tanggalBeli = null;
     tanggalBeliCtrl.clear();
     totalSeluruhCtrl.clear();
-    _loadPembelians();
+    _loadReseps();
   }
 
-  Future<void> importPembeliansFromExcel({
+  Future<void> importResepsFromExcel({
     required File file,
     required AppDatabase db,
     required VoidCallback onFinished,
@@ -213,8 +215,8 @@ class _PembelianScreenState extends State<PembelianScreen> {
           continue;
         }
 
-        await db.into(db.pembelianstmp).insert(
-              PembelianstmpCompanion(
+        await db.into(db.Resepstmp).insert(
+              ResepstmpCompanion(
                 kodeBarang: drift.Value(kodeBarang),
                 namaBarang: drift.Value(namaBarang),
                 expired: drift.Value(expired as DateTime),
@@ -239,8 +241,8 @@ class _PembelianScreenState extends State<PembelianScreen> {
   }
 
 //
-  Future<void> showFormPembelianstmp({
-    PembelianstmpData? data,
+  Future<void> showFormResepstmp({
+    ResepstmpData? data,
   }) async {
     final formKey = GlobalKey<FormState>();
 
@@ -284,8 +286,7 @@ class _PembelianScreenState extends State<PembelianScreen> {
     await showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title:
-            Text(data == null ? 'Tambah Pembelian Tmp' : 'Edit Pembelian Tmp'),
+        title: Text(data == null ? 'Tambah Resep Tmp' : 'Edit Resep Tmp'),
         content: SizedBox(
           width: 420,
           child: Form(
@@ -510,7 +511,7 @@ class _PembelianScreenState extends State<PembelianScreen> {
                 if (expiredDate == null) return;
 
                 if (data == null) {
-                  await db.insertPembelianTmp(PembelianstmpCompanion(
+                  await db.insertResepTmp(ResepstmpCompanion(
                     kodeBarang: Value(kodeBarangCtrl.text),
                     namaBarang: Value(_barangController.text),
                     expired: Value(expiredDate),
@@ -527,7 +528,7 @@ class _PembelianScreenState extends State<PembelianScreen> {
                     totalHarga: Value(int.tryParse(totalHargaCtrl.text)),
                   ));
                 } else {
-                  await db.updatePembelianTmp(
+                  await db.updateResepTmp(
                     data.copyWith(
                       kodeBarang: kodeBarangCtrl.text,
                       namaBarang: namaBarangCtrl.text,
@@ -550,7 +551,7 @@ class _PembelianScreenState extends State<PembelianScreen> {
                 }
 
                 if (context.mounted) Navigator.pop(context);
-                _loadPembelians();
+                _loadReseps();
                 updateTotalSeluruh();
               }
             },
@@ -566,11 +567,11 @@ class _PembelianScreenState extends State<PembelianScreen> {
   }
 
   Future<void> updateTotalSeluruh() async {
-    final total = await db.getTotalHargaPembelianTmp();
-    totalpembelian = total == 0 ? '' : 'Rp. ${total.toString()}';
+    final total = await db.getTotalHargaResepTmp();
+    totalResep = total == 0 ? '' : 'Rp. ${total.toString()}';
   }
 
-  void _deletePembelian(int id) async {
+  void _deleteResep(int id) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
@@ -588,8 +589,8 @@ class _PembelianScreenState extends State<PembelianScreen> {
     );
 
     if (confirm == true) {
-      await db.deletePembelianTmp(id);
-      await _loadPembelians(); // <-- refresh data di layar
+      await db.deleteResepTmp(id);
+      await _loadReseps(); // <-- refresh data di layar
     }
   }
 
@@ -611,7 +612,7 @@ class _PembelianScreenState extends State<PembelianScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Pembelian',
+                  'Resep',
                   style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w600,
@@ -653,10 +654,8 @@ class _PembelianScreenState extends State<PembelianScreen> {
                           );
 
                           if (confirm == true) {
-                            await importPembeliansFromExcel(
-                                file: file,
-                                db: db,
-                                onFinished: _loadPembelians);
+                            await importResepsFromExcel(
+                                file: file, db: db, onFinished: _loadReseps);
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(content: Text('Import berhasil!')),
                             );
@@ -686,7 +685,7 @@ class _PembelianScreenState extends State<PembelianScreen> {
                     width: 15,
                   ),
                   ElevatedButton.icon(
-                    onPressed: prosesPembelian,
+                    onPressed: prosesResep,
                     icon: const Icon(Icons.save),
                     label: const Text('Simpan'),
                   ),
@@ -755,7 +754,7 @@ class _PembelianScreenState extends State<PembelianScreen> {
                     controller: tanggalBeliCtrl,
                     readOnly: true,
                     decoration: InputDecoration(
-                      labelText: 'Tanggal Pembelian',
+                      labelText: 'Tanggal Resep',
                       border: OutlineInputBorder(),
                       suffixIcon: Icon(Icons.calendar_today),
                     ),
@@ -801,13 +800,13 @@ class _PembelianScreenState extends State<PembelianScreen> {
               children: [
                 Expanded(
                   child: Text(
-                    'Total : ${totalpembelian}',
+                    'Total : ${totalResep}',
                     style: TextStyle(fontSize: 20),
                   ),
                 ),
                 SizedBox(width: 30), // Spacing between the text fields
                 ElevatedButton.icon(
-                  onPressed: () => showFormPembelianstmp(),
+                  onPressed: () => showFormResepstmp(),
                   icon: const Icon(Icons.add),
                   label: const Text('Tambah'),
                 ),
@@ -864,7 +863,7 @@ class _PembelianScreenState extends State<PembelianScreen> {
                       DataColumn(label: Text('Total')),
                       DataColumn(label: Text('Aksi')),
                     ],
-                    rows: allPembeliantmp.map((p) {
+                    rows: allReseptmp.map((p) {
                       return DataRow(
                         cells: [
                           DataCell(Text(p.kodeBarang)),
@@ -888,13 +887,13 @@ class _PembelianScreenState extends State<PembelianScreen> {
                                 tooltip: 'Edit Data',
                                 icon:
                                     const Icon(Icons.edit, color: Colors.blue),
-                                onPressed: () => showFormPembelianstmp(data: p),
+                                onPressed: () => showFormResepstmp(data: p),
                               ),
                               IconButton(
                                 tooltip: 'Hapus Data',
                                 icon:
                                     const Icon(Icons.delete, color: Colors.red),
-                                onPressed: () => _deletePembelian(p.id),
+                                onPressed: () => _deleteResep(p.id),
                               ),
                             ],
                           )),

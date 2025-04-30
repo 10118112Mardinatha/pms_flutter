@@ -10,42 +10,42 @@ import 'dart:typed_data';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:file_picker/file_picker.dart';
 
-class PelangganScreen extends StatefulWidget {
+class RakScreen extends StatefulWidget {
   final AppDatabase database;
 
-  const PelangganScreen({super.key, required this.database});
+  const RakScreen({super.key, required this.database});
 
   @override
-  State<PelangganScreen> createState() => _PelangganScreenState();
+  State<RakScreen> createState() => _RakScreenState();
 }
 
-class _PelangganScreenState extends State<PelangganScreen> {
+class _RakScreenState extends State<RakScreen> {
   late AppDatabase db;
-  List<Pelanggan> allPelanggan = [];
-  List<Pelanggan> filteredPelanggan = [];
+  List<Rak> allRaks = [];
+  List<Rak> filteredRaks = [];
   String searchField = 'Nama';
   String searchText = '';
   final TextEditingController _searchController = TextEditingController();
   int _rowsPerPage = 10;
   final List<int> _rowsPerPageOptions = [10, 20, 30];
-  final searchOptions = ['Kode', 'Nama', 'Alamat', 'Kelompok'];
+  final searchOptions = ['Kode', 'Nama', 'lokasi'];
 
   @override
   void initState() {
     super.initState();
     db = widget.database;
-    _loadPelanggan();
+    _loadRaks();
   }
 
-  Future<void> _loadPelanggan() async {
-    final data = await db.getAllPelanggans();
+  Future<void> _loadRaks() async {
+    final data = await db.getAllRaks();
     setState(() {
-      allPelanggan = data;
+      allRaks = data;
       _applySearch();
     });
   }
 
-  Future<void> importPelangganScreensFromExcel({
+  Future<void> importRaksFromExcel({
     required File file,
     required AppDatabase db,
     required VoidCallback onFinished,
@@ -57,30 +57,29 @@ class _PelangganScreenState extends State<PelangganScreen> {
       if (sheet == null) return;
 
       for (var row in sheet.rows.skip(1)) {
-        final kodePelanggan = row[0]?.value.toString() ?? '';
-        final namaPelanggan = row[1]?.value.toString() ?? '';
-        final alamat = row[2]?.value.toString();
-        final telepon = row[3]?.value.toString();
-        final kelompok = row[4]?.value;
+        final kodeRak = row[0]?.value.toString() ?? '';
+        final namaRak = row[1]?.value.toString() ?? '';
+        final lokasi = row[2]?.value.toString();
+        final keterangan = row[3]?.value.toString();
 
-        if (kodePelanggan.isEmpty || namaPelanggan.isEmpty) continue;
+        if (kodeRak.isEmpty || namaRak.isEmpty) continue;
 
         // Cek apakah kodeSupplier sudah ada
-        final exists = await (db.select(db.pelanggans)
-              ..where((tbl) => tbl.kodPelanggan.equals(kodePelanggan)))
+        final exists = await (db.select(db.raks)
+              ..where((tbl) => tbl.kodeRak.equals(kodeRak)))
             .getSingleOrNull();
 
         if (exists != null) {
-          debugPrint('Kode $kodePelanggan sudah ada, dilewati.');
+          debugPrint('Kode $kodeRak sudah ada, dilewati.');
           continue;
         }
 
-        await db.into(db.pelanggans).insert(
-              PelanggansCompanion(
-                kodPelanggan: drift.Value(kodePelanggan),
-                namaPelanggan: drift.Value(namaPelanggan),
-                alamat: drift.Value(alamat),
-                kelompok: drift.Value(kelompok),
+        await db.into(db.raks).insert(
+              RaksCompanion(
+                kodeRak: drift.Value(kodeRak),
+                namaRak: drift.Value(namaRak),
+                lokasi: drift.Value(lokasi!),
+                keterangan: drift.Value(keterangan),
               ),
             );
       }
@@ -92,12 +91,12 @@ class _PelangganScreenState extends State<PelangganScreen> {
 
   void _applySearch() {
     setState(() {
-      filteredPelanggan = allPelanggan.where((s) {
+      filteredRaks = allRaks.where((s) {
         final value = switch (searchField) {
-          'Kode' => s.kodPelanggan,
-          'Nama' => s.namaPelanggan,
-          'Alamat' => s.alamat ?? '',
-          'Kelompok' => s.kelompok ?? '',
+          'Kode' => s.kodeRak,
+          'Nama' => s.namaRak,
+          'Lokasi' => s.lokasi ?? '',
+          'Keterangan' => s.keterangan ?? '',
           _ => '',
         };
         return value.toLowerCase().contains(searchText.toLowerCase());
@@ -106,19 +105,18 @@ class _PelangganScreenState extends State<PelangganScreen> {
   }
 
 //
-  void _showForm({Pelanggan? Pelanggan}) {
+  void _showForm({Rak? Rak}) {
     final formKey = GlobalKey<FormState>();
-    final kodeCtrl = TextEditingController(text: Pelanggan?.kodPelanggan ?? '');
-    final namaCtrl =
-        TextEditingController(text: Pelanggan?.namaPelanggan ?? '');
-    final alamatCtrl = TextEditingController(text: Pelanggan?.alamat ?? '');
-    final kelompokCtrl = TextEditingController(text: Pelanggan?.kelompok ?? '');
+    final kodeCtrl = TextEditingController(text: Rak?.kodeRak ?? '');
+    final namaCtrl = TextEditingController(text: Rak?.namaRak ?? '');
+    final lokasiCtrl = TextEditingController(text: Rak?.lokasi ?? '');
+    final ketCtrl = TextEditingController(text: Rak?.keterangan ?? '');
+    ;
 
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: Text(
-            PelangganScreen == null ? 'Tambah Pelanggan' : 'Edit Pelanggan'),
+        title: Text(Rak == null ? 'Tambah Rak' : 'Edit Rak'),
         content: SizedBox(
           width: 400,
           child: Form(
@@ -128,34 +126,33 @@ class _PelangganScreenState extends State<PelangganScreen> {
               children: [
                 TextFormField(
                   controller: kodeCtrl,
-                  decoration: InputDecoration(labelText: 'Kode Pelanggan'),
+                  decoration: InputDecoration(labelText: 'Kode Rak'),
                   validator: (value) {
                     if (value == null || value.isEmpty)
                       return 'Wajib diisi tidak boleh kosong';
-                    final exists = allPelanggan.any((s) =>
-                        s.kodPelanggan == value &&
-                        (Pelanggan == null || s.id != Pelanggan.id));
+                    final exists = allRaks.any((s) =>
+                        s.kodeRak == value && (Rak == null || s.id != Rak.id));
                     if (exists) return 'Kode sudah digunakan';
                     return null;
                   },
                 ),
                 TextFormField(
                   controller: namaCtrl,
-                  decoration: InputDecoration(labelText: 'Nama '),
+                  decoration: InputDecoration(labelText: 'Nama Rak'),
                   validator: (value) => value == null || value.isEmpty
                       ? 'Wajib diisi tidak boleh kosong'
                       : null,
                 ),
                 TextFormField(
-                  controller: alamatCtrl,
-                  decoration: InputDecoration(labelText: 'Alamat'),
+                  controller: lokasiCtrl,
+                  decoration: InputDecoration(labelText: 'Lokasi'),
                   validator: (value) => value == null || value.isEmpty
                       ? 'Wajib diisi tidak boleh kosong'
                       : null,
                 ),
                 TextFormField(
-                  controller: kelompokCtrl,
-                  decoration: InputDecoration(labelText: 'Kelompok'),
+                  controller: ketCtrl,
+                  decoration: InputDecoration(labelText: 'Keterangan'),
                   validator: (value) => value == null || value.isEmpty
                       ? 'Wajib diisi tidak boleh kosong'
                       : null,
@@ -172,31 +169,21 @@ class _PelangganScreenState extends State<PelangganScreen> {
           ElevatedButton(
             onPressed: () async {
               if (formKey.currentState!.validate()) {
-                if (Pelanggan == null) {
-                  await db.insertPelanggans(PelanggansCompanion(
-                    kodPelanggan: Value(kodeCtrl.text),
-                    namaPelanggan: Value(namaCtrl.text),
-                    alamat: Value(
-                        alamatCtrl.text.isNotEmpty ? alamatCtrl.text : null),
-                    kelompok: Value(kelompokCtrl.text.isNotEmpty
-                        ? kelompokCtrl.text
-                        : null),
-                  ));
+                if (Rak == null) {
+                  await db.insertRaks(RaksCompanion(
+                      kodeRak: Value(kodeCtrl.text),
+                      namaRak: Value(namaCtrl.text),
+                      lokasi: Value(ketCtrl.text),
+                      keterangan: Value(ketCtrl.text)));
                 } else {
-                  await db.updatePelanggans(
-                    Pelanggan.copyWith(
-                      kodPelanggan: kodeCtrl.text,
-                      namaPelanggan: namaCtrl.text,
-                      alamat: Value(
-                          alamatCtrl.text.isNotEmpty ? alamatCtrl.text : null),
-                      kelompok: Value(kelompokCtrl.text.isNotEmpty
-                          ? kelompokCtrl.text
-                          : null),
-                    ),
-                  );
+                  await db.updateRaks(Rak.copyWith(
+                      kodeRak: kodeCtrl.text,
+                      namaRak: namaCtrl.text,
+                      lokasi: ketCtrl.text,
+                      keterangan: Value(ketCtrl.text)));
                 }
                 if (context.mounted) Navigator.pop(context);
-                await _loadPelanggan();
+                await _loadRaks();
               }
             },
             child: const Text('Simpan'),
@@ -206,12 +193,12 @@ class _PelangganScreenState extends State<PelangganScreen> {
     );
   }
 
-  void _deletePelangganScreen(int id) async {
+  void _deleteRak(int id) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Hapus Supplier'),
-        content: const Text('Yakin ingin menghapus supplier ini?'),
+        title: const Text('Hapus Rak'),
+        content: const Text('Yakin ingin menghapus data rak ini?'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context, false),
@@ -224,8 +211,8 @@ class _PelangganScreenState extends State<PelangganScreen> {
     );
 
     if (confirm == true) {
-      await db.deletePelanggan(id);
-      await _loadPelanggan(); // <-- refresh data di layar
+      await db.deleteRaks(id);
+      await _loadRaks(); // <-- refresh data di layar
     }
   }
 
@@ -237,16 +224,16 @@ class _PelangganScreenState extends State<PelangganScreen> {
     final Sheet sheet = excel[defaultSheet];
 
     // Isi judul kolom
-    sheet.appendRow(['No', 'Kode', 'Nama', 'Alamat', 'Kelompok']);
+    sheet.appendRow(['No', 'Kode', 'Nama', 'Lokasi', 'Keterangan']);
 
     // Isi data baris
-    for (int i = 0; i < filteredPelanggan.length; i++) {
-      var s = filteredPelanggan[i];
+    for (int i = 0; i < filteredRaks.length; i++) {
+      var s = filteredRaks[i];
       sheet.appendRow([
-        s.kodPelanggan,
-        s.namaPelanggan,
-        s.alamat ?? '-',
-        s.kelompok ?? '-',
+        s.kodeRak,
+        s.namaRak,
+        s.lokasi ?? '-',
+        s.keterangan ?? '-',
       ]);
     }
 
@@ -256,7 +243,7 @@ class _PelangganScreenState extends State<PelangganScreen> {
       final now = DateTime.now();
       final formattedDate =
           "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}_${now.hour.toString().padLeft(2, '0')}-${now.minute.toString().padLeft(2, '0')}";
-      final fileName = 'tablePelanggan_$formattedDate.xlsx';
+      final fileName = 'Rak_$formattedDate.xlsx';
 
       await Printing.sharePdf(
         bytes: Uint8List.fromList(fileBytes),
@@ -271,13 +258,13 @@ class _PelangganScreenState extends State<PelangganScreen> {
       pw.Page(
         build: (context) {
           return pw.Table.fromTextArray(
-            headers: ['Kode', 'Nama', 'Alamat', 'Kelompok'],
-            data: filteredPelanggan.map((s) {
+            headers: ['Kode', 'Nama', 'Lokasi', 'Keterangan'],
+            data: filteredRaks.map((s) {
               return [
-                s.kodPelanggan,
-                s.namaPelanggan,
-                s.alamat ?? '-',
-                s.kelompok ?? '-',
+                s.kodeRak,
+                s.namaRak,
+                s.lokasi ?? '-',
+                s.keterangan ?? '-',
               ];
             }).toList(),
           );
@@ -305,7 +292,7 @@ class _PelangganScreenState extends State<PelangganScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Manajemen Pelanggan',
+                  'Manajemen Rak',
                   style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w600,
@@ -348,8 +335,8 @@ class _PelangganScreenState extends State<PelangganScreen> {
                         );
 
                         if (confirm == true) {
-                          await importPelangganScreensFromExcel(
-                              file: file, db: db, onFinished: _loadPelanggan);
+                          await importRaksFromExcel(
+                              file: file, db: db, onFinished: _loadRaks);
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(content: Text('Import berhasil!')),
                           );
@@ -372,7 +359,7 @@ class _PelangganScreenState extends State<PelangganScreen> {
                     child: ElevatedButton.icon(
                       onPressed: () => _showForm(),
                       icon: const Icon(Icons.add),
-                      label: const Text('Tambah Pelanggan'),
+                      label: const Text('Tambah Rak'),
                     ),
                   ),
                 ])
@@ -438,7 +425,7 @@ class _PelangganScreenState extends State<PelangganScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  '📋 Daftar Pelanggan',
+                  '📋 Daftar Dokter',
                   style: Theme.of(context).textTheme.titleLarge!.copyWith(
                         fontWeight: FontWeight.bold,
                         fontSize: 15,
@@ -484,11 +471,11 @@ class _PelangganScreenState extends State<PelangganScreen> {
                       DataColumn(label: Text('No')), // Kolom Nomor Urut
                       DataColumn(label: Text('Kode')),
                       DataColumn(label: Text('Nama')),
-                      DataColumn(label: Text('Alamat')),
-                      DataColumn(label: Text('Kelompok')),
+                      DataColumn(label: Text('Lokasi')),
+                      DataColumn(label: Text('Keterangan')),
                       DataColumn(label: Text('Aksi')), // Aksi
                     ],
-                    rows: filteredPelanggan
+                    rows: filteredRaks
                         .take(_rowsPerPage)
                         .toList()
                         .asMap()
@@ -500,27 +487,26 @@ class _PelangganScreenState extends State<PelangganScreen> {
                         DataCell(Text('${index + 1}')), // No
                         DataCell(
                           Tooltip(
-                            message: 'Kode Pelanggan',
-                            child: Text(s.kodPelanggan),
+                            message: 'Kode Rak',
+                            child: Text(s.kodeRak),
                           ),
                         ),
                         DataCell(
                           Tooltip(
                             message: 'Nama',
-                            child: Text(s.namaPelanggan),
+                            child: Text(s.namaRak),
                           ),
                         ),
                         DataCell(
                           Tooltip(
-                            message: 'Alamat',
-                            child: Text(s.alamat ?? '-'),
+                            message: 'Lokasi',
+                            child: Text(s.lokasi ?? '-'),
                           ),
                         ),
-
                         DataCell(
                           Tooltip(
-                            message: 'Kelompok',
-                            child: Text(s.kelompok ?? '-'),
+                            message: 'Keterangan',
+                            child: Text(s.keterangan ?? '-'),
                           ),
                         ),
                         DataCell(Row(
@@ -528,12 +514,12 @@ class _PelangganScreenState extends State<PelangganScreen> {
                             IconButton(
                               tooltip: 'Edit Data',
                               icon: const Icon(Icons.edit, color: Colors.blue),
-                              onPressed: () => _showForm(Pelanggan: s),
+                              onPressed: () => _showForm(Rak: s),
                             ),
                             IconButton(
                               tooltip: 'Hapus Data',
                               icon: const Icon(Icons.delete, color: Colors.red),
-                              onPressed: () => _deletePelangganScreen(s.id),
+                              onPressed: () => _deleteRak(s.id),
                             ),
                           ],
                         )),
