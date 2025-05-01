@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:drift/drift.dart' as drift;
 import 'package:excel/excel.dart';
+import 'package:flutter/services.dart';
 import 'package:printing/printing.dart';
 import '../database/app_database.dart';
 import 'dart:typed_data';
@@ -28,7 +29,7 @@ class _PelangganScreenState extends State<PelangganScreen> {
   final TextEditingController _searchController = TextEditingController();
   int _rowsPerPage = 10;
   final List<int> _rowsPerPageOptions = [10, 20, 30];
-  final searchOptions = ['Kode', 'Nama', 'Alamat', 'Kelompok'];
+  final searchOptions = ['Kode', 'Nama', 'Telepon', 'Alamat', 'Kelompok'];
 
   @override
   void initState() {
@@ -59,9 +60,11 @@ class _PelangganScreenState extends State<PelangganScreen> {
       for (var row in sheet.rows.skip(1)) {
         final kodePelanggan = row[0]?.value.toString() ?? '';
         final namaPelanggan = row[1]?.value.toString() ?? '';
-        final alamat = row[2]?.value.toString();
+        final usia = row[2]?.value.toString();
         final telepon = row[3]?.value.toString();
-        final kelompok = row[4]?.value;
+        final alamat = row[4]?.value.toString();
+
+        final kelompok = row[5]?.value;
 
         if (kodePelanggan.isEmpty || namaPelanggan.isEmpty) continue;
 
@@ -79,6 +82,8 @@ class _PelangganScreenState extends State<PelangganScreen> {
               PelanggansCompanion(
                 kodPelanggan: drift.Value(kodePelanggan),
                 namaPelanggan: drift.Value(namaPelanggan),
+                usia: drift.Value(int.tryParse(usia!)),
+                telepon: drift.Value(int.tryParse(telepon!)),
                 alamat: drift.Value(alamat),
                 kelompok: drift.Value(kelompok),
               ),
@@ -96,6 +101,7 @@ class _PelangganScreenState extends State<PelangganScreen> {
         final value = switch (searchField) {
           'Kode' => s.kodPelanggan,
           'Nama' => s.namaPelanggan,
+          'Telepon' => s.telepon?.toString() ?? '',
           'Alamat' => s.alamat ?? '',
           'Kelompok' => s.kelompok ?? '',
           _ => '',
@@ -111,6 +117,12 @@ class _PelangganScreenState extends State<PelangganScreen> {
     final kodeCtrl = TextEditingController(text: Pelanggan?.kodPelanggan ?? '');
     final namaCtrl =
         TextEditingController(text: Pelanggan?.namaPelanggan ?? '');
+    final usiaCtrl =
+        TextEditingController(text: Pelanggan?.usia?.toString() ?? '');
+
+    final teleponCtrl =
+        TextEditingController(text: Pelanggan?.telepon?.toString() ?? '');
+
     final alamatCtrl = TextEditingController(text: Pelanggan?.alamat ?? '');
     final kelompokCtrl = TextEditingController(text: Pelanggan?.kelompok ?? '');
 
@@ -144,6 +156,24 @@ class _PelangganScreenState extends State<PelangganScreen> {
                   decoration: InputDecoration(labelText: 'Nama '),
                   validator: (value) => value == null || value.isEmpty
                       ? 'Wajib diisi tidak boleh kosong'
+                      : null,
+                ),
+                TextFormField(
+                  controller: usiaCtrl,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  decoration: InputDecoration(labelText: 'Usia'),
+                  validator: (value) => value == null || value.isEmpty
+                      ? 'Wajib diisi tidak boleh kosong dan berupa angka'
+                      : null,
+                ),
+                TextFormField(
+                  controller: teleponCtrl,
+                  decoration: InputDecoration(labelText: 'Telepon'),
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  validator: (value) => value == null || value.isEmpty
+                      ? 'Wajib diisi tidak boleh kosong dan berupa angka'
                       : null,
                 ),
                 TextFormField(
@@ -237,7 +267,8 @@ class _PelangganScreenState extends State<PelangganScreen> {
     final Sheet sheet = excel[defaultSheet];
 
     // Isi judul kolom
-    sheet.appendRow(['No', 'Kode', 'Nama', 'Alamat', 'Kelompok']);
+    sheet.appendRow(
+        ['No', 'Kode', 'Nama', 'Usia', 'Telepon', 'Alamat', 'Kelompok']);
 
     // Isi data baris
     for (int i = 0; i < filteredPelanggan.length; i++) {
@@ -245,6 +276,8 @@ class _PelangganScreenState extends State<PelangganScreen> {
       sheet.appendRow([
         s.kodPelanggan,
         s.namaPelanggan,
+        s.usia ?? 0,
+        s.telepon ?? 0,
         s.alamat ?? '-',
         s.kelompok ?? '-',
       ]);
@@ -271,11 +304,13 @@ class _PelangganScreenState extends State<PelangganScreen> {
       pw.Page(
         build: (context) {
           return pw.Table.fromTextArray(
-            headers: ['Kode', 'Nama', 'Alamat', 'Kelompok'],
+            headers: ['Kode', 'Nama', 'Usia', 'Telepon', 'Alamat', 'Kelompok'],
             data: filteredPelanggan.map((s) {
               return [
                 s.kodPelanggan,
                 s.namaPelanggan,
+                s.usia?.toString() ?? '',
+                s.telepon?.toString() ?? '',
                 s.alamat ?? '-',
                 s.kelompok ?? '-',
               ];
@@ -484,6 +519,8 @@ class _PelangganScreenState extends State<PelangganScreen> {
                       DataColumn(label: Text('No')), // Kolom Nomor Urut
                       DataColumn(label: Text('Kode')),
                       DataColumn(label: Text('Nama')),
+                      DataColumn(label: Text('Usia')),
+                      DataColumn(label: Text('Telepon')),
                       DataColumn(label: Text('Alamat')),
                       DataColumn(label: Text('Kelompok')),
                       DataColumn(label: Text('Aksi')), // Aksi
@@ -508,6 +545,19 @@ class _PelangganScreenState extends State<PelangganScreen> {
                           Tooltip(
                             message: 'Nama',
                             child: Text(s.namaPelanggan),
+                          ),
+                        ),
+
+                        DataCell(
+                          Tooltip(
+                            message: 'Usia',
+                            child: Text(s.usia.toString()),
+                          ),
+                        ),
+                        DataCell(
+                          Tooltip(
+                            message: 'Telepon',
+                            child: Text(s.telepon.toString()),
                           ),
                         ),
                         DataCell(

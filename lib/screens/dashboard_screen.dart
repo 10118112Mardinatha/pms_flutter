@@ -3,6 +3,7 @@ import 'package:pms_flutter/database/app_database.dart';
 import 'package:pms_flutter/screens/pelanggan_screen.dart';
 import 'package:pms_flutter/screens/pembelian_screen.dart';
 import 'package:pms_flutter/screens/penjualan_screen.dart';
+import 'package:pms_flutter/screens/resep_screen.dart';
 import 'package:pms_flutter/screens/test_laporan.dart';
 import '../models/user_model.dart'; // Ganti sesuai path model user kamu
 import '../components/sidebar.dart';
@@ -45,7 +46,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       case 'Penjualan':
         return PenjualanScreen(database: db);
       case 'Resep':
-        return const Center(child: Text("Halaman Resep"));
+        return ResepScreen(database: db);
       case 'Rak':
         return RakScreen(database: db);
       case 'Laporan Pembelian':

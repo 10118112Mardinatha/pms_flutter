@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:drift/drift.dart' as drift;
 import 'package:excel/excel.dart';
+import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:printing/printing.dart';
 import '../database/app_database.dart';
 import 'dart:typed_data';
@@ -126,6 +127,7 @@ class _BarangScreenState extends State<BarangScreen> {
     final formKey = GlobalKey<FormState>();
     final kodeCtrl = TextEditingController(text: barang?.kodeBarang ?? '');
     final namaBrgCtrl = TextEditingController(text: barang?.namaBarang ?? '');
+    final noRakCtrl = TextEditingController(text: barang?.noRak ?? '');
     final kelompoktCtrl = TextEditingController(text: barang?.kelompok ?? '');
     final satuanCtrl = TextEditingController(text: barang?.satuan ?? '');
     final stokCtrl =
@@ -175,6 +177,27 @@ class _BarangScreenState extends State<BarangScreen> {
                     validator: (value) => value == null || value.isEmpty
                         ? 'Wajib diisi tidak boleh kosong'
                         : null,
+                  ),
+                  TypeAheadField<Rak>(
+                    textFieldConfiguration: TextFieldConfiguration(
+                        decoration: InputDecoration(
+                          contentPadding: EdgeInsets.all(5),
+                          labelText: 'No Rak',
+                        ),
+                        controller: noRakCtrl),
+                    suggestionsCallback: (pattern) async {
+                      return await db
+                          .searcRak(pattern); // db adalah instance AppDatabase
+                    },
+                    itemBuilder: (context, Rak suggestion) {
+                      return ListTile(
+                        title: Text(suggestion.kodeRak),
+                        subtitle: Text('Kode: ${suggestion.namaRak}'),
+                      );
+                    },
+                    onSuggestionSelected: (Rak suggestion) {
+                      noRakCtrl.text = suggestion.kodeRak;
+                    },
                   ),
                   TextFormField(
                     controller: kelompoktCtrl,
@@ -265,6 +288,7 @@ class _BarangScreenState extends State<BarangScreen> {
                   await db.insertBarangs(BarangsCompanion(
                     kodeBarang: Value(kodeCtrl.text),
                     namaBarang: Value(namaBrgCtrl.text),
+                    noRak: Value(noRakCtrl.text),
                     kelompok: Value(kelompoktCtrl.text),
                     satuan: Value(satuanCtrl.text),
                     stokAktual: Value(int.tryParse(stokCtrl.text) ?? 0),
@@ -281,6 +305,7 @@ class _BarangScreenState extends State<BarangScreen> {
                     barang.copyWith(
                       kodeBarang: kodeCtrl.text,
                       namaBarang: namaBrgCtrl.text,
+                      noRak: noRakCtrl.text,
                       kelompok: kelompoktCtrl.text,
                       satuan: satuanCtrl.text,
                       stokAktual: int.tryParse(stokCtrl.text) ?? 0,
@@ -623,6 +648,7 @@ class _BarangScreenState extends State<BarangScreen> {
                       DataColumn(label: Text('No')), // Kolom Nomor Urut
                       DataColumn(label: Text('Kode Barang')),
                       DataColumn(label: Text('Nama Barang')),
+                      DataColumn(label: Text('Rak')),
                       DataColumn(label: Text('Kelompok')),
                       DataColumn(label: Text('Satuan')),
                       DataColumn(label: Text('Stok Aktual')),
@@ -654,6 +680,12 @@ class _BarangScreenState extends State<BarangScreen> {
                           Tooltip(
                             message: 'Nama Barang',
                             child: Text(s.namaBarang),
+                          ),
+                        ),
+                        DataCell(
+                          Tooltip(
+                            message: 'Rak',
+                            child: Text(s.noRak),
                           ),
                         ),
                         DataCell(

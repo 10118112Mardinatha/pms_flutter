@@ -132,6 +132,7 @@ class Pelanggans extends Table {
   TextColumn get kodPelanggan => text().withLength(min: 1, max: 20).unique()();
   TextColumn get namaPelanggan => text().withLength(min: 1, max: 50)();
   IntColumn get usia => integer().nullable()();
+  IntColumn get telepon => integer().nullable()();
   TextColumn get alamat => text().nullable()();
   TextColumn get kelompok => text().nullable()();
   IntColumn get limitpiutang => integer().nullable()();
@@ -143,36 +144,43 @@ class Pelanggans extends Table {
 
 class Reseps extends Table {
   IntColumn get id => integer().autoIncrement()();
-  TextColumn get noResep => text().withLength(min: 1, max: 20).unique()();
-  TextColumn get kodeBarang => text().withLength(min: 1, max: 50)();
-  TextColumn get namaBarang => text().withLength(min: 1, max: 50)();
-  TextColumn get kodPelanggan => text().withLength(min: 1, max: 50)();
-  TextColumn get namaDoctor => text().withLength(min: 1, max: 50)();
-  TextColumn get kodeDoctor => text().nullable()();
-  IntColumn get jualDiscon => integer().nullable()();
+  TextColumn get noResep => text().withLength(min: 1, max: 20)();
   DateTimeColumn get tanggal => dateTime()();
-  IntColumn get totalHargaSetelahDisc => integer().nullable()();
-  TextColumn get satuan => text()();
-  IntColumn get jumlahJual => integer().nullable()();
-  IntColumn get usia => integer().nullable()();
+  TextColumn get kodePelanggan => text().withLength(min: 1, max: 50)();
   TextColumn get namaPelanggan => text().withLength(min: 1, max: 50)();
+  TextColumn get kelompokPelanggan => text().nullable()();
+  TextColumn get kodeDoctor => text().nullable()();
+  TextColumn get namaDoctor => text().withLength(min: 1, max: 50)();
+  IntColumn get usia => integer().nullable()();
   TextColumn get alamat => text().nullable()();
-  IntColumn get noTelp => integer().nullable()();
-  TextColumn get kelompok => text().nullable()();
   TextColumn get keterangan => text().nullable()();
+  TextColumn get noTelp => text().nullable()();
+  TextColumn get kodeBarang => text().withLength(min: 1, max: 20)();
+  TextColumn get namaBarang => text()();
+  TextColumn get kelompok => text()();
+  TextColumn get satuan => text()();
+  IntColumn get hargaBeli => integer().withDefault(const Constant(0))();
+  IntColumn get hargaJual => integer().withDefault(const Constant(0))();
+  IntColumn get jualDiscon => integer().nullable()();
+  IntColumn get jumlahJual => integer().nullable()();
+  IntColumn get totalHargaSebelumDisc => integer().nullable()();
+  IntColumn get totalHargaSetelahDisc => integer().nullable()();
+  IntColumn get totalDisc => integer().nullable()();
 }
 
 class Resepstmp extends Table {
   IntColumn get id => integer().autoIncrement()();
-  TextColumn get kodeBarang => text().withLength(min: 1, max: 50)();
-  TextColumn get namaBarang => text().withLength(min: 1, max: 50)();
+  TextColumn get kodeBarang => text().withLength(min: 1, max: 20)();
+  TextColumn get namaBarang => text()();
+  TextColumn get kelompok => text()();
+  TextColumn get satuan => text()();
+  IntColumn get hargaBeli => integer().withDefault(const Constant(0))();
   IntColumn get hargaJual => integer().withDefault(const Constant(0))();
   IntColumn get jualDiscon => integer().nullable()();
-  IntColumn get totalHargaSetelahDisc => integer().nullable()();
-  TextColumn get satuan => text()();
   IntColumn get jumlahJual => integer().nullable()();
-  TextColumn get kelompok => text().nullable()();
-  IntColumn get totalHarga => integer().nullable()();
+  IntColumn get totalHargaSebelumDisc => integer().nullable()();
+  IntColumn get totalHargaSetelahDisc => integer().nullable()();
+  IntColumn get totalDisc => integer().nullable()();
 }
 
 class Raks extends Table {
@@ -323,6 +331,14 @@ class AppDatabase extends _$AppDatabase {
   Future<int> deleteDoctor(int id) =>
       (delete(doctors)..where((tbl) => tbl.id.equals(id))).go();
 
+  Future<List<Doctor>> searcDoctor(String query) {
+    return (select(doctors)
+          ..where((tbl) =>
+              tbl.namaDoctor.like('%$query%') | tbl.kodeDoctor.like('%$query%'))
+          ..limit(10))
+        .get();
+  }
+
 //Barang
   Future<List<Barang>> getAllBarangs() => select(barangs).get();
 
@@ -343,6 +359,11 @@ class AppDatabase extends _$AppDatabase {
               tbl.namaBarang.like('%$query%') | tbl.kodeBarang.like('%$query%'))
           ..limit(10))
         .get();
+  }
+
+  Future<Barang?> getBarangByKode(String kode) {
+    return (select(barangs)..where((tbl) => tbl.kodeBarang.equals(kode)))
+        .getSingleOrNull();
   }
 
 //penjualan
@@ -499,6 +520,13 @@ class AppDatabase extends _$AppDatabase {
 
   Future<int> deleteRaks(int id) {
     return (delete(raks)..where((tbl) => tbl.id.equals(id))).go();
+  }
+
+  Future<List<Rak>> searcRak(String query) {
+    return (select(raks)
+          ..where((tbl) => tbl.kodeRak.like('%$query%'))
+          ..limit(10))
+        .get();
   }
 }
 

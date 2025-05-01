@@ -95,7 +95,7 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
 
   Future<void> _setNoFaktur() async {
     final noFaktur =
-        await generateNoFaktur(AppDatabase()); // ganti dengan instance db kamu
+        await generateNoFaktur(db); // ganti dengan instance db kamu
     setState(() {
       _nofakturController.text = noFaktur;
     });

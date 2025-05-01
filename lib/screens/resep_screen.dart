@@ -1,16 +1,15 @@
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:drift/drift.dart' as drift;
 import 'package:excel/excel.dart';
+import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:intl/intl.dart';
 import 'package:printing/printing.dart';
 import '../database/app_database.dart';
 import 'dart:typed_data';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter_typeahead/flutter_typeahead.dart';
 
 class ResepScreen extends StatefulWidget {
   final AppDatabase database;
@@ -24,58 +23,101 @@ class ResepScreen extends StatefulWidget {
 class _ResepScreenState extends State<ResepScreen> {
   late AppDatabase db;
   List<ResepstmpData> allReseptmp = [];
-  List<Reseps> filteredReseps = [];
-  String searchField = 'Nama';
-  String searchText = '';
-  Resep? data;
-  final TextEditingController _searchController = TextEditingController();
-  final TextEditingController _noResep = TextEditingController();
-  final TextEditingController _DokterController = TextEditingController();
-  final TextEditingController _kodeDokterontroller = TextEditingController();
-  final TextEditingController _PelangganController = TextEditingController();
-  final TextEditingController _kodePelangganController =
-      TextEditingController();
-  final TextEditingController _kodeDokerController = TextEditingController();
-  final tanggalCtrl = TextEditingController();
+  bool iscekumum = true;
+  bool iscekpelanggan = false;
+  bool iscekresep = false;
+  final tanggalCtrl = TextEditingController(); // definisikan di atas
+  DateTime? tanggal = DateTime.now();
+  final TextEditingController _barangController = TextEditingController();
+  final TextEditingController _jumlahbarangController = TextEditingController();
+  final TextEditingController _pelangganController = TextEditingController();
+  final TextEditingController _noResepController = TextEditingController();
+  final TextEditingController _namaDoctorController = TextEditingController();
+  final TextEditingController _alamatController = TextEditingController();
+  final TextEditingController _noHpController = TextEditingController();
+  final TextEditingController _umurController = TextEditingController();
+  final TextEditingController _keteranganController = TextEditingController();
+  final TextEditingController _kelompokController = TextEditingController();
+  final TextEditingController _discController = TextEditingController();
+  Barang? selectedBarang;
 
-  DateTime? tanggalBeli; // tanggal aslinya tetap disimpan di sini
-  final TextEditingController totalSeluruhCtrl = TextEditingController();
-  String totalResep = '';
+//formutama
+  String kodedokter = '';
+  String kodePelanggan = '';
 
-  Supplier? selectedSupplier;
-  DateTime? _selectedDate;
-  int _rowsPerPage = 10;
-  final List<int> _rowsPerPageOptions = [10, 20, 30];
-  final searchOptions = ['Kode'];
+//buat tmp
+  String kodebarang = '';
+  String satuan = '';
+  String kelompok = '';
+  int hargabeli = 0;
+  int hargajual = 0;
+  int jualdiscon = 0;
+  int jumlahjual = 0;
+  int totalharga = 0;
+  int totalhargastlhdiskon = 0;
+  int totaldiskon = 0;
 
   @override
   void initState() {
     super.initState();
     db = widget.database;
-    _loadReseps();
+    _loadResep();
   }
 
-  Future<void> _loadReseps() async {
+  Future<void> _loadResep() async {
+    tanggalCtrl.text = DateTime.now().toIso8601String().split('T').first;
+    generateNoResep(db, _noResepController);
     final data = await db.getAllResepsTmp();
     setState(() {
       allReseptmp = data;
     });
-    updateTotalSeluruh();
   }
 
-  Future<void> prosesResep() async {
-    final noResep = _noResep.text;
-    final kodePelanggan = _kodePelangganController.text;
-    final namaPelanngan = _PelangganController.text;
-    final namaDokter = _DokterController;
-    final tanggal = tanggalBeli;
+  @override
+  void dispose() {
+    super.dispose();
+  }
 
-    if (kodePelanggan.isEmpty ||
-        namaPelanngan.isEmpty ||
-        noResep == 0 ||
-        tanggal == null) {
+  Future<void> generateNoResep(
+      AppDatabase db, TextEditingController noResepController) async {
+    int counter = 1;
+    String newNoResep;
+
+    while (true) {
+      newNoResep = 'RS${counter.toString().padLeft(5, '0')}'; // Contoh: RS00001
+
+      final query = db.select(db.reseps)
+        ..where((tbl) => tbl.noResep.equals(newNoResep));
+
+      final exists = await query.getSingleOrNull();
+
+      if (exists == null) {
+        break; // NoResep unik
+      }
+
+      counter++;
+    }
+
+    noResepController.text = newNoResep;
+  }
+
+  Future<void> prosesSimpan() async {
+    final noresep = _noResepController.text;
+    final kdpelanggan = kodePelanggan;
+    final namapelanggan = _pelangganController.text;
+    final kddoctor = kodedokter;
+    final namadoctor = _namaDoctorController.text;
+
+    final alamat = _alamatController.text;
+    final umur = int.tryParse(_umurController.text) ?? 0;
+    final kelompokpelanggan = _kelompokController.text;
+    final nohp = _noHpController.text;
+    final keterangan = _keteranganController.text;
+    final tanggalresep = tanggal;
+
+    if (noresep.isEmpty || namapelanggan.isEmpty || tanggalresep == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('No Faktur, Supplier, dan Tanggal wajib diisi')),
+        SnackBar(content: Text(tanggalresep.toString())),
       );
       return;
     }
@@ -89,476 +131,59 @@ class _ResepScreenState extends State<ResepScreen> {
       return;
     }
 
-    // Gunakan batch untuk insert semua data ke tabel Reseps
+    // Gunakan batch untuk insert semua data ke tabel pembelians
     await db.batch((batch) {
       batch.insertAll(
         db.reseps,
         items
             .map((item) => ResepsCompanion(
-                  noResep: Value(noResep),
-                  kodeDoctor: Value(doctor),
-                  kodPelanggan: Value(kodePelanggan),
-                  kodeBarang: Value(item.kodeBarang),
-                  namaBarang: Value(item.namaBarang),
-                  tanggal: Value(tanggal),
-                  usia: Value(item.us),
-                  kelompok: Value(item.kelompok),
-                  satuan: Value(item.satuan),
-                  namaPelanggan: Value(namaPelanngan),
-                  hargaJual: Value(item.hargaJual),
-                 noTelp: Value(item.kete),
-                  keterangan: Value(item.),
-                  jumlahBeli: Value(item.jumlahBeli),
-                  totalHarga: Value(item.totalHarga),
-                ))
+                noResep: Value(noresep),
+                tanggal: Value(tanggalresep),
+                kodePelanggan: Value(kdpelanggan),
+                namaPelanggan: Value(namapelanggan),
+                kelompokPelanggan: Value(kelompokpelanggan),
+                kodeDoctor: Value(kddoctor),
+                namaDoctor: Value(namadoctor),
+                usia: Value(umur),
+                alamat: Value(alamat),
+                keterangan: Value(keterangan),
+                noTelp: Value(nohp),
+                kodeBarang: Value(item.kodeBarang),
+                namaBarang: Value(item.namaBarang),
+                kelompok: Value(item.kelompok),
+                satuan: Value(item.satuan),
+                hargaBeli: Value(item.hargaBeli),
+                hargaJual: Value(item.hargaJual),
+                jualDiscon: Value(item.jualDiscon),
+                jumlahJual: Value(item.jumlahJual),
+                totalHargaSebelumDisc: Value(item.totalHargaSebelumDisc),
+                totalHargaSetelahDisc: Value(item.totalHargaSetelahDisc),
+                totalDisc: Value(item.totalDisc)))
             .toList(),
       );
-      for (final item in items) {
-        batch.customStatement(
-          '''
-        UPDATE barangs
-        SET 
-          stok_aktual = stok_aktual + ?,
-          harga_beli = ?,
-          harga_jual = ?,
-          jual_disc1 = ?,
-          jual_disc2 = ?,
-          jual_disc3 = ?,
-          jual_disc4 = ?
-        WHERE kode_barang = ?
-        ''',
-          [
-            item.jumlahBeli ?? 0,
-            item.hargaBeli,
-            item.hargaJual,
-            item.jualDisc1,
-            item.jualDisc2,
-            item.jualDisc3,
-            item.jualDisc4,
-            item.kodeBarang
-          ],
-        );
-      }
     });
 
-    // Bersihkan tabel Resepstmp
-    await db.delete(db.Resepstmp).go();
+    // Bersihkan tabel pembelianstmp
+    await db.delete(db.resepstmp).go();
 
     // Reset form input
-    _nofaktur.clear();
-    _kodeSupplierController.clear();
-    _SupplierController.clear();
-    tanggalBeli = null;
-    tanggalBeliCtrl
-        .clear(); // Kalau kamu pakai TextEditingController untuk tanggal
-    totalSeluruhCtrl.clear();
-
+    _pelangganController.clear();
+    _namaDoctorController.clear();
+    kodePelanggan = '';
+    kodedokter = '';
+    tanggal = DateTime.now();
+    tanggalCtrl.clear();
+    _alamatController.clear();
+    _kelompokController.clear();
+    _umurController.clear();
+    _keteranganController.clear();
+    _noHpController.clear();
     // Refresh tampilan
-    _loadReseps();
+    _loadResep();
 
     // Notifikasi sukses
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Data Resep berhasil diproses.')),
-    );
-  }
-
-  Future<void> prosesbatal() async {
-    // Bersihkan tabel Resepstmp
-    await db.delete(db.Resepstmp).go();
-
-    // Reset form input
-    _nofaktur.clear();
-    _kodeSupplierController.clear();
-    _SupplierController.clear();
-    tanggalBeli = null;
-    tanggalBeliCtrl.clear();
-    totalSeluruhCtrl.clear();
-    _loadReseps();
-  }
-
-  Future<void> importResepsFromExcel({
-    required File file,
-    required AppDatabase db,
-    required VoidCallback onFinished,
-  }) async {
-    try {
-      final bytes = file.readAsBytesSync();
-      final excel = Excel.decodeBytes(bytes);
-      final sheet = excel.tables[excel.tables.keys.first];
-      if (sheet == null) return;
-
-      for (var row in sheet.rows.skip(1)) {
-        final kodeBarang = row[0]?.value.toString() ?? '';
-        final namaBarang = row[1]?.value.toString() ?? '';
-        final expired = row[2]?.value.toString();
-        final kelompok = row[3]?.value.toString() ?? '';
-        final satuan = row[4]?.value.toString() ?? '';
-        final hargaBeli = row[5]?.value.toString();
-        final hargaJual = row[6]?.value.toString();
-        final jualDisc1 = row[7]?.value.toString();
-        final jualDisc2 = row[8]?.value.toString();
-        final jualDisc3 = row[9]?.value.toString();
-        final jualDisc4 = row[10]?.value.toString();
-        final ppn = row[11]?.value.toString();
-        final totalbeli = row[12]?.value.toString();
-        final toalharga = row[13]?.value.toString();
-
-        if (kodeBarang.isEmpty || namaBarang.isEmpty) continue;
-
-        // Cek apakah kodeSupplier sudah ada
-        final exists = await (db.select(db.doctors)
-              ..where((tbl) => tbl.kodeDoctor.equals(kodeBarang)))
-            .getSingleOrNull();
-
-        if (exists != null) {
-          debugPrint('Kode $kodeBarang sudah ada, dilewati.');
-          continue;
-        }
-
-        await db.into(db.Resepstmp).insert(
-              ResepstmpCompanion(
-                kodeBarang: drift.Value(kodeBarang),
-                namaBarang: drift.Value(namaBarang),
-                expired: drift.Value(expired as DateTime),
-                kelompok: drift.Value(kelompok),
-                satuan: drift.Value(satuan),
-                hargaBeli: drift.Value(int.tryParse(hargaBeli ?? '0') ?? 0),
-                hargaJual: drift.Value(int.tryParse(hargaJual ?? '0') ?? 0),
-                jualDisc1: drift.Value(int.tryParse(jualDisc1 ?? '0') ?? 0),
-                jualDisc2: drift.Value(int.tryParse(jualDisc2 ?? '0') ?? 0),
-                jualDisc3: drift.Value(int.tryParse(jualDisc3 ?? '0') ?? 0),
-                jualDisc4: drift.Value(int.tryParse(jualDisc4 ?? '0') ?? 0),
-                ppn: drift.Value(int.tryParse(ppn ?? '0') ?? 0),
-                jumlahBeli: drift.Value(int.tryParse(totalbeli ?? '0') ?? 0),
-                totalHarga: drift.Value(int.tryParse(toalharga ?? '0') ?? 0),
-              ),
-            );
-      }
-      onFinished();
-    } catch (e) {
-      debugPrint('Gagal import file Excel: $e');
-    }
-  }
-
-//
-  Future<void> showFormResepstmp({
-    ResepstmpData? data,
-  }) async {
-    final formKey = GlobalKey<FormState>();
-
-    final kodeBarangCtrl = TextEditingController(text: data?.kodeBarang ?? '');
-    final namaBarangCtrl = TextEditingController(text: data?.namaBarang ?? '');
-    final expiredCtrl = TextEditingController();
-    final kelompokCtrl = TextEditingController(text: data?.kelompok ?? '');
-    final satuanCtrl = TextEditingController(text: data?.satuan ?? '');
-    final hargaBeliCtrl =
-        TextEditingController(text: data?.hargaBeli.toString() ?? '');
-    final hargaJualCtrl =
-        TextEditingController(text: data?.hargaJual.toString() ?? '');
-    final disc1Ctrl =
-        TextEditingController(text: data?.jualDisc1?.toString() ?? '');
-    final disc2Ctrl =
-        TextEditingController(text: data?.jualDisc2?.toString() ?? '');
-    final disc3Ctrl =
-        TextEditingController(text: data?.jualDisc3?.toString() ?? '');
-    final disc4Ctrl =
-        TextEditingController(text: data?.jualDisc4?.toString() ?? '');
-    final ppnCtrl = TextEditingController(text: data?.ppn?.toString() ?? '');
-    final jumlahBeliCtrl =
-        TextEditingController(text: data?.jumlahBeli?.toString() ?? '');
-    final totalHargaCtrl =
-        TextEditingController(text: data?.totalHarga?.toString() ?? '');
-    final TextEditingController _barangController = TextEditingController();
-
-    DateTime? expired;
-    Barang? selectedBarang;
-
-    void hitungTotalHarga() {
-      final harga = int.tryParse(hargaBeliCtrl.text) ?? 0;
-      final jumlah = int.tryParse(jumlahBeliCtrl.text) ?? 0;
-      final total = harga * jumlah;
-      totalHargaCtrl.text = total.toString();
-    }
-
-    hargaBeliCtrl.addListener(hitungTotalHarga);
-    jumlahBeliCtrl.addListener(hitungTotalHarga);
-
-    await showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: Text(data == null ? 'Tambah Resep Tmp' : 'Edit Resep Tmp'),
-        content: SizedBox(
-          width: 420,
-          child: Form(
-            key: formKey,
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TypeAheadField<Barang>(
-                    textFieldConfiguration: TextFieldConfiguration(
-                      decoration: InputDecoration(
-                        labelText: 'Nama Obat/Jasa',
-                      ),
-                      controller: _barangController,
-                    ),
-                    suggestionsCallback: (pattern) async {
-                      return await db.searchBarang(
-                          pattern); // db adalah instance AppDatabase
-                    },
-                    itemBuilder: (context, Barang suggestion) {
-                      return ListTile(
-                        title: Text(suggestion.namaBarang),
-                        subtitle: Text('Kode: ${suggestion.kodeBarang}'),
-                      );
-                    },
-                    onSuggestionSelected: (Barang suggestion) {
-                      _barangController.text = suggestion.namaBarang;
-                      kodeBarangCtrl.text = suggestion.kodeBarang;
-                      satuanCtrl.text = suggestion.satuan;
-                      kelompokCtrl.text = suggestion.kelompok;
-                      // kamu bisa simpan juga id barang atau kodeBarang ke variabel lain
-                      selectedBarang = suggestion;
-                    },
-                  ),
-                  Visibility(
-                    visible: false,
-                    child: TextFormField(
-                      controller: kodeBarangCtrl,
-                      readOnly: true,
-                      decoration: InputDecoration(labelText: 'Kode Barang'),
-                    ),
-                  ),
-                  TextFormField(
-                    controller: expiredCtrl,
-                    readOnly: true,
-                    decoration: InputDecoration(
-                      labelText: 'Tanggal Expired',
-                      suffixIcon: Icon(Icons.calendar_today),
-                    ),
-                    onTap: () async {
-                      FocusScope.of(context)
-                          .requestFocus(FocusNode()); // hilangkan keyboard
-                      final picked = await showDatePicker(
-                        context: context,
-                        initialDate: tanggalBeli ?? DateTime.now(),
-                        firstDate: DateTime(2020),
-                        lastDate: DateTime(2100),
-                      );
-                      if (picked != null) {
-                        expired = picked;
-                        expiredCtrl.text = picked
-                            .toIso8601String()
-                            .split('T')
-                            .first; // format ke yyyy-MM-dd
-                      }
-                    },
-                  ),
-                  Visibility(
-                    visible: false,
-                    child: TextFormField(
-                      controller: kelompokCtrl,
-                      decoration: InputDecoration(labelText: 'Kelompok'),
-                    ),
-                  ),
-                  Visibility(
-                    visible: false,
-                    child: TextFormField(
-                      controller: satuanCtrl,
-                      decoration: InputDecoration(labelText: 'Satuan'),
-                    ),
-                  ),
-                  TextFormField(
-                    controller: hargaBeliCtrl,
-                    decoration: InputDecoration(labelText: 'Harga Beli'),
-                    keyboardType: TextInputType.number,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Harap masukkan angka';
-                      }
-                      // Menggunakan regex untuk memeriksa apakah input hanya angka
-                      if (!RegExp(r'^[0-9]+$').hasMatch(value)) {
-                        return 'Hanya angka yang diperbolehkan';
-                      }
-                      return null; // Valid
-                    },
-                  ),
-                  TextFormField(
-                    controller: hargaJualCtrl,
-                    decoration: InputDecoration(labelText: 'Harga Jual'),
-                    keyboardType: TextInputType.number,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Harap masukkan angka';
-                      }
-                      // Menggunakan regex untuk memeriksa apakah input hanya angka
-                      if (!RegExp(r'^[0-9]+$').hasMatch(value)) {
-                        return 'Hanya angka yang diperbolehkan';
-                      }
-                      return null; // Valid
-                    },
-                  ),
-                  TextFormField(
-                    controller: disc1Ctrl,
-                    decoration: InputDecoration(labelText: 'Disc 1'),
-                    keyboardType: TextInputType.number,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Harap masukkan angka';
-                      }
-                      // Menggunakan regex untuk memeriksa apakah input hanya angka
-                      if (!RegExp(r'^[0-9]+$').hasMatch(value)) {
-                        return 'Hanya angka yang diperbolehkan';
-                      }
-                      return null; // Valid
-                    },
-                  ),
-                  TextFormField(
-                    controller: disc2Ctrl,
-                    decoration: InputDecoration(labelText: 'Disc 2'),
-                    keyboardType: TextInputType.number,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Harap masukkan angka';
-                      }
-                      // Menggunakan regex untuk memeriksa apakah input hanya angka
-                      if (!RegExp(r'^[0-9]+$').hasMatch(value)) {
-                        return 'Hanya angka yang diperbolehkan';
-                      }
-                      return null; // Valid
-                    },
-                  ),
-                  TextFormField(
-                    controller: disc3Ctrl,
-                    decoration: InputDecoration(labelText: 'Disc 3'),
-                    keyboardType: TextInputType.number,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Harap masukkan angka';
-                      }
-                      // Menggunakan regex untuk memeriksa apakah input hanya angka
-                      if (!RegExp(r'^[0-9]+$').hasMatch(value)) {
-                        return 'Hanya angka yang diperbolehkan';
-                      }
-                      return null; // Valid
-                    },
-                  ),
-                  TextFormField(
-                    controller: disc4Ctrl,
-                    decoration: InputDecoration(labelText: 'Disc 4'),
-                    keyboardType: TextInputType.number,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Harap masukkan angka';
-                      }
-                      // Menggunakan regex untuk memeriksa apakah input hanya angka
-                      if (!RegExp(r'^[0-9]+$').hasMatch(value)) {
-                        return 'Hanya angka yang diperbolehkan';
-                      }
-                      return null; // Valid
-                    },
-                  ),
-                  TextFormField(
-                    controller: ppnCtrl,
-                    decoration: InputDecoration(labelText: 'PPN'),
-                    keyboardType: TextInputType.number,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Harap masukkan angka';
-                      }
-                      // Menggunakan regex untuk memeriksa apakah input hanya angka
-                      if (!RegExp(r'^[0-9]+$').hasMatch(value)) {
-                        return 'Hanya angka yang diperbolehkan';
-                      }
-                      return null; // Valid
-                    },
-                  ),
-                  TextFormField(
-                    controller: jumlahBeliCtrl,
-                    decoration: InputDecoration(labelText: 'Jumlah Beli'),
-                    keyboardType: TextInputType.number,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Harap masukkan angka';
-                      }
-                      // Menggunakan regex untuk memeriksa apakah input hanya angka
-                      if (!RegExp(r'^[0-9]+$').hasMatch(value)) {
-                        return 'Hanya angka yang diperbolehkan';
-                      }
-                      return null; // Valid
-                    },
-                  ),
-                  TextFormField(
-                    controller: totalHargaCtrl,
-                    decoration: InputDecoration(labelText: 'Total Harga'),
-                    keyboardType: TextInputType.number,
-                    readOnly: true,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Batal'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (formKey.currentState!.validate()) {
-                final expiredDate = DateTime.tryParse(expiredCtrl.text);
-                if (expiredDate == null) return;
-
-                if (data == null) {
-                  await db.insertResepTmp(ResepstmpCompanion(
-                    kodeBarang: Value(kodeBarangCtrl.text),
-                    namaBarang: Value(_barangController.text),
-                    expired: Value(expiredDate),
-                    kelompok: Value(kelompokCtrl.text),
-                    satuan: Value(satuanCtrl.text),
-                    hargaBeli: Value(int.tryParse(hargaBeliCtrl.text) ?? 0),
-                    hargaJual: Value(int.tryParse(hargaJualCtrl.text) ?? 0),
-                    jualDisc1: Value(int.tryParse(disc1Ctrl.text)),
-                    jualDisc2: Value(int.tryParse(disc2Ctrl.text)),
-                    jualDisc3: Value(int.tryParse(disc3Ctrl.text)),
-                    jualDisc4: Value(int.tryParse(disc4Ctrl.text)),
-                    ppn: Value(int.tryParse(ppnCtrl.text)),
-                    jumlahBeli: Value(int.tryParse(jumlahBeliCtrl.text)),
-                    totalHarga: Value(int.tryParse(totalHargaCtrl.text)),
-                  ));
-                } else {
-                  await db.updateResepTmp(
-                    data.copyWith(
-                      kodeBarang: kodeBarangCtrl.text,
-                      namaBarang: namaBarangCtrl.text,
-                      expired: expiredDate,
-                      kelompok: kelompokCtrl.text,
-                      satuan: satuanCtrl.text,
-                      hargaBeli: int.tryParse(hargaBeliCtrl.text) ?? 0,
-                      hargaJual: int.tryParse(hargaJualCtrl.text) ?? 0,
-
-                      // Mulai dari sini pakai Value karena nullable
-                      jualDisc1: Value(int.tryParse(disc1Ctrl.text)),
-                      jualDisc2: Value(int.tryParse(disc2Ctrl.text)),
-                      jualDisc3: Value(int.tryParse(disc3Ctrl.text)),
-                      jualDisc4: Value(int.tryParse(disc4Ctrl.text)),
-                      ppn: Value(int.tryParse(ppnCtrl.text)),
-                      jumlahBeli: Value(int.tryParse(jumlahBeliCtrl.text)),
-                      totalHarga: Value(int.tryParse(totalHargaCtrl.text)),
-                    ),
-                  );
-                }
-
-                if (context.mounted) Navigator.pop(context);
-                _loadReseps();
-                updateTotalSeluruh();
-              }
-            },
-            child: const Text('Simpan'),
-          ),
-        ],
-      ),
+      SnackBar(content: Text('Data pembelian berhasil diproses.')),
     );
   }
 
@@ -566,9 +191,30 @@ class _ResepScreenState extends State<ResepScreen> {
     return DateFormat('dd-MM-yyyy').format(date);
   }
 
-  Future<void> updateTotalSeluruh() async {
-    final total = await db.getTotalHargaResepTmp();
-    totalResep = total == 0 ? '' : 'Rp. ${total.toString()}';
+  Future<void> ProsesTambahresep() async {
+    String namabarang = _barangController.text;
+    jumlahjual = int.tryParse(_jumlahbarangController.text) ?? 0;
+    totalharga = (hargajual * jumlahjual);
+    totalhargastlhdiskon = totalharga - jualdiscon;
+    totaldiskon = totalharga - totalhargastlhdiskon;
+
+    if (namabarang != '') {
+      await db.insertResepsTmp(ResepstmpCompanion(
+          kodeBarang: Value(kodebarang),
+          namaBarang: Value(_barangController.text),
+          kelompok: Value(kelompok),
+          satuan: Value(satuan),
+          hargaBeli: Value(hargabeli),
+          hargaJual: Value(hargajual),
+          jualDiscon: Value(jualdiscon),
+          jumlahJual: Value(jumlahjual),
+          totalHargaSebelumDisc: Value(totalharga),
+          totalHargaSetelahDisc: Value(totalhargastlhdiskon),
+          totalDisc: Value(totaldiskon)));
+    }
+    _barangController.clear();
+    _jumlahbarangController.clear();
+    _loadResep();
   }
 
   void _deleteResep(int id) async {
@@ -576,7 +222,7 @@ class _ResepScreenState extends State<ResepScreen> {
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('Hapus'),
-        content: const Text('Yakin ingin menghapus ini?'),
+        content: const Text('Yakin ingin menghapus data ini?'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context, false),
@@ -590,14 +236,8 @@ class _ResepScreenState extends State<ResepScreen> {
 
     if (confirm == true) {
       await db.deleteResepTmp(id);
-      await _loadReseps(); // <-- refresh data di layar
+      await _loadResep(); // <-- refresh data di layar
     }
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
   }
 
   @override
@@ -619,61 +259,8 @@ class _ResepScreenState extends State<ResepScreen> {
                       color: Colors.grey[800]),
                 ),
                 Row(children: [
-                  Tooltip(
-                    message: 'Import dari Excel',
-                    preferBelow: false, // Tooltip muncul di atas
-                    child: IconButton(
-                      icon: const Icon(Icons.upload_file),
-                      onPressed: () async {
-                        final result = await FilePicker.platform.pickFiles(
-                          type: FileType.custom,
-                          allowedExtensions: ['xlsx'],
-                        );
-                        if (result != null &&
-                            result.files.single.path != null) {
-                          final file = File(result.files.single.path!);
-
-                          final confirm = await showDialog<bool>(
-                            context: context,
-                            builder: (context) => AlertDialog(
-                              title: const Text('Konfirmasi Import'),
-                              content: const Text(
-                                  'Apakah Anda yakin ingin mengupload file ini?'),
-                              actions: [
-                                TextButton(
-                                  child: const Text('Batal'),
-                                  onPressed: () =>
-                                      Navigator.pop(context, false),
-                                ),
-                                ElevatedButton(
-                                  child: const Text('Ya, Upload'),
-                                  onPressed: () => Navigator.pop(context, true),
-                                ),
-                              ],
-                            ),
-                          );
-
-                          if (confirm == true) {
-                            await importResepsFromExcel(
-                                file: file, db: db, onFinished: _loadReseps);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Import berhasil!')),
-                            );
-                          }
-                        } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text('Tidak ada file dipilih')),
-                          );
-                        }
-                      }, // Buat fungsi ini nanti
-                    ),
-                  ),
-                  SizedBox(
-                    width: 15,
-                  ),
                   ElevatedButton.icon(
-                    onPressed: prosesbatal,
+                    onPressed: _loadResep,
                     icon: const Icon(Icons.close),
                     label: const Text('Batal'),
                     style: ElevatedButton.styleFrom(
@@ -685,76 +272,42 @@ class _ResepScreenState extends State<ResepScreen> {
                     width: 15,
                   ),
                   ElevatedButton.icon(
-                    onPressed: prosesResep,
+                    onPressed: prosesSimpan,
                     icon: const Icon(Icons.save),
-                    label: const Text('Simpan'),
+                    label: const Text('Simpan/Bayar'),
                   ),
                 ])
               ],
             ),
-
-            Divider(thickness: 1),
+            Divider(
+              thickness: 0.7,
+            ),
             SizedBox(height: 10),
             Row(
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
                 SizedBox(
                   height: 35,
-                  width: 250,
+                  width: 200,
                   child: TextFormField(
-                    controller: _nofaktur,
+                    controller: _noResepController,
                     decoration: InputDecoration(
+                      contentPadding: EdgeInsets.all(5),
                       border: OutlineInputBorder(),
-                      labelText: 'No Faktur',
+                      labelText: 'No Resep',
                     ),
+                    readOnly: true,
                   ),
                 ),
-                SizedBox(width: 250), // Spacing between the text fields
+                SizedBox(width: 15),
                 SizedBox(
                   height: 35,
-                  width: 250,
-                  child: TypeAheadField<Supplier>(
-                    textFieldConfiguration: TextFieldConfiguration(
-                      decoration: InputDecoration(
-                        border: OutlineInputBorder(),
-                        labelText: 'Nama Supplier',
-                      ),
-                      controller: _SupplierController,
-                    ),
-                    suggestionsCallback: (pattern) async {
-                      return await db.searchSupplier(
-                          pattern); // db adalah instance AppDatabase
-                    },
-                    itemBuilder: (context, Supplier suggestion) {
-                      return ListTile(
-                        title: Text(suggestion.namaSupplier),
-                        subtitle: Text('Kode: ${suggestion.kodeSupplier}'),
-                      );
-                    },
-                    onSuggestionSelected: (Supplier suggestion) {
-                      _SupplierController.text = suggestion.namaSupplier;
-                      _kodeSupplierController.text = suggestion.kodeSupplier;
-
-                      // kamu bisa simpan juga id barang atau kodeBarang ke variabel lain
-                      selectedSupplier = suggestion;
-                    },
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 15),
-
-            Row(
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: [
-                SizedBox(
-                  height: 35,
-                  width: 250,
+                  width: 200,
                   child: TextFormField(
-                    controller: tanggalBeliCtrl,
+                    controller: tanggalCtrl,
                     readOnly: true,
                     decoration: InputDecoration(
-                      labelText: 'Tanggal Resep',
+                      labelText: 'Tanggal',
                       border: OutlineInputBorder(),
                       suffixIcon: Icon(Icons.calendar_today),
                     ),
@@ -763,13 +316,13 @@ class _ResepScreenState extends State<ResepScreen> {
                           .requestFocus(FocusNode()); // hilangkan keyboard
                       final picked = await showDatePicker(
                         context: context,
-                        initialDate: tanggalBeli ?? DateTime.now(),
+                        initialDate: tanggal ?? DateTime.now(),
                         firstDate: DateTime(2020),
                         lastDate: DateTime(2100),
                       );
                       if (picked != null) {
-                        tanggalBeli = picked;
-                        tanggalBeliCtrl.text = picked
+                        tanggal = picked;
+                        tanggalCtrl.text = picked
                             .toIso8601String()
                             .split('T')
                             .first; // format ke yyyy-MM-dd
@@ -777,62 +330,271 @@ class _ResepScreenState extends State<ResepScreen> {
                     },
                   ),
                 ),
-
-                SizedBox(width: 250), // Spacing between the text fields
+                SizedBox(width: 15),
+                Row(children: [
+                  SizedBox(
+                    height: 35,
+                    width: 200,
+                    child: TypeAheadField<Doctor>(
+                      textFieldConfiguration: TextFieldConfiguration(
+                        decoration: InputDecoration(
+                          contentPadding: EdgeInsets.all(5),
+                          border: OutlineInputBorder(),
+                          labelText: 'Kode/Nama Dokter',
+                        ),
+                        controller: _namaDoctorController,
+                      ),
+                      suggestionsCallback: (pattern) async {
+                        return await db.searcDoctor(
+                            pattern); // db adalah instance AppDatabase
+                      },
+                      itemBuilder: (context, Doctor suggestion) {
+                        return ListTile(
+                          title: Text(suggestion.namaDoctor),
+                          subtitle: Text('Kode: ${suggestion.kodeDoctor}'),
+                        );
+                      },
+                      onSuggestionSelected: (Doctor suggestion) {
+                        _namaDoctorController.text = suggestion.namaDoctor;
+                        kodedokter = suggestion.kodeDoctor;
+                      },
+                    ),
+                  ),
+                ]),
+              ],
+            ),
+            SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
                 SizedBox(
                   height: 35,
-                  width: 250,
+                  width: 200,
+                  child: TypeAheadField<Pelanggan>(
+                    textFieldConfiguration: TextFieldConfiguration(
+                      decoration: InputDecoration(
+                        contentPadding: EdgeInsets.all(5),
+                        border: OutlineInputBorder(),
+                        labelText: 'Kode/Nama Pelanggan',
+                      ),
+                      controller: _pelangganController,
+                    ),
+                    suggestionsCallback: (pattern) async {
+                      return await db.searchPelanggan(
+                          pattern); // db adalah instance AppDatabase
+                    },
+                    itemBuilder: (context, Pelanggan suggestion) {
+                      return ListTile(
+                        title: Text(suggestion.namaPelanggan),
+                        subtitle: Text('Kode: ${suggestion.kodPelanggan}'),
+                      );
+                    },
+                    onSuggestionSelected: (Pelanggan suggestion) {
+                      _pelangganController.text = suggestion.namaPelanggan;
+                      kodePelanggan = suggestion.kodPelanggan;
+                    },
+                  ),
+                ),
+                SizedBox(
+                  width: 15,
+                ),
+                SizedBox(
+                  height: 35,
+                  width: 280,
                   child: TextFormField(
-                    controller: _kodeSupplierController,
+                    controller: _alamatController,
                     decoration: InputDecoration(
                       border: OutlineInputBorder(),
-                      labelText: 'kode Supplier',
+                      labelText: 'Alamat',
                     ),
-                    readOnly: true,
+                  ),
+                ),
+                SizedBox(
+                  width: 50,
+                ),
+                SizedBox(
+                  height: 35,
+                  width: 100,
+                  child: TextFormField(
+                    controller: _umurController,
+                    decoration: InputDecoration(
+                      contentPadding: EdgeInsets.all(5),
+                      border: OutlineInputBorder(),
+                      labelText: 'Umur',
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  width: 15,
+                ),
+                SizedBox(
+                  height: 35,
+                  width: 200,
+                  child: TextFormField(
+                    controller: _kelompokController,
+                    decoration: InputDecoration(
+                      contentPadding: EdgeInsets.all(5),
+                      border: OutlineInputBorder(),
+                      labelText: 'Kelompok',
+                    ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 10),
-
+            SizedBox(height: 10),
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              mainAxisAlignment: MainAxisAlignment.start,
               children: [
-                Expanded(
-                  child: Text(
-                    'Total : ${totalResep}',
-                    style: TextStyle(fontSize: 20),
+                SizedBox(
+                  height: 35,
+                  width: 200,
+                  child: TextFormField(
+                    controller: _noHpController,
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(),
+                      labelText: 'No Hp',
+                    ),
                   ),
                 ),
-                SizedBox(width: 30), // Spacing between the text fields
+                SizedBox(
+                  width: 15,
+                ),
+                SizedBox(
+                  height: 35,
+                  width: 280,
+                  child: TextFormField(
+                    controller: _keteranganController,
+                    decoration: InputDecoration(
+                      contentPadding: EdgeInsets.all(5),
+                      border: OutlineInputBorder(),
+                      labelText: 'Keterangan',
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            Divider(thickness: 0.7),
+            SizedBox(height: 25),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                SizedBox(
+                  height: 35,
+                  width: 250,
+                  child: TypeAheadField<Barang>(
+                    textFieldConfiguration: TextFieldConfiguration(
+                      decoration: InputDecoration(
+                        contentPadding: EdgeInsets.all(5),
+                        border: OutlineInputBorder(),
+                        labelText: 'Tambah barang ke resep',
+                      ),
+                      controller: _barangController,
+                    ),
+                    suggestionsCallback: (pattern) async {
+                      return await db.searchBarang(
+                          pattern); // db adalah instance AppDatabase
+                    },
+                    itemBuilder: (context, Barang suggestion) {
+                      return ListTile(
+                        title: Text(suggestion.namaBarang),
+                        subtitle: Text('Kode: ${suggestion.kodeBarang}'),
+                      );
+                    },
+                    onSuggestionSelected: (Barang suggestion) async {
+                      _barangController.text = suggestion.namaBarang;
+                      kodebarang = suggestion.kodeBarang;
+                      kelompok = suggestion.kelompok;
+                      satuan = suggestion.satuan;
+                      hargabeli = suggestion.hargaBeli;
+                      hargajual = suggestion.hargaJual;
+                      selectedBarang = await db.getBarangByKode(kodebarang);
+                      setState(() {});
+                    },
+                  ),
+                ),
+                SizedBox(width: 15),
+                SizedBox(
+                  height: 35,
+                  width: 75,
+                  child: TextFormField(
+                    controller: _jumlahbarangController,
+                    decoration: InputDecoration(
+                      contentPadding: EdgeInsets.all(5),
+                      border: OutlineInputBorder(),
+                      labelText: 'Jumlah',
+                    ),
+                  ),
+                ),
+                SizedBox(width: 15),
+                SizedBox(
+                  height: 35,
+                  width: 250,
+                  child: TypeAheadFormField<Map<String, dynamic>>(
+                    textFieldConfiguration: TextFieldConfiguration(
+                      controller: _discController,
+                      decoration: InputDecoration(
+                        contentPadding: EdgeInsets.all(5),
+                        border: OutlineInputBorder(),
+                        labelText: 'Pilih Diskon',
+                      ),
+                    ),
+                    suggestionsCallback: (pattern) {
+                      if (selectedBarang == null) return [];
+
+                      final discs = <Map<String, dynamic>>[];
+
+                      if (selectedBarang!.jualDisc1 != null) {
+                        discs.add({
+                          'label': 'Diskon 1',
+                          'value': selectedBarang!.jualDisc1
+                        });
+                      }
+                      if (selectedBarang!.jualDisc2 != null) {
+                        discs.add({
+                          'label': 'Diskon 2',
+                          'value': selectedBarang!.jualDisc2
+                        });
+                      }
+                      if (selectedBarang!.jualDisc3 != null) {
+                        discs.add({
+                          'label': 'Diskon 3',
+                          'value': selectedBarang!.jualDisc3
+                        });
+                      }
+                      if (selectedBarang!.jualDisc4 != null) {
+                        discs.add({
+                          'label': 'Diskon 4',
+                          'value': selectedBarang!.jualDisc4
+                        });
+                      }
+
+                      return discs.where(
+                          (d) => d['value'].toString().contains(pattern));
+                    },
+                    itemBuilder: (context, suggestion) {
+                      return ListTile(
+                        title: Text(suggestion['value'].toString()),
+                        subtitle: Text(suggestion['label']),
+                      );
+                    },
+                    onSuggestionSelected: (suggestion) {
+                      _discController.text = suggestion['value'].toString();
+                    },
+                    noItemsFoundBuilder: (context) =>
+                        Text('Diskon tidak tersedia'),
+                  ),
+                ),
+                SizedBox(
+                  width: 50,
+                ),
                 ElevatedButton.icon(
-                  onPressed: () => showFormResepstmp(),
+                  onPressed: ProsesTambahresep,
                   icon: const Icon(Icons.add),
                   label: const Text('Tambah'),
                 ),
               ],
             ),
-
-            const SizedBox(height: 5),
-            Divider(
-              thickness: 0.5,
-            ),
-            // === HEADER DAFTAR SUPPLIER DAN DROPDOWN BARIS ===
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  '📋 List Barang',
-                  style: Theme.of(context).textTheme.titleLarge!.copyWith(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15,
-                        color: Colors.blueGrey[900],
-                      ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-
+            SizedBox(height: 15),
             Expanded(
               child: SingleChildScrollView(
                 child: Container(
@@ -849,18 +611,15 @@ class _ResepScreenState extends State<ResepScreen> {
                     columns: const [
                       DataColumn(label: Text('Kode')),
                       DataColumn(label: Text('Nama')),
-                      DataColumn(label: Text('Expired')),
                       DataColumn(label: Text('Kelompok')),
                       DataColumn(label: Text('Satuan')),
-                      DataColumn(label: Text('Harga Beli')),
+                      DataColumn(label: Text('Harga beli')),
                       DataColumn(label: Text('Harga Jual')),
-                      DataColumn(label: Text('Disc1')),
-                      DataColumn(label: Text('Disc2')),
-                      DataColumn(label: Text('Disc3')),
-                      DataColumn(label: Text('Disc4')),
-                      DataColumn(label: Text('PPN')),
+                      DataColumn(label: Text('Jual Disc')),
                       DataColumn(label: Text('Jumlah')),
                       DataColumn(label: Text('Total')),
+                      DataColumn(label: Text('Total stlh disc')),
+                      DataColumn(label: Text('Total Disc')),
                       DataColumn(label: Text('Aksi')),
                     ],
                     rows: allReseptmp.map((p) {
@@ -868,26 +627,24 @@ class _ResepScreenState extends State<ResepScreen> {
                         cells: [
                           DataCell(Text(p.kodeBarang)),
                           DataCell(Text(p.namaBarang)),
-                          DataCell(Text(formatDate(
-                              DateTime.parse(p.expired.toString())))),
                           DataCell(Text(p.kelompok)),
                           DataCell(Text(p.satuan)),
                           DataCell(Text(p.hargaBeli.toString())),
                           DataCell(Text(p.hargaJual.toString())),
-                          DataCell(Text((p.jualDisc1 ?? 0).toString())),
-                          DataCell(Text((p.jualDisc2 ?? 0).toString())),
-                          DataCell(Text((p.jualDisc3 ?? 0).toString())),
-                          DataCell(Text((p.jualDisc4 ?? 0).toString())),
-                          DataCell(Text((p.ppn ?? 0).toString())),
-                          DataCell(Text((p.jumlahBeli ?? 0).toString())),
-                          DataCell(Text((p.totalHarga ?? 0).toString())),
+                          DataCell(Text((p.jualDiscon ?? 0).toString())),
+                          DataCell(Text((p.jumlahJual ?? 0).toString())),
+                          DataCell(
+                              Text((p.totalHargaSebelumDisc ?? 0).toString())),
+                          DataCell(
+                              Text((p.totalHargaSetelahDisc ?? 0).toString())),
+                          DataCell(Text((p.totalDisc ?? 0).toString())),
                           DataCell(Row(
                             children: [
                               IconButton(
                                 tooltip: 'Edit Data',
                                 icon:
                                     const Icon(Icons.edit, color: Colors.blue),
-                                onPressed: () => showFormResepstmp(data: p),
+                                onPressed: () => (data: p),
                               ),
                               IconButton(
                                 tooltip: 'Hapus Data',
@@ -904,8 +661,6 @@ class _ResepScreenState extends State<ResepScreen> {
                 ),
               ),
             ),
-
-            const SizedBox(height: 12),
           ],
         ),
       ),

@@ -4681,6 +4681,12 @@ class $PelanggansTable extends Pelanggans
   late final GeneratedColumn<int> usia = GeneratedColumn<int>(
       'usia', aliasedName, true,
       type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _teleponMeta =
+      const VerificationMeta('telepon');
+  @override
+  late final GeneratedColumn<int> telepon = GeneratedColumn<int>(
+      'telepon', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
   static const VerificationMeta _alamatMeta = const VerificationMeta('alamat');
   @override
   late final GeneratedColumn<String> alamat = GeneratedColumn<String>(
@@ -4728,6 +4734,7 @@ class $PelanggansTable extends Pelanggans
         kodPelanggan,
         namaPelanggan,
         usia,
+        telepon,
         alamat,
         kelompok,
         limitpiutang,
@@ -4768,6 +4775,10 @@ class $PelanggansTable extends Pelanggans
     if (data.containsKey('usia')) {
       context.handle(
           _usiaMeta, usia.isAcceptableOrUnknown(data['usia']!, _usiaMeta));
+    }
+    if (data.containsKey('telepon')) {
+      context.handle(_teleponMeta,
+          telepon.isAcceptableOrUnknown(data['telepon']!, _teleponMeta));
     }
     if (data.containsKey('alamat')) {
       context.handle(_alamatMeta,
@@ -4824,6 +4835,8 @@ class $PelanggansTable extends Pelanggans
           .read(DriftSqlType.string, data['${effectivePrefix}nama_pelanggan'])!,
       usia: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}usia']),
+      telepon: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}telepon']),
       alamat: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}alamat']),
       kelompok: attachedDatabase.typeMapping
@@ -4852,6 +4865,7 @@ class Pelanggan extends DataClass implements Insertable<Pelanggan> {
   final String kodPelanggan;
   final String namaPelanggan;
   final int? usia;
+  final int? telepon;
   final String? alamat;
   final String? kelompok;
   final int? limitpiutang;
@@ -4864,6 +4878,7 @@ class Pelanggan extends DataClass implements Insertable<Pelanggan> {
       required this.kodPelanggan,
       required this.namaPelanggan,
       this.usia,
+      this.telepon,
       this.alamat,
       this.kelompok,
       this.limitpiutang,
@@ -4879,6 +4894,9 @@ class Pelanggan extends DataClass implements Insertable<Pelanggan> {
     map['nama_pelanggan'] = Variable<String>(namaPelanggan);
     if (!nullToAbsent || usia != null) {
       map['usia'] = Variable<int>(usia);
+    }
+    if (!nullToAbsent || telepon != null) {
+      map['telepon'] = Variable<int>(telepon);
     }
     if (!nullToAbsent || alamat != null) {
       map['alamat'] = Variable<String>(alamat);
@@ -4910,6 +4928,9 @@ class Pelanggan extends DataClass implements Insertable<Pelanggan> {
       kodPelanggan: Value(kodPelanggan),
       namaPelanggan: Value(namaPelanggan),
       usia: usia == null && nullToAbsent ? const Value.absent() : Value(usia),
+      telepon: telepon == null && nullToAbsent
+          ? const Value.absent()
+          : Value(telepon),
       alamat:
           alamat == null && nullToAbsent ? const Value.absent() : Value(alamat),
       kelompok: kelompok == null && nullToAbsent
@@ -4941,6 +4962,7 @@ class Pelanggan extends DataClass implements Insertable<Pelanggan> {
       kodPelanggan: serializer.fromJson<String>(json['kodPelanggan']),
       namaPelanggan: serializer.fromJson<String>(json['namaPelanggan']),
       usia: serializer.fromJson<int?>(json['usia']),
+      telepon: serializer.fromJson<int?>(json['telepon']),
       alamat: serializer.fromJson<String?>(json['alamat']),
       kelompok: serializer.fromJson<String?>(json['kelompok']),
       limitpiutang: serializer.fromJson<int?>(json['limitpiutang']),
@@ -4959,6 +4981,7 @@ class Pelanggan extends DataClass implements Insertable<Pelanggan> {
       'kodPelanggan': serializer.toJson<String>(kodPelanggan),
       'namaPelanggan': serializer.toJson<String>(namaPelanggan),
       'usia': serializer.toJson<int?>(usia),
+      'telepon': serializer.toJson<int?>(telepon),
       'alamat': serializer.toJson<String?>(alamat),
       'kelompok': serializer.toJson<String?>(kelompok),
       'limitpiutang': serializer.toJson<int?>(limitpiutang),
@@ -4974,6 +4997,7 @@ class Pelanggan extends DataClass implements Insertable<Pelanggan> {
           String? kodPelanggan,
           String? namaPelanggan,
           Value<int?> usia = const Value.absent(),
+          Value<int?> telepon = const Value.absent(),
           Value<String?> alamat = const Value.absent(),
           Value<String?> kelompok = const Value.absent(),
           Value<int?> limitpiutang = const Value.absent(),
@@ -4986,6 +5010,7 @@ class Pelanggan extends DataClass implements Insertable<Pelanggan> {
         kodPelanggan: kodPelanggan ?? this.kodPelanggan,
         namaPelanggan: namaPelanggan ?? this.namaPelanggan,
         usia: usia.present ? usia.value : this.usia,
+        telepon: telepon.present ? telepon.value : this.telepon,
         alamat: alamat.present ? alamat.value : this.alamat,
         kelompok: kelompok.present ? kelompok.value : this.kelompok,
         limitpiutang:
@@ -5008,6 +5033,7 @@ class Pelanggan extends DataClass implements Insertable<Pelanggan> {
           ? data.namaPelanggan.value
           : this.namaPelanggan,
       usia: data.usia.present ? data.usia.value : this.usia,
+      telepon: data.telepon.present ? data.telepon.value : this.telepon,
       alamat: data.alamat.present ? data.alamat.value : this.alamat,
       kelompok: data.kelompok.present ? data.kelompok.value : this.kelompok,
       limitpiutang: data.limitpiutang.present
@@ -5033,6 +5059,7 @@ class Pelanggan extends DataClass implements Insertable<Pelanggan> {
           ..write('kodPelanggan: $kodPelanggan, ')
           ..write('namaPelanggan: $namaPelanggan, ')
           ..write('usia: $usia, ')
+          ..write('telepon: $telepon, ')
           ..write('alamat: $alamat, ')
           ..write('kelompok: $kelompok, ')
           ..write('limitpiutang: $limitpiutang, ')
@@ -5050,6 +5077,7 @@ class Pelanggan extends DataClass implements Insertable<Pelanggan> {
       kodPelanggan,
       namaPelanggan,
       usia,
+      telepon,
       alamat,
       kelompok,
       limitpiutang,
@@ -5065,6 +5093,7 @@ class Pelanggan extends DataClass implements Insertable<Pelanggan> {
           other.kodPelanggan == this.kodPelanggan &&
           other.namaPelanggan == this.namaPelanggan &&
           other.usia == this.usia &&
+          other.telepon == this.telepon &&
           other.alamat == this.alamat &&
           other.kelompok == this.kelompok &&
           other.limitpiutang == this.limitpiutang &&
@@ -5079,6 +5108,7 @@ class PelanggansCompanion extends UpdateCompanion<Pelanggan> {
   final Value<String> kodPelanggan;
   final Value<String> namaPelanggan;
   final Value<int?> usia;
+  final Value<int?> telepon;
   final Value<String?> alamat;
   final Value<String?> kelompok;
   final Value<int?> limitpiutang;
@@ -5091,6 +5121,7 @@ class PelanggansCompanion extends UpdateCompanion<Pelanggan> {
     this.kodPelanggan = const Value.absent(),
     this.namaPelanggan = const Value.absent(),
     this.usia = const Value.absent(),
+    this.telepon = const Value.absent(),
     this.alamat = const Value.absent(),
     this.kelompok = const Value.absent(),
     this.limitpiutang = const Value.absent(),
@@ -5104,6 +5135,7 @@ class PelanggansCompanion extends UpdateCompanion<Pelanggan> {
     required String kodPelanggan,
     required String namaPelanggan,
     this.usia = const Value.absent(),
+    this.telepon = const Value.absent(),
     this.alamat = const Value.absent(),
     this.kelompok = const Value.absent(),
     this.limitpiutang = const Value.absent(),
@@ -5118,6 +5150,7 @@ class PelanggansCompanion extends UpdateCompanion<Pelanggan> {
     Expression<String>? kodPelanggan,
     Expression<String>? namaPelanggan,
     Expression<int>? usia,
+    Expression<int>? telepon,
     Expression<String>? alamat,
     Expression<String>? kelompok,
     Expression<int>? limitpiutang,
@@ -5131,6 +5164,7 @@ class PelanggansCompanion extends UpdateCompanion<Pelanggan> {
       if (kodPelanggan != null) 'kod_pelanggan': kodPelanggan,
       if (namaPelanggan != null) 'nama_pelanggan': namaPelanggan,
       if (usia != null) 'usia': usia,
+      if (telepon != null) 'telepon': telepon,
       if (alamat != null) 'alamat': alamat,
       if (kelompok != null) 'kelompok': kelompok,
       if (limitpiutang != null) 'limitpiutang': limitpiutang,
@@ -5147,6 +5181,7 @@ class PelanggansCompanion extends UpdateCompanion<Pelanggan> {
       Value<String>? kodPelanggan,
       Value<String>? namaPelanggan,
       Value<int?>? usia,
+      Value<int?>? telepon,
       Value<String?>? alamat,
       Value<String?>? kelompok,
       Value<int?>? limitpiutang,
@@ -5159,6 +5194,7 @@ class PelanggansCompanion extends UpdateCompanion<Pelanggan> {
       kodPelanggan: kodPelanggan ?? this.kodPelanggan,
       namaPelanggan: namaPelanggan ?? this.namaPelanggan,
       usia: usia ?? this.usia,
+      telepon: telepon ?? this.telepon,
       alamat: alamat ?? this.alamat,
       kelompok: kelompok ?? this.kelompok,
       limitpiutang: limitpiutang ?? this.limitpiutang,
@@ -5184,6 +5220,9 @@ class PelanggansCompanion extends UpdateCompanion<Pelanggan> {
     }
     if (usia.present) {
       map['usia'] = Variable<int>(usia.value);
+    }
+    if (telepon.present) {
+      map['telepon'] = Variable<int>(telepon.value);
     }
     if (alamat.present) {
       map['alamat'] = Variable<String>(alamat.value);
@@ -5217,6 +5256,7 @@ class PelanggansCompanion extends UpdateCompanion<Pelanggan> {
           ..write('kodPelanggan: $kodPelanggan, ')
           ..write('namaPelanggan: $namaPelanggan, ')
           ..write('usia: $usia, ')
+          ..write('telepon: $telepon, ')
           ..write('alamat: $alamat, ')
           ..write('kelompok: $kelompok, ')
           ..write('limitpiutang: $limitpiutang, ')
@@ -5251,84 +5291,22 @@ class $ResepsTable extends Reseps with TableInfo<$ResepsTable, Resep> {
       additionalChecks:
           GeneratedColumn.checkTextLength(minTextLength: 1, maxTextLength: 20),
       type: DriftSqlType.string,
-      requiredDuringInsert: true,
-      defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'));
-  static const VerificationMeta _kodeBarangMeta =
-      const VerificationMeta('kodeBarang');
-  @override
-  late final GeneratedColumn<String> kodeBarang = GeneratedColumn<String>(
-      'kode_barang', aliasedName, false,
-      additionalChecks:
-          GeneratedColumn.checkTextLength(minTextLength: 1, maxTextLength: 50),
-      type: DriftSqlType.string,
       requiredDuringInsert: true);
-  static const VerificationMeta _namaBarangMeta =
-      const VerificationMeta('namaBarang');
-  @override
-  late final GeneratedColumn<String> namaBarang = GeneratedColumn<String>(
-      'nama_barang', aliasedName, false,
-      additionalChecks:
-          GeneratedColumn.checkTextLength(minTextLength: 1, maxTextLength: 50),
-      type: DriftSqlType.string,
-      requiredDuringInsert: true);
-  static const VerificationMeta _kodPelangganMeta =
-      const VerificationMeta('kodPelanggan');
-  @override
-  late final GeneratedColumn<String> kodPelanggan = GeneratedColumn<String>(
-      'kod_pelanggan', aliasedName, false,
-      additionalChecks:
-          GeneratedColumn.checkTextLength(minTextLength: 1, maxTextLength: 50),
-      type: DriftSqlType.string,
-      requiredDuringInsert: true);
-  static const VerificationMeta _namaDoctorMeta =
-      const VerificationMeta('namaDoctor');
-  @override
-  late final GeneratedColumn<String> namaDoctor = GeneratedColumn<String>(
-      'nama_doctor', aliasedName, false,
-      additionalChecks:
-          GeneratedColumn.checkTextLength(minTextLength: 1, maxTextLength: 50),
-      type: DriftSqlType.string,
-      requiredDuringInsert: true);
-  static const VerificationMeta _kodeDoctorMeta =
-      const VerificationMeta('kodeDoctor');
-  @override
-  late final GeneratedColumn<String> kodeDoctor = GeneratedColumn<String>(
-      'kode_doctor', aliasedName, true,
-      type: DriftSqlType.string, requiredDuringInsert: false);
-  static const VerificationMeta _jualDisconMeta =
-      const VerificationMeta('jualDiscon');
-  @override
-  late final GeneratedColumn<int> jualDiscon = GeneratedColumn<int>(
-      'jual_discon', aliasedName, true,
-      type: DriftSqlType.int, requiredDuringInsert: false);
   static const VerificationMeta _tanggalMeta =
       const VerificationMeta('tanggal');
   @override
   late final GeneratedColumn<DateTime> tanggal = GeneratedColumn<DateTime>(
       'tanggal', aliasedName, false,
       type: DriftSqlType.dateTime, requiredDuringInsert: true);
-  static const VerificationMeta _totalHargaSetelahDiscMeta =
-      const VerificationMeta('totalHargaSetelahDisc');
+  static const VerificationMeta _kodePelangganMeta =
+      const VerificationMeta('kodePelanggan');
   @override
-  late final GeneratedColumn<int> totalHargaSetelahDisc = GeneratedColumn<int>(
-      'total_harga_setelah_disc', aliasedName, true,
-      type: DriftSqlType.int, requiredDuringInsert: false);
-  static const VerificationMeta _satuanMeta = const VerificationMeta('satuan');
-  @override
-  late final GeneratedColumn<String> satuan = GeneratedColumn<String>(
-      'satuan', aliasedName, false,
-      type: DriftSqlType.string, requiredDuringInsert: true);
-  static const VerificationMeta _jumlahJualMeta =
-      const VerificationMeta('jumlahJual');
-  @override
-  late final GeneratedColumn<int> jumlahJual = GeneratedColumn<int>(
-      'jumlah_jual', aliasedName, true,
-      type: DriftSqlType.int, requiredDuringInsert: false);
-  static const VerificationMeta _usiaMeta = const VerificationMeta('usia');
-  @override
-  late final GeneratedColumn<int> usia = GeneratedColumn<int>(
-      'usia', aliasedName, true,
-      type: DriftSqlType.int, requiredDuringInsert: false);
+  late final GeneratedColumn<String> kodePelanggan = GeneratedColumn<String>(
+      'kode_pelanggan', aliasedName, false,
+      additionalChecks:
+          GeneratedColumn.checkTextLength(minTextLength: 1, maxTextLength: 50),
+      type: DriftSqlType.string,
+      requiredDuringInsert: true);
   static const VerificationMeta _namaPelangganMeta =
       const VerificationMeta('namaPelanggan');
   @override
@@ -5338,21 +5316,36 @@ class $ResepsTable extends Reseps with TableInfo<$ResepsTable, Resep> {
           GeneratedColumn.checkTextLength(minTextLength: 1, maxTextLength: 50),
       type: DriftSqlType.string,
       requiredDuringInsert: true);
+  static const VerificationMeta _kelompokPelangganMeta =
+      const VerificationMeta('kelompokPelanggan');
+  @override
+  late final GeneratedColumn<String> kelompokPelanggan =
+      GeneratedColumn<String>('kelompok_pelanggan', aliasedName, true,
+          type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _kodeDoctorMeta =
+      const VerificationMeta('kodeDoctor');
+  @override
+  late final GeneratedColumn<String> kodeDoctor = GeneratedColumn<String>(
+      'kode_doctor', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _namaDoctorMeta =
+      const VerificationMeta('namaDoctor');
+  @override
+  late final GeneratedColumn<String> namaDoctor = GeneratedColumn<String>(
+      'nama_doctor', aliasedName, false,
+      additionalChecks:
+          GeneratedColumn.checkTextLength(minTextLength: 1, maxTextLength: 50),
+      type: DriftSqlType.string,
+      requiredDuringInsert: true);
+  static const VerificationMeta _usiaMeta = const VerificationMeta('usia');
+  @override
+  late final GeneratedColumn<int> usia = GeneratedColumn<int>(
+      'usia', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
   static const VerificationMeta _alamatMeta = const VerificationMeta('alamat');
   @override
   late final GeneratedColumn<String> alamat = GeneratedColumn<String>(
       'alamat', aliasedName, true,
-      type: DriftSqlType.string, requiredDuringInsert: false);
-  static const VerificationMeta _noTelpMeta = const VerificationMeta('noTelp');
-  @override
-  late final GeneratedColumn<int> noTelp = GeneratedColumn<int>(
-      'no_telp', aliasedName, true,
-      type: DriftSqlType.int, requiredDuringInsert: false);
-  static const VerificationMeta _kelompokMeta =
-      const VerificationMeta('kelompok');
-  @override
-  late final GeneratedColumn<String> kelompok = GeneratedColumn<String>(
-      'kelompok', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _keteranganMeta =
       const VerificationMeta('keterangan');
@@ -5360,26 +5353,108 @@ class $ResepsTable extends Reseps with TableInfo<$ResepsTable, Resep> {
   late final GeneratedColumn<String> keterangan = GeneratedColumn<String>(
       'keterangan', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _noTelpMeta = const VerificationMeta('noTelp');
+  @override
+  late final GeneratedColumn<String> noTelp = GeneratedColumn<String>(
+      'no_telp', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _kodeBarangMeta =
+      const VerificationMeta('kodeBarang');
+  @override
+  late final GeneratedColumn<String> kodeBarang = GeneratedColumn<String>(
+      'kode_barang', aliasedName, false,
+      additionalChecks:
+          GeneratedColumn.checkTextLength(minTextLength: 1, maxTextLength: 20),
+      type: DriftSqlType.string,
+      requiredDuringInsert: true);
+  static const VerificationMeta _namaBarangMeta =
+      const VerificationMeta('namaBarang');
+  @override
+  late final GeneratedColumn<String> namaBarang = GeneratedColumn<String>(
+      'nama_barang', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _kelompokMeta =
+      const VerificationMeta('kelompok');
+  @override
+  late final GeneratedColumn<String> kelompok = GeneratedColumn<String>(
+      'kelompok', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _satuanMeta = const VerificationMeta('satuan');
+  @override
+  late final GeneratedColumn<String> satuan = GeneratedColumn<String>(
+      'satuan', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _hargaBeliMeta =
+      const VerificationMeta('hargaBeli');
+  @override
+  late final GeneratedColumn<int> hargaBeli = GeneratedColumn<int>(
+      'harga_beli', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
+  static const VerificationMeta _hargaJualMeta =
+      const VerificationMeta('hargaJual');
+  @override
+  late final GeneratedColumn<int> hargaJual = GeneratedColumn<int>(
+      'harga_jual', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
+  static const VerificationMeta _jualDisconMeta =
+      const VerificationMeta('jualDiscon');
+  @override
+  late final GeneratedColumn<int> jualDiscon = GeneratedColumn<int>(
+      'jual_discon', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _jumlahJualMeta =
+      const VerificationMeta('jumlahJual');
+  @override
+  late final GeneratedColumn<int> jumlahJual = GeneratedColumn<int>(
+      'jumlah_jual', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _totalHargaSebelumDiscMeta =
+      const VerificationMeta('totalHargaSebelumDisc');
+  @override
+  late final GeneratedColumn<int> totalHargaSebelumDisc = GeneratedColumn<int>(
+      'total_harga_sebelum_disc', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _totalHargaSetelahDiscMeta =
+      const VerificationMeta('totalHargaSetelahDisc');
+  @override
+  late final GeneratedColumn<int> totalHargaSetelahDisc = GeneratedColumn<int>(
+      'total_harga_setelah_disc', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _totalDiscMeta =
+      const VerificationMeta('totalDisc');
+  @override
+  late final GeneratedColumn<int> totalDisc = GeneratedColumn<int>(
+      'total_disc', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
   @override
   List<GeneratedColumn> get $columns => [
         id,
         noResep,
+        tanggal,
+        kodePelanggan,
+        namaPelanggan,
+        kelompokPelanggan,
+        kodeDoctor,
+        namaDoctor,
+        usia,
+        alamat,
+        keterangan,
+        noTelp,
         kodeBarang,
         namaBarang,
-        kodPelanggan,
-        namaDoctor,
-        kodeDoctor,
-        jualDiscon,
-        tanggal,
-        totalHargaSetelahDisc,
-        satuan,
-        jumlahJual,
-        usia,
-        namaPelanggan,
-        alamat,
-        noTelp,
         kelompok,
-        keterangan
+        satuan,
+        hargaBeli,
+        hargaJual,
+        jualDiscon,
+        jumlahJual,
+        totalHargaSebelumDisc,
+        totalHargaSetelahDisc,
+        totalDisc
       ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -5400,6 +5475,66 @@ class $ResepsTable extends Reseps with TableInfo<$ResepsTable, Resep> {
     } else if (isInserting) {
       context.missing(_noResepMeta);
     }
+    if (data.containsKey('tanggal')) {
+      context.handle(_tanggalMeta,
+          tanggal.isAcceptableOrUnknown(data['tanggal']!, _tanggalMeta));
+    } else if (isInserting) {
+      context.missing(_tanggalMeta);
+    }
+    if (data.containsKey('kode_pelanggan')) {
+      context.handle(
+          _kodePelangganMeta,
+          kodePelanggan.isAcceptableOrUnknown(
+              data['kode_pelanggan']!, _kodePelangganMeta));
+    } else if (isInserting) {
+      context.missing(_kodePelangganMeta);
+    }
+    if (data.containsKey('nama_pelanggan')) {
+      context.handle(
+          _namaPelangganMeta,
+          namaPelanggan.isAcceptableOrUnknown(
+              data['nama_pelanggan']!, _namaPelangganMeta));
+    } else if (isInserting) {
+      context.missing(_namaPelangganMeta);
+    }
+    if (data.containsKey('kelompok_pelanggan')) {
+      context.handle(
+          _kelompokPelangganMeta,
+          kelompokPelanggan.isAcceptableOrUnknown(
+              data['kelompok_pelanggan']!, _kelompokPelangganMeta));
+    }
+    if (data.containsKey('kode_doctor')) {
+      context.handle(
+          _kodeDoctorMeta,
+          kodeDoctor.isAcceptableOrUnknown(
+              data['kode_doctor']!, _kodeDoctorMeta));
+    }
+    if (data.containsKey('nama_doctor')) {
+      context.handle(
+          _namaDoctorMeta,
+          namaDoctor.isAcceptableOrUnknown(
+              data['nama_doctor']!, _namaDoctorMeta));
+    } else if (isInserting) {
+      context.missing(_namaDoctorMeta);
+    }
+    if (data.containsKey('usia')) {
+      context.handle(
+          _usiaMeta, usia.isAcceptableOrUnknown(data['usia']!, _usiaMeta));
+    }
+    if (data.containsKey('alamat')) {
+      context.handle(_alamatMeta,
+          alamat.isAcceptableOrUnknown(data['alamat']!, _alamatMeta));
+    }
+    if (data.containsKey('keterangan')) {
+      context.handle(
+          _keteranganMeta,
+          keterangan.isAcceptableOrUnknown(
+              data['keterangan']!, _keteranganMeta));
+    }
+    if (data.containsKey('no_telp')) {
+      context.handle(_noTelpMeta,
+          noTelp.isAcceptableOrUnknown(data['no_telp']!, _noTelpMeta));
+    }
     if (data.containsKey('kode_barang')) {
       context.handle(
           _kodeBarangMeta,
@@ -5416,45 +5551,11 @@ class $ResepsTable extends Reseps with TableInfo<$ResepsTable, Resep> {
     } else if (isInserting) {
       context.missing(_namaBarangMeta);
     }
-    if (data.containsKey('kod_pelanggan')) {
-      context.handle(
-          _kodPelangganMeta,
-          kodPelanggan.isAcceptableOrUnknown(
-              data['kod_pelanggan']!, _kodPelangganMeta));
+    if (data.containsKey('kelompok')) {
+      context.handle(_kelompokMeta,
+          kelompok.isAcceptableOrUnknown(data['kelompok']!, _kelompokMeta));
     } else if (isInserting) {
-      context.missing(_kodPelangganMeta);
-    }
-    if (data.containsKey('nama_doctor')) {
-      context.handle(
-          _namaDoctorMeta,
-          namaDoctor.isAcceptableOrUnknown(
-              data['nama_doctor']!, _namaDoctorMeta));
-    } else if (isInserting) {
-      context.missing(_namaDoctorMeta);
-    }
-    if (data.containsKey('kode_doctor')) {
-      context.handle(
-          _kodeDoctorMeta,
-          kodeDoctor.isAcceptableOrUnknown(
-              data['kode_doctor']!, _kodeDoctorMeta));
-    }
-    if (data.containsKey('jual_discon')) {
-      context.handle(
-          _jualDisconMeta,
-          jualDiscon.isAcceptableOrUnknown(
-              data['jual_discon']!, _jualDisconMeta));
-    }
-    if (data.containsKey('tanggal')) {
-      context.handle(_tanggalMeta,
-          tanggal.isAcceptableOrUnknown(data['tanggal']!, _tanggalMeta));
-    } else if (isInserting) {
-      context.missing(_tanggalMeta);
-    }
-    if (data.containsKey('total_harga_setelah_disc')) {
-      context.handle(
-          _totalHargaSetelahDiscMeta,
-          totalHargaSetelahDisc.isAcceptableOrUnknown(
-              data['total_harga_setelah_disc']!, _totalHargaSetelahDiscMeta));
+      context.missing(_kelompokMeta);
     }
     if (data.containsKey('satuan')) {
       context.handle(_satuanMeta,
@@ -5462,41 +5563,41 @@ class $ResepsTable extends Reseps with TableInfo<$ResepsTable, Resep> {
     } else if (isInserting) {
       context.missing(_satuanMeta);
     }
+    if (data.containsKey('harga_beli')) {
+      context.handle(_hargaBeliMeta,
+          hargaBeli.isAcceptableOrUnknown(data['harga_beli']!, _hargaBeliMeta));
+    }
+    if (data.containsKey('harga_jual')) {
+      context.handle(_hargaJualMeta,
+          hargaJual.isAcceptableOrUnknown(data['harga_jual']!, _hargaJualMeta));
+    }
+    if (data.containsKey('jual_discon')) {
+      context.handle(
+          _jualDisconMeta,
+          jualDiscon.isAcceptableOrUnknown(
+              data['jual_discon']!, _jualDisconMeta));
+    }
     if (data.containsKey('jumlah_jual')) {
       context.handle(
           _jumlahJualMeta,
           jumlahJual.isAcceptableOrUnknown(
               data['jumlah_jual']!, _jumlahJualMeta));
     }
-    if (data.containsKey('usia')) {
+    if (data.containsKey('total_harga_sebelum_disc')) {
       context.handle(
-          _usiaMeta, usia.isAcceptableOrUnknown(data['usia']!, _usiaMeta));
+          _totalHargaSebelumDiscMeta,
+          totalHargaSebelumDisc.isAcceptableOrUnknown(
+              data['total_harga_sebelum_disc']!, _totalHargaSebelumDiscMeta));
     }
-    if (data.containsKey('nama_pelanggan')) {
+    if (data.containsKey('total_harga_setelah_disc')) {
       context.handle(
-          _namaPelangganMeta,
-          namaPelanggan.isAcceptableOrUnknown(
-              data['nama_pelanggan']!, _namaPelangganMeta));
-    } else if (isInserting) {
-      context.missing(_namaPelangganMeta);
+          _totalHargaSetelahDiscMeta,
+          totalHargaSetelahDisc.isAcceptableOrUnknown(
+              data['total_harga_setelah_disc']!, _totalHargaSetelahDiscMeta));
     }
-    if (data.containsKey('alamat')) {
-      context.handle(_alamatMeta,
-          alamat.isAcceptableOrUnknown(data['alamat']!, _alamatMeta));
-    }
-    if (data.containsKey('no_telp')) {
-      context.handle(_noTelpMeta,
-          noTelp.isAcceptableOrUnknown(data['no_telp']!, _noTelpMeta));
-    }
-    if (data.containsKey('kelompok')) {
-      context.handle(_kelompokMeta,
-          kelompok.isAcceptableOrUnknown(data['kelompok']!, _kelompokMeta));
-    }
-    if (data.containsKey('keterangan')) {
-      context.handle(
-          _keteranganMeta,
-          keterangan.isAcceptableOrUnknown(
-              data['keterangan']!, _keteranganMeta));
+    if (data.containsKey('total_disc')) {
+      context.handle(_totalDiscMeta,
+          totalDisc.isAcceptableOrUnknown(data['total_disc']!, _totalDiscMeta));
     }
     return context;
   }
@@ -5511,38 +5612,48 @@ class $ResepsTable extends Reseps with TableInfo<$ResepsTable, Resep> {
           .read(DriftSqlType.int, data['${effectivePrefix}id'])!,
       noResep: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}no_resep'])!,
+      tanggal: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}tanggal'])!,
+      kodePelanggan: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}kode_pelanggan'])!,
+      namaPelanggan: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}nama_pelanggan'])!,
+      kelompokPelanggan: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}kelompok_pelanggan']),
+      kodeDoctor: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}kode_doctor']),
+      namaDoctor: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}nama_doctor'])!,
+      usia: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}usia']),
+      alamat: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}alamat']),
+      keterangan: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}keterangan']),
+      noTelp: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}no_telp']),
       kodeBarang: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}kode_barang'])!,
       namaBarang: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}nama_barang'])!,
-      kodPelanggan: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}kod_pelanggan'])!,
-      namaDoctor: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}nama_doctor'])!,
-      kodeDoctor: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}kode_doctor']),
-      jualDiscon: attachedDatabase.typeMapping
-          .read(DriftSqlType.int, data['${effectivePrefix}jual_discon']),
-      tanggal: attachedDatabase.typeMapping
-          .read(DriftSqlType.dateTime, data['${effectivePrefix}tanggal'])!,
-      totalHargaSetelahDisc: attachedDatabase.typeMapping.read(
-          DriftSqlType.int, data['${effectivePrefix}total_harga_setelah_disc']),
+      kelompok: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}kelompok'])!,
       satuan: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}satuan'])!,
+      hargaBeli: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}harga_beli'])!,
+      hargaJual: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}harga_jual'])!,
+      jualDiscon: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}jual_discon']),
       jumlahJual: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}jumlah_jual']),
-      usia: attachedDatabase.typeMapping
-          .read(DriftSqlType.int, data['${effectivePrefix}usia']),
-      namaPelanggan: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}nama_pelanggan'])!,
-      alamat: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}alamat']),
-      noTelp: attachedDatabase.typeMapping
-          .read(DriftSqlType.int, data['${effectivePrefix}no_telp']),
-      kelompok: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}kelompok']),
-      keterangan: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}keterangan']),
+      totalHargaSebelumDisc: attachedDatabase.typeMapping.read(
+          DriftSqlType.int, data['${effectivePrefix}total_harga_sebelum_disc']),
+      totalHargaSetelahDisc: attachedDatabase.typeMapping.read(
+          DriftSqlType.int, data['${effectivePrefix}total_harga_setelah_disc']),
+      totalDisc: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}total_disc']),
     );
   }
 
@@ -5555,79 +5666,98 @@ class $ResepsTable extends Reseps with TableInfo<$ResepsTable, Resep> {
 class Resep extends DataClass implements Insertable<Resep> {
   final int id;
   final String noResep;
+  final DateTime tanggal;
+  final String kodePelanggan;
+  final String namaPelanggan;
+  final String? kelompokPelanggan;
+  final String? kodeDoctor;
+  final String namaDoctor;
+  final int? usia;
+  final String? alamat;
+  final String? keterangan;
+  final String? noTelp;
   final String kodeBarang;
   final String namaBarang;
-  final String kodPelanggan;
-  final String namaDoctor;
-  final String? kodeDoctor;
-  final int? jualDiscon;
-  final DateTime tanggal;
-  final int? totalHargaSetelahDisc;
+  final String kelompok;
   final String satuan;
+  final int hargaBeli;
+  final int hargaJual;
+  final int? jualDiscon;
   final int? jumlahJual;
-  final int? usia;
-  final String namaPelanggan;
-  final String? alamat;
-  final int? noTelp;
-  final String? kelompok;
-  final String? keterangan;
+  final int? totalHargaSebelumDisc;
+  final int? totalHargaSetelahDisc;
+  final int? totalDisc;
   const Resep(
       {required this.id,
       required this.noResep,
+      required this.tanggal,
+      required this.kodePelanggan,
+      required this.namaPelanggan,
+      this.kelompokPelanggan,
+      this.kodeDoctor,
+      required this.namaDoctor,
+      this.usia,
+      this.alamat,
+      this.keterangan,
+      this.noTelp,
       required this.kodeBarang,
       required this.namaBarang,
-      required this.kodPelanggan,
-      required this.namaDoctor,
-      this.kodeDoctor,
-      this.jualDiscon,
-      required this.tanggal,
-      this.totalHargaSetelahDisc,
+      required this.kelompok,
       required this.satuan,
+      required this.hargaBeli,
+      required this.hargaJual,
+      this.jualDiscon,
       this.jumlahJual,
-      this.usia,
-      required this.namaPelanggan,
-      this.alamat,
-      this.noTelp,
-      this.kelompok,
-      this.keterangan});
+      this.totalHargaSebelumDisc,
+      this.totalHargaSetelahDisc,
+      this.totalDisc});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
     map['no_resep'] = Variable<String>(noResep);
-    map['kode_barang'] = Variable<String>(kodeBarang);
-    map['nama_barang'] = Variable<String>(namaBarang);
-    map['kod_pelanggan'] = Variable<String>(kodPelanggan);
-    map['nama_doctor'] = Variable<String>(namaDoctor);
+    map['tanggal'] = Variable<DateTime>(tanggal);
+    map['kode_pelanggan'] = Variable<String>(kodePelanggan);
+    map['nama_pelanggan'] = Variable<String>(namaPelanggan);
+    if (!nullToAbsent || kelompokPelanggan != null) {
+      map['kelompok_pelanggan'] = Variable<String>(kelompokPelanggan);
+    }
     if (!nullToAbsent || kodeDoctor != null) {
       map['kode_doctor'] = Variable<String>(kodeDoctor);
     }
-    if (!nullToAbsent || jualDiscon != null) {
-      map['jual_discon'] = Variable<int>(jualDiscon);
-    }
-    map['tanggal'] = Variable<DateTime>(tanggal);
-    if (!nullToAbsent || totalHargaSetelahDisc != null) {
-      map['total_harga_setelah_disc'] = Variable<int>(totalHargaSetelahDisc);
-    }
-    map['satuan'] = Variable<String>(satuan);
-    if (!nullToAbsent || jumlahJual != null) {
-      map['jumlah_jual'] = Variable<int>(jumlahJual);
-    }
+    map['nama_doctor'] = Variable<String>(namaDoctor);
     if (!nullToAbsent || usia != null) {
       map['usia'] = Variable<int>(usia);
     }
-    map['nama_pelanggan'] = Variable<String>(namaPelanggan);
     if (!nullToAbsent || alamat != null) {
       map['alamat'] = Variable<String>(alamat);
     }
-    if (!nullToAbsent || noTelp != null) {
-      map['no_telp'] = Variable<int>(noTelp);
-    }
-    if (!nullToAbsent || kelompok != null) {
-      map['kelompok'] = Variable<String>(kelompok);
-    }
     if (!nullToAbsent || keterangan != null) {
       map['keterangan'] = Variable<String>(keterangan);
+    }
+    if (!nullToAbsent || noTelp != null) {
+      map['no_telp'] = Variable<String>(noTelp);
+    }
+    map['kode_barang'] = Variable<String>(kodeBarang);
+    map['nama_barang'] = Variable<String>(namaBarang);
+    map['kelompok'] = Variable<String>(kelompok);
+    map['satuan'] = Variable<String>(satuan);
+    map['harga_beli'] = Variable<int>(hargaBeli);
+    map['harga_jual'] = Variable<int>(hargaJual);
+    if (!nullToAbsent || jualDiscon != null) {
+      map['jual_discon'] = Variable<int>(jualDiscon);
+    }
+    if (!nullToAbsent || jumlahJual != null) {
+      map['jumlah_jual'] = Variable<int>(jumlahJual);
+    }
+    if (!nullToAbsent || totalHargaSebelumDisc != null) {
+      map['total_harga_sebelum_disc'] = Variable<int>(totalHargaSebelumDisc);
+    }
+    if (!nullToAbsent || totalHargaSetelahDisc != null) {
+      map['total_harga_setelah_disc'] = Variable<int>(totalHargaSetelahDisc);
+    }
+    if (!nullToAbsent || totalDisc != null) {
+      map['total_disc'] = Variable<int>(totalDisc);
     }
     return map;
   }
@@ -5636,36 +5766,45 @@ class Resep extends DataClass implements Insertable<Resep> {
     return ResepsCompanion(
       id: Value(id),
       noResep: Value(noResep),
-      kodeBarang: Value(kodeBarang),
-      namaBarang: Value(namaBarang),
-      kodPelanggan: Value(kodPelanggan),
-      namaDoctor: Value(namaDoctor),
+      tanggal: Value(tanggal),
+      kodePelanggan: Value(kodePelanggan),
+      namaPelanggan: Value(namaPelanggan),
+      kelompokPelanggan: kelompokPelanggan == null && nullToAbsent
+          ? const Value.absent()
+          : Value(kelompokPelanggan),
       kodeDoctor: kodeDoctor == null && nullToAbsent
           ? const Value.absent()
           : Value(kodeDoctor),
-      jualDiscon: jualDiscon == null && nullToAbsent
-          ? const Value.absent()
-          : Value(jualDiscon),
-      tanggal: Value(tanggal),
-      totalHargaSetelahDisc: totalHargaSetelahDisc == null && nullToAbsent
-          ? const Value.absent()
-          : Value(totalHargaSetelahDisc),
-      satuan: Value(satuan),
-      jumlahJual: jumlahJual == null && nullToAbsent
-          ? const Value.absent()
-          : Value(jumlahJual),
+      namaDoctor: Value(namaDoctor),
       usia: usia == null && nullToAbsent ? const Value.absent() : Value(usia),
-      namaPelanggan: Value(namaPelanggan),
       alamat:
           alamat == null && nullToAbsent ? const Value.absent() : Value(alamat),
-      noTelp:
-          noTelp == null && nullToAbsent ? const Value.absent() : Value(noTelp),
-      kelompok: kelompok == null && nullToAbsent
-          ? const Value.absent()
-          : Value(kelompok),
       keterangan: keterangan == null && nullToAbsent
           ? const Value.absent()
           : Value(keterangan),
+      noTelp:
+          noTelp == null && nullToAbsent ? const Value.absent() : Value(noTelp),
+      kodeBarang: Value(kodeBarang),
+      namaBarang: Value(namaBarang),
+      kelompok: Value(kelompok),
+      satuan: Value(satuan),
+      hargaBeli: Value(hargaBeli),
+      hargaJual: Value(hargaJual),
+      jualDiscon: jualDiscon == null && nullToAbsent
+          ? const Value.absent()
+          : Value(jualDiscon),
+      jumlahJual: jumlahJual == null && nullToAbsent
+          ? const Value.absent()
+          : Value(jumlahJual),
+      totalHargaSebelumDisc: totalHargaSebelumDisc == null && nullToAbsent
+          ? const Value.absent()
+          : Value(totalHargaSebelumDisc),
+      totalHargaSetelahDisc: totalHargaSetelahDisc == null && nullToAbsent
+          ? const Value.absent()
+          : Value(totalHargaSetelahDisc),
+      totalDisc: totalDisc == null && nullToAbsent
+          ? const Value.absent()
+          : Value(totalDisc),
     );
   }
 
@@ -5675,23 +5814,30 @@ class Resep extends DataClass implements Insertable<Resep> {
     return Resep(
       id: serializer.fromJson<int>(json['id']),
       noResep: serializer.fromJson<String>(json['noResep']),
+      tanggal: serializer.fromJson<DateTime>(json['tanggal']),
+      kodePelanggan: serializer.fromJson<String>(json['kodePelanggan']),
+      namaPelanggan: serializer.fromJson<String>(json['namaPelanggan']),
+      kelompokPelanggan:
+          serializer.fromJson<String?>(json['kelompokPelanggan']),
+      kodeDoctor: serializer.fromJson<String?>(json['kodeDoctor']),
+      namaDoctor: serializer.fromJson<String>(json['namaDoctor']),
+      usia: serializer.fromJson<int?>(json['usia']),
+      alamat: serializer.fromJson<String?>(json['alamat']),
+      keterangan: serializer.fromJson<String?>(json['keterangan']),
+      noTelp: serializer.fromJson<String?>(json['noTelp']),
       kodeBarang: serializer.fromJson<String>(json['kodeBarang']),
       namaBarang: serializer.fromJson<String>(json['namaBarang']),
-      kodPelanggan: serializer.fromJson<String>(json['kodPelanggan']),
-      namaDoctor: serializer.fromJson<String>(json['namaDoctor']),
-      kodeDoctor: serializer.fromJson<String?>(json['kodeDoctor']),
+      kelompok: serializer.fromJson<String>(json['kelompok']),
+      satuan: serializer.fromJson<String>(json['satuan']),
+      hargaBeli: serializer.fromJson<int>(json['hargaBeli']),
+      hargaJual: serializer.fromJson<int>(json['hargaJual']),
       jualDiscon: serializer.fromJson<int?>(json['jualDiscon']),
-      tanggal: serializer.fromJson<DateTime>(json['tanggal']),
+      jumlahJual: serializer.fromJson<int?>(json['jumlahJual']),
+      totalHargaSebelumDisc:
+          serializer.fromJson<int?>(json['totalHargaSebelumDisc']),
       totalHargaSetelahDisc:
           serializer.fromJson<int?>(json['totalHargaSetelahDisc']),
-      satuan: serializer.fromJson<String>(json['satuan']),
-      jumlahJual: serializer.fromJson<int?>(json['jumlahJual']),
-      usia: serializer.fromJson<int?>(json['usia']),
-      namaPelanggan: serializer.fromJson<String>(json['namaPelanggan']),
-      alamat: serializer.fromJson<String?>(json['alamat']),
-      noTelp: serializer.fromJson<int?>(json['noTelp']),
-      kelompok: serializer.fromJson<String?>(json['kelompok']),
-      keterangan: serializer.fromJson<String?>(json['keterangan']),
+      totalDisc: serializer.fromJson<int?>(json['totalDisc']),
     );
   }
   @override
@@ -5700,99 +5846,127 @@ class Resep extends DataClass implements Insertable<Resep> {
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
       'noResep': serializer.toJson<String>(noResep),
+      'tanggal': serializer.toJson<DateTime>(tanggal),
+      'kodePelanggan': serializer.toJson<String>(kodePelanggan),
+      'namaPelanggan': serializer.toJson<String>(namaPelanggan),
+      'kelompokPelanggan': serializer.toJson<String?>(kelompokPelanggan),
+      'kodeDoctor': serializer.toJson<String?>(kodeDoctor),
+      'namaDoctor': serializer.toJson<String>(namaDoctor),
+      'usia': serializer.toJson<int?>(usia),
+      'alamat': serializer.toJson<String?>(alamat),
+      'keterangan': serializer.toJson<String?>(keterangan),
+      'noTelp': serializer.toJson<String?>(noTelp),
       'kodeBarang': serializer.toJson<String>(kodeBarang),
       'namaBarang': serializer.toJson<String>(namaBarang),
-      'kodPelanggan': serializer.toJson<String>(kodPelanggan),
-      'namaDoctor': serializer.toJson<String>(namaDoctor),
-      'kodeDoctor': serializer.toJson<String?>(kodeDoctor),
-      'jualDiscon': serializer.toJson<int?>(jualDiscon),
-      'tanggal': serializer.toJson<DateTime>(tanggal),
-      'totalHargaSetelahDisc': serializer.toJson<int?>(totalHargaSetelahDisc),
+      'kelompok': serializer.toJson<String>(kelompok),
       'satuan': serializer.toJson<String>(satuan),
+      'hargaBeli': serializer.toJson<int>(hargaBeli),
+      'hargaJual': serializer.toJson<int>(hargaJual),
+      'jualDiscon': serializer.toJson<int?>(jualDiscon),
       'jumlahJual': serializer.toJson<int?>(jumlahJual),
-      'usia': serializer.toJson<int?>(usia),
-      'namaPelanggan': serializer.toJson<String>(namaPelanggan),
-      'alamat': serializer.toJson<String?>(alamat),
-      'noTelp': serializer.toJson<int?>(noTelp),
-      'kelompok': serializer.toJson<String?>(kelompok),
-      'keterangan': serializer.toJson<String?>(keterangan),
+      'totalHargaSebelumDisc': serializer.toJson<int?>(totalHargaSebelumDisc),
+      'totalHargaSetelahDisc': serializer.toJson<int?>(totalHargaSetelahDisc),
+      'totalDisc': serializer.toJson<int?>(totalDisc),
     };
   }
 
   Resep copyWith(
           {int? id,
           String? noResep,
+          DateTime? tanggal,
+          String? kodePelanggan,
+          String? namaPelanggan,
+          Value<String?> kelompokPelanggan = const Value.absent(),
+          Value<String?> kodeDoctor = const Value.absent(),
+          String? namaDoctor,
+          Value<int?> usia = const Value.absent(),
+          Value<String?> alamat = const Value.absent(),
+          Value<String?> keterangan = const Value.absent(),
+          Value<String?> noTelp = const Value.absent(),
           String? kodeBarang,
           String? namaBarang,
-          String? kodPelanggan,
-          String? namaDoctor,
-          Value<String?> kodeDoctor = const Value.absent(),
-          Value<int?> jualDiscon = const Value.absent(),
-          DateTime? tanggal,
-          Value<int?> totalHargaSetelahDisc = const Value.absent(),
+          String? kelompok,
           String? satuan,
+          int? hargaBeli,
+          int? hargaJual,
+          Value<int?> jualDiscon = const Value.absent(),
           Value<int?> jumlahJual = const Value.absent(),
-          Value<int?> usia = const Value.absent(),
-          String? namaPelanggan,
-          Value<String?> alamat = const Value.absent(),
-          Value<int?> noTelp = const Value.absent(),
-          Value<String?> kelompok = const Value.absent(),
-          Value<String?> keterangan = const Value.absent()}) =>
+          Value<int?> totalHargaSebelumDisc = const Value.absent(),
+          Value<int?> totalHargaSetelahDisc = const Value.absent(),
+          Value<int?> totalDisc = const Value.absent()}) =>
       Resep(
         id: id ?? this.id,
         noResep: noResep ?? this.noResep,
+        tanggal: tanggal ?? this.tanggal,
+        kodePelanggan: kodePelanggan ?? this.kodePelanggan,
+        namaPelanggan: namaPelanggan ?? this.namaPelanggan,
+        kelompokPelanggan: kelompokPelanggan.present
+            ? kelompokPelanggan.value
+            : this.kelompokPelanggan,
+        kodeDoctor: kodeDoctor.present ? kodeDoctor.value : this.kodeDoctor,
+        namaDoctor: namaDoctor ?? this.namaDoctor,
+        usia: usia.present ? usia.value : this.usia,
+        alamat: alamat.present ? alamat.value : this.alamat,
+        keterangan: keterangan.present ? keterangan.value : this.keterangan,
+        noTelp: noTelp.present ? noTelp.value : this.noTelp,
         kodeBarang: kodeBarang ?? this.kodeBarang,
         namaBarang: namaBarang ?? this.namaBarang,
-        kodPelanggan: kodPelanggan ?? this.kodPelanggan,
-        namaDoctor: namaDoctor ?? this.namaDoctor,
-        kodeDoctor: kodeDoctor.present ? kodeDoctor.value : this.kodeDoctor,
+        kelompok: kelompok ?? this.kelompok,
+        satuan: satuan ?? this.satuan,
+        hargaBeli: hargaBeli ?? this.hargaBeli,
+        hargaJual: hargaJual ?? this.hargaJual,
         jualDiscon: jualDiscon.present ? jualDiscon.value : this.jualDiscon,
-        tanggal: tanggal ?? this.tanggal,
+        jumlahJual: jumlahJual.present ? jumlahJual.value : this.jumlahJual,
+        totalHargaSebelumDisc: totalHargaSebelumDisc.present
+            ? totalHargaSebelumDisc.value
+            : this.totalHargaSebelumDisc,
         totalHargaSetelahDisc: totalHargaSetelahDisc.present
             ? totalHargaSetelahDisc.value
             : this.totalHargaSetelahDisc,
-        satuan: satuan ?? this.satuan,
-        jumlahJual: jumlahJual.present ? jumlahJual.value : this.jumlahJual,
-        usia: usia.present ? usia.value : this.usia,
-        namaPelanggan: namaPelanggan ?? this.namaPelanggan,
-        alamat: alamat.present ? alamat.value : this.alamat,
-        noTelp: noTelp.present ? noTelp.value : this.noTelp,
-        kelompok: kelompok.present ? kelompok.value : this.kelompok,
-        keterangan: keterangan.present ? keterangan.value : this.keterangan,
+        totalDisc: totalDisc.present ? totalDisc.value : this.totalDisc,
       );
   Resep copyWithCompanion(ResepsCompanion data) {
     return Resep(
       id: data.id.present ? data.id.value : this.id,
       noResep: data.noResep.present ? data.noResep.value : this.noResep,
+      tanggal: data.tanggal.present ? data.tanggal.value : this.tanggal,
+      kodePelanggan: data.kodePelanggan.present
+          ? data.kodePelanggan.value
+          : this.kodePelanggan,
+      namaPelanggan: data.namaPelanggan.present
+          ? data.namaPelanggan.value
+          : this.namaPelanggan,
+      kelompokPelanggan: data.kelompokPelanggan.present
+          ? data.kelompokPelanggan.value
+          : this.kelompokPelanggan,
+      kodeDoctor:
+          data.kodeDoctor.present ? data.kodeDoctor.value : this.kodeDoctor,
+      namaDoctor:
+          data.namaDoctor.present ? data.namaDoctor.value : this.namaDoctor,
+      usia: data.usia.present ? data.usia.value : this.usia,
+      alamat: data.alamat.present ? data.alamat.value : this.alamat,
+      keterangan:
+          data.keterangan.present ? data.keterangan.value : this.keterangan,
+      noTelp: data.noTelp.present ? data.noTelp.value : this.noTelp,
       kodeBarang:
           data.kodeBarang.present ? data.kodeBarang.value : this.kodeBarang,
       namaBarang:
           data.namaBarang.present ? data.namaBarang.value : this.namaBarang,
-      kodPelanggan: data.kodPelanggan.present
-          ? data.kodPelanggan.value
-          : this.kodPelanggan,
-      namaDoctor:
-          data.namaDoctor.present ? data.namaDoctor.value : this.namaDoctor,
-      kodeDoctor:
-          data.kodeDoctor.present ? data.kodeDoctor.value : this.kodeDoctor,
+      kelompok: data.kelompok.present ? data.kelompok.value : this.kelompok,
+      satuan: data.satuan.present ? data.satuan.value : this.satuan,
+      hargaBeli: data.hargaBeli.present ? data.hargaBeli.value : this.hargaBeli,
+      hargaJual: data.hargaJual.present ? data.hargaJual.value : this.hargaJual,
       jualDiscon:
           data.jualDiscon.present ? data.jualDiscon.value : this.jualDiscon,
-      tanggal: data.tanggal.present ? data.tanggal.value : this.tanggal,
+      jumlahJual:
+          data.jumlahJual.present ? data.jumlahJual.value : this.jumlahJual,
+      totalHargaSebelumDisc: data.totalHargaSebelumDisc.present
+          ? data.totalHargaSebelumDisc.value
+          : this.totalHargaSebelumDisc,
       totalHargaSetelahDisc: data.totalHargaSetelahDisc.present
           ? data.totalHargaSetelahDisc.value
           : this.totalHargaSetelahDisc,
-      satuan: data.satuan.present ? data.satuan.value : this.satuan,
-      jumlahJual:
-          data.jumlahJual.present ? data.jumlahJual.value : this.jumlahJual,
-      usia: data.usia.present ? data.usia.value : this.usia,
-      namaPelanggan: data.namaPelanggan.present
-          ? data.namaPelanggan.value
-          : this.namaPelanggan,
-      alamat: data.alamat.present ? data.alamat.value : this.alamat,
-      noTelp: data.noTelp.present ? data.noTelp.value : this.noTelp,
-      kelompok: data.kelompok.present ? data.kelompok.value : this.kelompok,
-      keterangan:
-          data.keterangan.present ? data.keterangan.value : this.keterangan,
+      totalDisc: data.totalDisc.present ? data.totalDisc.value : this.totalDisc,
     );
   }
 
@@ -5801,218 +5975,272 @@ class Resep extends DataClass implements Insertable<Resep> {
     return (StringBuffer('Resep(')
           ..write('id: $id, ')
           ..write('noResep: $noResep, ')
+          ..write('tanggal: $tanggal, ')
+          ..write('kodePelanggan: $kodePelanggan, ')
+          ..write('namaPelanggan: $namaPelanggan, ')
+          ..write('kelompokPelanggan: $kelompokPelanggan, ')
+          ..write('kodeDoctor: $kodeDoctor, ')
+          ..write('namaDoctor: $namaDoctor, ')
+          ..write('usia: $usia, ')
+          ..write('alamat: $alamat, ')
+          ..write('keterangan: $keterangan, ')
+          ..write('noTelp: $noTelp, ')
           ..write('kodeBarang: $kodeBarang, ')
           ..write('namaBarang: $namaBarang, ')
-          ..write('kodPelanggan: $kodPelanggan, ')
-          ..write('namaDoctor: $namaDoctor, ')
-          ..write('kodeDoctor: $kodeDoctor, ')
-          ..write('jualDiscon: $jualDiscon, ')
-          ..write('tanggal: $tanggal, ')
-          ..write('totalHargaSetelahDisc: $totalHargaSetelahDisc, ')
-          ..write('satuan: $satuan, ')
-          ..write('jumlahJual: $jumlahJual, ')
-          ..write('usia: $usia, ')
-          ..write('namaPelanggan: $namaPelanggan, ')
-          ..write('alamat: $alamat, ')
-          ..write('noTelp: $noTelp, ')
           ..write('kelompok: $kelompok, ')
-          ..write('keterangan: $keterangan')
+          ..write('satuan: $satuan, ')
+          ..write('hargaBeli: $hargaBeli, ')
+          ..write('hargaJual: $hargaJual, ')
+          ..write('jualDiscon: $jualDiscon, ')
+          ..write('jumlahJual: $jumlahJual, ')
+          ..write('totalHargaSebelumDisc: $totalHargaSebelumDisc, ')
+          ..write('totalHargaSetelahDisc: $totalHargaSetelahDisc, ')
+          ..write('totalDisc: $totalDisc')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(
-      id,
-      noResep,
-      kodeBarang,
-      namaBarang,
-      kodPelanggan,
-      namaDoctor,
-      kodeDoctor,
-      jualDiscon,
-      tanggal,
-      totalHargaSetelahDisc,
-      satuan,
-      jumlahJual,
-      usia,
-      namaPelanggan,
-      alamat,
-      noTelp,
-      kelompok,
-      keterangan);
+  int get hashCode => Object.hashAll([
+        id,
+        noResep,
+        tanggal,
+        kodePelanggan,
+        namaPelanggan,
+        kelompokPelanggan,
+        kodeDoctor,
+        namaDoctor,
+        usia,
+        alamat,
+        keterangan,
+        noTelp,
+        kodeBarang,
+        namaBarang,
+        kelompok,
+        satuan,
+        hargaBeli,
+        hargaJual,
+        jualDiscon,
+        jumlahJual,
+        totalHargaSebelumDisc,
+        totalHargaSetelahDisc,
+        totalDisc
+      ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is Resep &&
           other.id == this.id &&
           other.noResep == this.noResep &&
+          other.tanggal == this.tanggal &&
+          other.kodePelanggan == this.kodePelanggan &&
+          other.namaPelanggan == this.namaPelanggan &&
+          other.kelompokPelanggan == this.kelompokPelanggan &&
+          other.kodeDoctor == this.kodeDoctor &&
+          other.namaDoctor == this.namaDoctor &&
+          other.usia == this.usia &&
+          other.alamat == this.alamat &&
+          other.keterangan == this.keterangan &&
+          other.noTelp == this.noTelp &&
           other.kodeBarang == this.kodeBarang &&
           other.namaBarang == this.namaBarang &&
-          other.kodPelanggan == this.kodPelanggan &&
-          other.namaDoctor == this.namaDoctor &&
-          other.kodeDoctor == this.kodeDoctor &&
-          other.jualDiscon == this.jualDiscon &&
-          other.tanggal == this.tanggal &&
-          other.totalHargaSetelahDisc == this.totalHargaSetelahDisc &&
-          other.satuan == this.satuan &&
-          other.jumlahJual == this.jumlahJual &&
-          other.usia == this.usia &&
-          other.namaPelanggan == this.namaPelanggan &&
-          other.alamat == this.alamat &&
-          other.noTelp == this.noTelp &&
           other.kelompok == this.kelompok &&
-          other.keterangan == this.keterangan);
+          other.satuan == this.satuan &&
+          other.hargaBeli == this.hargaBeli &&
+          other.hargaJual == this.hargaJual &&
+          other.jualDiscon == this.jualDiscon &&
+          other.jumlahJual == this.jumlahJual &&
+          other.totalHargaSebelumDisc == this.totalHargaSebelumDisc &&
+          other.totalHargaSetelahDisc == this.totalHargaSetelahDisc &&
+          other.totalDisc == this.totalDisc);
 }
 
 class ResepsCompanion extends UpdateCompanion<Resep> {
   final Value<int> id;
   final Value<String> noResep;
+  final Value<DateTime> tanggal;
+  final Value<String> kodePelanggan;
+  final Value<String> namaPelanggan;
+  final Value<String?> kelompokPelanggan;
+  final Value<String?> kodeDoctor;
+  final Value<String> namaDoctor;
+  final Value<int?> usia;
+  final Value<String?> alamat;
+  final Value<String?> keterangan;
+  final Value<String?> noTelp;
   final Value<String> kodeBarang;
   final Value<String> namaBarang;
-  final Value<String> kodPelanggan;
-  final Value<String> namaDoctor;
-  final Value<String?> kodeDoctor;
-  final Value<int?> jualDiscon;
-  final Value<DateTime> tanggal;
-  final Value<int?> totalHargaSetelahDisc;
+  final Value<String> kelompok;
   final Value<String> satuan;
+  final Value<int> hargaBeli;
+  final Value<int> hargaJual;
+  final Value<int?> jualDiscon;
   final Value<int?> jumlahJual;
-  final Value<int?> usia;
-  final Value<String> namaPelanggan;
-  final Value<String?> alamat;
-  final Value<int?> noTelp;
-  final Value<String?> kelompok;
-  final Value<String?> keterangan;
+  final Value<int?> totalHargaSebelumDisc;
+  final Value<int?> totalHargaSetelahDisc;
+  final Value<int?> totalDisc;
   const ResepsCompanion({
     this.id = const Value.absent(),
     this.noResep = const Value.absent(),
+    this.tanggal = const Value.absent(),
+    this.kodePelanggan = const Value.absent(),
+    this.namaPelanggan = const Value.absent(),
+    this.kelompokPelanggan = const Value.absent(),
+    this.kodeDoctor = const Value.absent(),
+    this.namaDoctor = const Value.absent(),
+    this.usia = const Value.absent(),
+    this.alamat = const Value.absent(),
+    this.keterangan = const Value.absent(),
+    this.noTelp = const Value.absent(),
     this.kodeBarang = const Value.absent(),
     this.namaBarang = const Value.absent(),
-    this.kodPelanggan = const Value.absent(),
-    this.namaDoctor = const Value.absent(),
-    this.kodeDoctor = const Value.absent(),
-    this.jualDiscon = const Value.absent(),
-    this.tanggal = const Value.absent(),
-    this.totalHargaSetelahDisc = const Value.absent(),
-    this.satuan = const Value.absent(),
-    this.jumlahJual = const Value.absent(),
-    this.usia = const Value.absent(),
-    this.namaPelanggan = const Value.absent(),
-    this.alamat = const Value.absent(),
-    this.noTelp = const Value.absent(),
     this.kelompok = const Value.absent(),
-    this.keterangan = const Value.absent(),
+    this.satuan = const Value.absent(),
+    this.hargaBeli = const Value.absent(),
+    this.hargaJual = const Value.absent(),
+    this.jualDiscon = const Value.absent(),
+    this.jumlahJual = const Value.absent(),
+    this.totalHargaSebelumDisc = const Value.absent(),
+    this.totalHargaSetelahDisc = const Value.absent(),
+    this.totalDisc = const Value.absent(),
   });
   ResepsCompanion.insert({
     this.id = const Value.absent(),
     required String noResep,
+    required DateTime tanggal,
+    required String kodePelanggan,
+    required String namaPelanggan,
+    this.kelompokPelanggan = const Value.absent(),
+    this.kodeDoctor = const Value.absent(),
+    required String namaDoctor,
+    this.usia = const Value.absent(),
+    this.alamat = const Value.absent(),
+    this.keterangan = const Value.absent(),
+    this.noTelp = const Value.absent(),
     required String kodeBarang,
     required String namaBarang,
-    required String kodPelanggan,
-    required String namaDoctor,
-    this.kodeDoctor = const Value.absent(),
-    this.jualDiscon = const Value.absent(),
-    required DateTime tanggal,
-    this.totalHargaSetelahDisc = const Value.absent(),
+    required String kelompok,
     required String satuan,
+    this.hargaBeli = const Value.absent(),
+    this.hargaJual = const Value.absent(),
+    this.jualDiscon = const Value.absent(),
     this.jumlahJual = const Value.absent(),
-    this.usia = const Value.absent(),
-    required String namaPelanggan,
-    this.alamat = const Value.absent(),
-    this.noTelp = const Value.absent(),
-    this.kelompok = const Value.absent(),
-    this.keterangan = const Value.absent(),
+    this.totalHargaSebelumDisc = const Value.absent(),
+    this.totalHargaSetelahDisc = const Value.absent(),
+    this.totalDisc = const Value.absent(),
   })  : noResep = Value(noResep),
+        tanggal = Value(tanggal),
+        kodePelanggan = Value(kodePelanggan),
+        namaPelanggan = Value(namaPelanggan),
+        namaDoctor = Value(namaDoctor),
         kodeBarang = Value(kodeBarang),
         namaBarang = Value(namaBarang),
-        kodPelanggan = Value(kodPelanggan),
-        namaDoctor = Value(namaDoctor),
-        tanggal = Value(tanggal),
-        satuan = Value(satuan),
-        namaPelanggan = Value(namaPelanggan);
+        kelompok = Value(kelompok),
+        satuan = Value(satuan);
   static Insertable<Resep> custom({
     Expression<int>? id,
     Expression<String>? noResep,
+    Expression<DateTime>? tanggal,
+    Expression<String>? kodePelanggan,
+    Expression<String>? namaPelanggan,
+    Expression<String>? kelompokPelanggan,
+    Expression<String>? kodeDoctor,
+    Expression<String>? namaDoctor,
+    Expression<int>? usia,
+    Expression<String>? alamat,
+    Expression<String>? keterangan,
+    Expression<String>? noTelp,
     Expression<String>? kodeBarang,
     Expression<String>? namaBarang,
-    Expression<String>? kodPelanggan,
-    Expression<String>? namaDoctor,
-    Expression<String>? kodeDoctor,
-    Expression<int>? jualDiscon,
-    Expression<DateTime>? tanggal,
-    Expression<int>? totalHargaSetelahDisc,
-    Expression<String>? satuan,
-    Expression<int>? jumlahJual,
-    Expression<int>? usia,
-    Expression<String>? namaPelanggan,
-    Expression<String>? alamat,
-    Expression<int>? noTelp,
     Expression<String>? kelompok,
-    Expression<String>? keterangan,
+    Expression<String>? satuan,
+    Expression<int>? hargaBeli,
+    Expression<int>? hargaJual,
+    Expression<int>? jualDiscon,
+    Expression<int>? jumlahJual,
+    Expression<int>? totalHargaSebelumDisc,
+    Expression<int>? totalHargaSetelahDisc,
+    Expression<int>? totalDisc,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (noResep != null) 'no_resep': noResep,
+      if (tanggal != null) 'tanggal': tanggal,
+      if (kodePelanggan != null) 'kode_pelanggan': kodePelanggan,
+      if (namaPelanggan != null) 'nama_pelanggan': namaPelanggan,
+      if (kelompokPelanggan != null) 'kelompok_pelanggan': kelompokPelanggan,
+      if (kodeDoctor != null) 'kode_doctor': kodeDoctor,
+      if (namaDoctor != null) 'nama_doctor': namaDoctor,
+      if (usia != null) 'usia': usia,
+      if (alamat != null) 'alamat': alamat,
+      if (keterangan != null) 'keterangan': keterangan,
+      if (noTelp != null) 'no_telp': noTelp,
       if (kodeBarang != null) 'kode_barang': kodeBarang,
       if (namaBarang != null) 'nama_barang': namaBarang,
-      if (kodPelanggan != null) 'kod_pelanggan': kodPelanggan,
-      if (namaDoctor != null) 'nama_doctor': namaDoctor,
-      if (kodeDoctor != null) 'kode_doctor': kodeDoctor,
+      if (kelompok != null) 'kelompok': kelompok,
+      if (satuan != null) 'satuan': satuan,
+      if (hargaBeli != null) 'harga_beli': hargaBeli,
+      if (hargaJual != null) 'harga_jual': hargaJual,
       if (jualDiscon != null) 'jual_discon': jualDiscon,
-      if (tanggal != null) 'tanggal': tanggal,
+      if (jumlahJual != null) 'jumlah_jual': jumlahJual,
+      if (totalHargaSebelumDisc != null)
+        'total_harga_sebelum_disc': totalHargaSebelumDisc,
       if (totalHargaSetelahDisc != null)
         'total_harga_setelah_disc': totalHargaSetelahDisc,
-      if (satuan != null) 'satuan': satuan,
-      if (jumlahJual != null) 'jumlah_jual': jumlahJual,
-      if (usia != null) 'usia': usia,
-      if (namaPelanggan != null) 'nama_pelanggan': namaPelanggan,
-      if (alamat != null) 'alamat': alamat,
-      if (noTelp != null) 'no_telp': noTelp,
-      if (kelompok != null) 'kelompok': kelompok,
-      if (keterangan != null) 'keterangan': keterangan,
+      if (totalDisc != null) 'total_disc': totalDisc,
     });
   }
 
   ResepsCompanion copyWith(
       {Value<int>? id,
       Value<String>? noResep,
+      Value<DateTime>? tanggal,
+      Value<String>? kodePelanggan,
+      Value<String>? namaPelanggan,
+      Value<String?>? kelompokPelanggan,
+      Value<String?>? kodeDoctor,
+      Value<String>? namaDoctor,
+      Value<int?>? usia,
+      Value<String?>? alamat,
+      Value<String?>? keterangan,
+      Value<String?>? noTelp,
       Value<String>? kodeBarang,
       Value<String>? namaBarang,
-      Value<String>? kodPelanggan,
-      Value<String>? namaDoctor,
-      Value<String?>? kodeDoctor,
-      Value<int?>? jualDiscon,
-      Value<DateTime>? tanggal,
-      Value<int?>? totalHargaSetelahDisc,
+      Value<String>? kelompok,
       Value<String>? satuan,
+      Value<int>? hargaBeli,
+      Value<int>? hargaJual,
+      Value<int?>? jualDiscon,
       Value<int?>? jumlahJual,
-      Value<int?>? usia,
-      Value<String>? namaPelanggan,
-      Value<String?>? alamat,
-      Value<int?>? noTelp,
-      Value<String?>? kelompok,
-      Value<String?>? keterangan}) {
+      Value<int?>? totalHargaSebelumDisc,
+      Value<int?>? totalHargaSetelahDisc,
+      Value<int?>? totalDisc}) {
     return ResepsCompanion(
       id: id ?? this.id,
       noResep: noResep ?? this.noResep,
+      tanggal: tanggal ?? this.tanggal,
+      kodePelanggan: kodePelanggan ?? this.kodePelanggan,
+      namaPelanggan: namaPelanggan ?? this.namaPelanggan,
+      kelompokPelanggan: kelompokPelanggan ?? this.kelompokPelanggan,
+      kodeDoctor: kodeDoctor ?? this.kodeDoctor,
+      namaDoctor: namaDoctor ?? this.namaDoctor,
+      usia: usia ?? this.usia,
+      alamat: alamat ?? this.alamat,
+      keterangan: keterangan ?? this.keterangan,
+      noTelp: noTelp ?? this.noTelp,
       kodeBarang: kodeBarang ?? this.kodeBarang,
       namaBarang: namaBarang ?? this.namaBarang,
-      kodPelanggan: kodPelanggan ?? this.kodPelanggan,
-      namaDoctor: namaDoctor ?? this.namaDoctor,
-      kodeDoctor: kodeDoctor ?? this.kodeDoctor,
+      kelompok: kelompok ?? this.kelompok,
+      satuan: satuan ?? this.satuan,
+      hargaBeli: hargaBeli ?? this.hargaBeli,
+      hargaJual: hargaJual ?? this.hargaJual,
       jualDiscon: jualDiscon ?? this.jualDiscon,
-      tanggal: tanggal ?? this.tanggal,
+      jumlahJual: jumlahJual ?? this.jumlahJual,
+      totalHargaSebelumDisc:
+          totalHargaSebelumDisc ?? this.totalHargaSebelumDisc,
       totalHargaSetelahDisc:
           totalHargaSetelahDisc ?? this.totalHargaSetelahDisc,
-      satuan: satuan ?? this.satuan,
-      jumlahJual: jumlahJual ?? this.jumlahJual,
-      usia: usia ?? this.usia,
-      namaPelanggan: namaPelanggan ?? this.namaPelanggan,
-      alamat: alamat ?? this.alamat,
-      noTelp: noTelp ?? this.noTelp,
-      kelompok: kelompok ?? this.kelompok,
-      keterangan: keterangan ?? this.keterangan,
+      totalDisc: totalDisc ?? this.totalDisc,
     );
   }
 
@@ -6025,54 +6253,70 @@ class ResepsCompanion extends UpdateCompanion<Resep> {
     if (noResep.present) {
       map['no_resep'] = Variable<String>(noResep.value);
     }
+    if (tanggal.present) {
+      map['tanggal'] = Variable<DateTime>(tanggal.value);
+    }
+    if (kodePelanggan.present) {
+      map['kode_pelanggan'] = Variable<String>(kodePelanggan.value);
+    }
+    if (namaPelanggan.present) {
+      map['nama_pelanggan'] = Variable<String>(namaPelanggan.value);
+    }
+    if (kelompokPelanggan.present) {
+      map['kelompok_pelanggan'] = Variable<String>(kelompokPelanggan.value);
+    }
+    if (kodeDoctor.present) {
+      map['kode_doctor'] = Variable<String>(kodeDoctor.value);
+    }
+    if (namaDoctor.present) {
+      map['nama_doctor'] = Variable<String>(namaDoctor.value);
+    }
+    if (usia.present) {
+      map['usia'] = Variable<int>(usia.value);
+    }
+    if (alamat.present) {
+      map['alamat'] = Variable<String>(alamat.value);
+    }
+    if (keterangan.present) {
+      map['keterangan'] = Variable<String>(keterangan.value);
+    }
+    if (noTelp.present) {
+      map['no_telp'] = Variable<String>(noTelp.value);
+    }
     if (kodeBarang.present) {
       map['kode_barang'] = Variable<String>(kodeBarang.value);
     }
     if (namaBarang.present) {
       map['nama_barang'] = Variable<String>(namaBarang.value);
     }
-    if (kodPelanggan.present) {
-      map['kod_pelanggan'] = Variable<String>(kodPelanggan.value);
+    if (kelompok.present) {
+      map['kelompok'] = Variable<String>(kelompok.value);
     }
-    if (namaDoctor.present) {
-      map['nama_doctor'] = Variable<String>(namaDoctor.value);
+    if (satuan.present) {
+      map['satuan'] = Variable<String>(satuan.value);
     }
-    if (kodeDoctor.present) {
-      map['kode_doctor'] = Variable<String>(kodeDoctor.value);
+    if (hargaBeli.present) {
+      map['harga_beli'] = Variable<int>(hargaBeli.value);
+    }
+    if (hargaJual.present) {
+      map['harga_jual'] = Variable<int>(hargaJual.value);
     }
     if (jualDiscon.present) {
       map['jual_discon'] = Variable<int>(jualDiscon.value);
     }
-    if (tanggal.present) {
-      map['tanggal'] = Variable<DateTime>(tanggal.value);
+    if (jumlahJual.present) {
+      map['jumlah_jual'] = Variable<int>(jumlahJual.value);
+    }
+    if (totalHargaSebelumDisc.present) {
+      map['total_harga_sebelum_disc'] =
+          Variable<int>(totalHargaSebelumDisc.value);
     }
     if (totalHargaSetelahDisc.present) {
       map['total_harga_setelah_disc'] =
           Variable<int>(totalHargaSetelahDisc.value);
     }
-    if (satuan.present) {
-      map['satuan'] = Variable<String>(satuan.value);
-    }
-    if (jumlahJual.present) {
-      map['jumlah_jual'] = Variable<int>(jumlahJual.value);
-    }
-    if (usia.present) {
-      map['usia'] = Variable<int>(usia.value);
-    }
-    if (namaPelanggan.present) {
-      map['nama_pelanggan'] = Variable<String>(namaPelanggan.value);
-    }
-    if (alamat.present) {
-      map['alamat'] = Variable<String>(alamat.value);
-    }
-    if (noTelp.present) {
-      map['no_telp'] = Variable<int>(noTelp.value);
-    }
-    if (kelompok.present) {
-      map['kelompok'] = Variable<String>(kelompok.value);
-    }
-    if (keterangan.present) {
-      map['keterangan'] = Variable<String>(keterangan.value);
+    if (totalDisc.present) {
+      map['total_disc'] = Variable<int>(totalDisc.value);
     }
     return map;
   }
@@ -6082,22 +6326,27 @@ class ResepsCompanion extends UpdateCompanion<Resep> {
     return (StringBuffer('ResepsCompanion(')
           ..write('id: $id, ')
           ..write('noResep: $noResep, ')
+          ..write('tanggal: $tanggal, ')
+          ..write('kodePelanggan: $kodePelanggan, ')
+          ..write('namaPelanggan: $namaPelanggan, ')
+          ..write('kelompokPelanggan: $kelompokPelanggan, ')
+          ..write('kodeDoctor: $kodeDoctor, ')
+          ..write('namaDoctor: $namaDoctor, ')
+          ..write('usia: $usia, ')
+          ..write('alamat: $alamat, ')
+          ..write('keterangan: $keterangan, ')
+          ..write('noTelp: $noTelp, ')
           ..write('kodeBarang: $kodeBarang, ')
           ..write('namaBarang: $namaBarang, ')
-          ..write('kodPelanggan: $kodPelanggan, ')
-          ..write('namaDoctor: $namaDoctor, ')
-          ..write('kodeDoctor: $kodeDoctor, ')
-          ..write('jualDiscon: $jualDiscon, ')
-          ..write('tanggal: $tanggal, ')
-          ..write('totalHargaSetelahDisc: $totalHargaSetelahDisc, ')
-          ..write('satuan: $satuan, ')
-          ..write('jumlahJual: $jumlahJual, ')
-          ..write('usia: $usia, ')
-          ..write('namaPelanggan: $namaPelanggan, ')
-          ..write('alamat: $alamat, ')
-          ..write('noTelp: $noTelp, ')
           ..write('kelompok: $kelompok, ')
-          ..write('keterangan: $keterangan')
+          ..write('satuan: $satuan, ')
+          ..write('hargaBeli: $hargaBeli, ')
+          ..write('hargaJual: $hargaJual, ')
+          ..write('jualDiscon: $jualDiscon, ')
+          ..write('jumlahJual: $jumlahJual, ')
+          ..write('totalHargaSebelumDisc: $totalHargaSebelumDisc, ')
+          ..write('totalHargaSetelahDisc: $totalHargaSetelahDisc, ')
+          ..write('totalDisc: $totalDisc')
           ..write(')'))
         .toString();
   }
@@ -6124,7 +6373,7 @@ class $ResepstmpTable extends Resepstmp
   late final GeneratedColumn<String> kodeBarang = GeneratedColumn<String>(
       'kode_barang', aliasedName, false,
       additionalChecks:
-          GeneratedColumn.checkTextLength(minTextLength: 1, maxTextLength: 50),
+          GeneratedColumn.checkTextLength(minTextLength: 1, maxTextLength: 20),
       type: DriftSqlType.string,
       requiredDuringInsert: true);
   static const VerificationMeta _namaBarangMeta =
@@ -6132,10 +6381,26 @@ class $ResepstmpTable extends Resepstmp
   @override
   late final GeneratedColumn<String> namaBarang = GeneratedColumn<String>(
       'nama_barang', aliasedName, false,
-      additionalChecks:
-          GeneratedColumn.checkTextLength(minTextLength: 1, maxTextLength: 50),
-      type: DriftSqlType.string,
-      requiredDuringInsert: true);
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _kelompokMeta =
+      const VerificationMeta('kelompok');
+  @override
+  late final GeneratedColumn<String> kelompok = GeneratedColumn<String>(
+      'kelompok', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _satuanMeta = const VerificationMeta('satuan');
+  @override
+  late final GeneratedColumn<String> satuan = GeneratedColumn<String>(
+      'satuan', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _hargaBeliMeta =
+      const VerificationMeta('hargaBeli');
+  @override
+  late final GeneratedColumn<int> hargaBeli = GeneratedColumn<int>(
+      'harga_beli', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
   static const VerificationMeta _hargaJualMeta =
       const VerificationMeta('hargaJual');
   @override
@@ -6150,47 +6415,44 @@ class $ResepstmpTable extends Resepstmp
   late final GeneratedColumn<int> jualDiscon = GeneratedColumn<int>(
       'jual_discon', aliasedName, true,
       type: DriftSqlType.int, requiredDuringInsert: false);
-  static const VerificationMeta _totalHargaSetelahDiscMeta =
-      const VerificationMeta('totalHargaSetelahDisc');
-  @override
-  late final GeneratedColumn<int> totalHargaSetelahDisc = GeneratedColumn<int>(
-      'total_harga_setelah_disc', aliasedName, true,
-      type: DriftSqlType.int, requiredDuringInsert: false);
-  static const VerificationMeta _satuanMeta = const VerificationMeta('satuan');
-  @override
-  late final GeneratedColumn<String> satuan = GeneratedColumn<String>(
-      'satuan', aliasedName, false,
-      type: DriftSqlType.string, requiredDuringInsert: true);
   static const VerificationMeta _jumlahJualMeta =
       const VerificationMeta('jumlahJual');
   @override
   late final GeneratedColumn<int> jumlahJual = GeneratedColumn<int>(
       'jumlah_jual', aliasedName, true,
       type: DriftSqlType.int, requiredDuringInsert: false);
-  static const VerificationMeta _kelompokMeta =
-      const VerificationMeta('kelompok');
+  static const VerificationMeta _totalHargaSebelumDiscMeta =
+      const VerificationMeta('totalHargaSebelumDisc');
   @override
-  late final GeneratedColumn<String> kelompok = GeneratedColumn<String>(
-      'kelompok', aliasedName, true,
-      type: DriftSqlType.string, requiredDuringInsert: false);
-  static const VerificationMeta _totalHargaMeta =
-      const VerificationMeta('totalHarga');
+  late final GeneratedColumn<int> totalHargaSebelumDisc = GeneratedColumn<int>(
+      'total_harga_sebelum_disc', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _totalHargaSetelahDiscMeta =
+      const VerificationMeta('totalHargaSetelahDisc');
   @override
-  late final GeneratedColumn<int> totalHarga = GeneratedColumn<int>(
-      'total_harga', aliasedName, true,
+  late final GeneratedColumn<int> totalHargaSetelahDisc = GeneratedColumn<int>(
+      'total_harga_setelah_disc', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _totalDiscMeta =
+      const VerificationMeta('totalDisc');
+  @override
+  late final GeneratedColumn<int> totalDisc = GeneratedColumn<int>(
+      'total_disc', aliasedName, true,
       type: DriftSqlType.int, requiredDuringInsert: false);
   @override
   List<GeneratedColumn> get $columns => [
         id,
         kodeBarang,
         namaBarang,
+        kelompok,
+        satuan,
+        hargaBeli,
         hargaJual,
         jualDiscon,
-        totalHargaSetelahDisc,
-        satuan,
         jumlahJual,
-        kelompok,
-        totalHarga
+        totalHargaSebelumDisc,
+        totalHargaSetelahDisc,
+        totalDisc
       ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -6221,6 +6483,22 @@ class $ResepstmpTable extends Resepstmp
     } else if (isInserting) {
       context.missing(_namaBarangMeta);
     }
+    if (data.containsKey('kelompok')) {
+      context.handle(_kelompokMeta,
+          kelompok.isAcceptableOrUnknown(data['kelompok']!, _kelompokMeta));
+    } else if (isInserting) {
+      context.missing(_kelompokMeta);
+    }
+    if (data.containsKey('satuan')) {
+      context.handle(_satuanMeta,
+          satuan.isAcceptableOrUnknown(data['satuan']!, _satuanMeta));
+    } else if (isInserting) {
+      context.missing(_satuanMeta);
+    }
+    if (data.containsKey('harga_beli')) {
+      context.handle(_hargaBeliMeta,
+          hargaBeli.isAcceptableOrUnknown(data['harga_beli']!, _hargaBeliMeta));
+    }
     if (data.containsKey('harga_jual')) {
       context.handle(_hargaJualMeta,
           hargaJual.isAcceptableOrUnknown(data['harga_jual']!, _hargaJualMeta));
@@ -6231,33 +6509,27 @@ class $ResepstmpTable extends Resepstmp
           jualDiscon.isAcceptableOrUnknown(
               data['jual_discon']!, _jualDisconMeta));
     }
-    if (data.containsKey('total_harga_setelah_disc')) {
-      context.handle(
-          _totalHargaSetelahDiscMeta,
-          totalHargaSetelahDisc.isAcceptableOrUnknown(
-              data['total_harga_setelah_disc']!, _totalHargaSetelahDiscMeta));
-    }
-    if (data.containsKey('satuan')) {
-      context.handle(_satuanMeta,
-          satuan.isAcceptableOrUnknown(data['satuan']!, _satuanMeta));
-    } else if (isInserting) {
-      context.missing(_satuanMeta);
-    }
     if (data.containsKey('jumlah_jual')) {
       context.handle(
           _jumlahJualMeta,
           jumlahJual.isAcceptableOrUnknown(
               data['jumlah_jual']!, _jumlahJualMeta));
     }
-    if (data.containsKey('kelompok')) {
-      context.handle(_kelompokMeta,
-          kelompok.isAcceptableOrUnknown(data['kelompok']!, _kelompokMeta));
-    }
-    if (data.containsKey('total_harga')) {
+    if (data.containsKey('total_harga_sebelum_disc')) {
       context.handle(
-          _totalHargaMeta,
-          totalHarga.isAcceptableOrUnknown(
-              data['total_harga']!, _totalHargaMeta));
+          _totalHargaSebelumDiscMeta,
+          totalHargaSebelumDisc.isAcceptableOrUnknown(
+              data['total_harga_sebelum_disc']!, _totalHargaSebelumDiscMeta));
+    }
+    if (data.containsKey('total_harga_setelah_disc')) {
+      context.handle(
+          _totalHargaSetelahDiscMeta,
+          totalHargaSetelahDisc.isAcceptableOrUnknown(
+              data['total_harga_setelah_disc']!, _totalHargaSetelahDiscMeta));
+    }
+    if (data.containsKey('total_disc')) {
+      context.handle(_totalDiscMeta,
+          totalDisc.isAcceptableOrUnknown(data['total_disc']!, _totalDiscMeta));
     }
     return context;
   }
@@ -6274,20 +6546,24 @@ class $ResepstmpTable extends Resepstmp
           .read(DriftSqlType.string, data['${effectivePrefix}kode_barang'])!,
       namaBarang: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}nama_barang'])!,
+      kelompok: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}kelompok'])!,
+      satuan: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}satuan'])!,
+      hargaBeli: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}harga_beli'])!,
       hargaJual: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}harga_jual'])!,
       jualDiscon: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}jual_discon']),
-      totalHargaSetelahDisc: attachedDatabase.typeMapping.read(
-          DriftSqlType.int, data['${effectivePrefix}total_harga_setelah_disc']),
-      satuan: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}satuan'])!,
       jumlahJual: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}jumlah_jual']),
-      kelompok: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}kelompok']),
-      totalHarga: attachedDatabase.typeMapping
-          .read(DriftSqlType.int, data['${effectivePrefix}total_harga']),
+      totalHargaSebelumDisc: attachedDatabase.typeMapping.read(
+          DriftSqlType.int, data['${effectivePrefix}total_harga_sebelum_disc']),
+      totalHargaSetelahDisc: attachedDatabase.typeMapping.read(
+          DriftSqlType.int, data['${effectivePrefix}total_harga_setelah_disc']),
+      totalDisc: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}total_disc']),
     );
   }
 
@@ -6301,46 +6577,52 @@ class ResepstmpData extends DataClass implements Insertable<ResepstmpData> {
   final int id;
   final String kodeBarang;
   final String namaBarang;
+  final String kelompok;
+  final String satuan;
+  final int hargaBeli;
   final int hargaJual;
   final int? jualDiscon;
-  final int? totalHargaSetelahDisc;
-  final String satuan;
   final int? jumlahJual;
-  final String? kelompok;
-  final int? totalHarga;
+  final int? totalHargaSebelumDisc;
+  final int? totalHargaSetelahDisc;
+  final int? totalDisc;
   const ResepstmpData(
       {required this.id,
       required this.kodeBarang,
       required this.namaBarang,
+      required this.kelompok,
+      required this.satuan,
+      required this.hargaBeli,
       required this.hargaJual,
       this.jualDiscon,
-      this.totalHargaSetelahDisc,
-      required this.satuan,
       this.jumlahJual,
-      this.kelompok,
-      this.totalHarga});
+      this.totalHargaSebelumDisc,
+      this.totalHargaSetelahDisc,
+      this.totalDisc});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
     map['kode_barang'] = Variable<String>(kodeBarang);
     map['nama_barang'] = Variable<String>(namaBarang);
+    map['kelompok'] = Variable<String>(kelompok);
+    map['satuan'] = Variable<String>(satuan);
+    map['harga_beli'] = Variable<int>(hargaBeli);
     map['harga_jual'] = Variable<int>(hargaJual);
     if (!nullToAbsent || jualDiscon != null) {
       map['jual_discon'] = Variable<int>(jualDiscon);
     }
-    if (!nullToAbsent || totalHargaSetelahDisc != null) {
-      map['total_harga_setelah_disc'] = Variable<int>(totalHargaSetelahDisc);
-    }
-    map['satuan'] = Variable<String>(satuan);
     if (!nullToAbsent || jumlahJual != null) {
       map['jumlah_jual'] = Variable<int>(jumlahJual);
     }
-    if (!nullToAbsent || kelompok != null) {
-      map['kelompok'] = Variable<String>(kelompok);
+    if (!nullToAbsent || totalHargaSebelumDisc != null) {
+      map['total_harga_sebelum_disc'] = Variable<int>(totalHargaSebelumDisc);
     }
-    if (!nullToAbsent || totalHarga != null) {
-      map['total_harga'] = Variable<int>(totalHarga);
+    if (!nullToAbsent || totalHargaSetelahDisc != null) {
+      map['total_harga_setelah_disc'] = Variable<int>(totalHargaSetelahDisc);
+    }
+    if (!nullToAbsent || totalDisc != null) {
+      map['total_disc'] = Variable<int>(totalDisc);
     }
     return map;
   }
@@ -6350,23 +6632,25 @@ class ResepstmpData extends DataClass implements Insertable<ResepstmpData> {
       id: Value(id),
       kodeBarang: Value(kodeBarang),
       namaBarang: Value(namaBarang),
+      kelompok: Value(kelompok),
+      satuan: Value(satuan),
+      hargaBeli: Value(hargaBeli),
       hargaJual: Value(hargaJual),
       jualDiscon: jualDiscon == null && nullToAbsent
           ? const Value.absent()
           : Value(jualDiscon),
-      totalHargaSetelahDisc: totalHargaSetelahDisc == null && nullToAbsent
-          ? const Value.absent()
-          : Value(totalHargaSetelahDisc),
-      satuan: Value(satuan),
       jumlahJual: jumlahJual == null && nullToAbsent
           ? const Value.absent()
           : Value(jumlahJual),
-      kelompok: kelompok == null && nullToAbsent
+      totalHargaSebelumDisc: totalHargaSebelumDisc == null && nullToAbsent
           ? const Value.absent()
-          : Value(kelompok),
-      totalHarga: totalHarga == null && nullToAbsent
+          : Value(totalHargaSebelumDisc),
+      totalHargaSetelahDisc: totalHargaSetelahDisc == null && nullToAbsent
           ? const Value.absent()
-          : Value(totalHarga),
+          : Value(totalHargaSetelahDisc),
+      totalDisc: totalDisc == null && nullToAbsent
+          ? const Value.absent()
+          : Value(totalDisc),
     );
   }
 
@@ -6377,14 +6661,17 @@ class ResepstmpData extends DataClass implements Insertable<ResepstmpData> {
       id: serializer.fromJson<int>(json['id']),
       kodeBarang: serializer.fromJson<String>(json['kodeBarang']),
       namaBarang: serializer.fromJson<String>(json['namaBarang']),
+      kelompok: serializer.fromJson<String>(json['kelompok']),
+      satuan: serializer.fromJson<String>(json['satuan']),
+      hargaBeli: serializer.fromJson<int>(json['hargaBeli']),
       hargaJual: serializer.fromJson<int>(json['hargaJual']),
       jualDiscon: serializer.fromJson<int?>(json['jualDiscon']),
+      jumlahJual: serializer.fromJson<int?>(json['jumlahJual']),
+      totalHargaSebelumDisc:
+          serializer.fromJson<int?>(json['totalHargaSebelumDisc']),
       totalHargaSetelahDisc:
           serializer.fromJson<int?>(json['totalHargaSetelahDisc']),
-      satuan: serializer.fromJson<String>(json['satuan']),
-      jumlahJual: serializer.fromJson<int?>(json['jumlahJual']),
-      kelompok: serializer.fromJson<String?>(json['kelompok']),
-      totalHarga: serializer.fromJson<int?>(json['totalHarga']),
+      totalDisc: serializer.fromJson<int?>(json['totalDisc']),
     );
   }
   @override
@@ -6394,13 +6681,15 @@ class ResepstmpData extends DataClass implements Insertable<ResepstmpData> {
       'id': serializer.toJson<int>(id),
       'kodeBarang': serializer.toJson<String>(kodeBarang),
       'namaBarang': serializer.toJson<String>(namaBarang),
+      'kelompok': serializer.toJson<String>(kelompok),
+      'satuan': serializer.toJson<String>(satuan),
+      'hargaBeli': serializer.toJson<int>(hargaBeli),
       'hargaJual': serializer.toJson<int>(hargaJual),
       'jualDiscon': serializer.toJson<int?>(jualDiscon),
-      'totalHargaSetelahDisc': serializer.toJson<int?>(totalHargaSetelahDisc),
-      'satuan': serializer.toJson<String>(satuan),
       'jumlahJual': serializer.toJson<int?>(jumlahJual),
-      'kelompok': serializer.toJson<String?>(kelompok),
-      'totalHarga': serializer.toJson<int?>(totalHarga),
+      'totalHargaSebelumDisc': serializer.toJson<int?>(totalHargaSebelumDisc),
+      'totalHargaSetelahDisc': serializer.toJson<int?>(totalHargaSetelahDisc),
+      'totalDisc': serializer.toJson<int?>(totalDisc),
     };
   }
 
@@ -6408,26 +6697,32 @@ class ResepstmpData extends DataClass implements Insertable<ResepstmpData> {
           {int? id,
           String? kodeBarang,
           String? namaBarang,
+          String? kelompok,
+          String? satuan,
+          int? hargaBeli,
           int? hargaJual,
           Value<int?> jualDiscon = const Value.absent(),
-          Value<int?> totalHargaSetelahDisc = const Value.absent(),
-          String? satuan,
           Value<int?> jumlahJual = const Value.absent(),
-          Value<String?> kelompok = const Value.absent(),
-          Value<int?> totalHarga = const Value.absent()}) =>
+          Value<int?> totalHargaSebelumDisc = const Value.absent(),
+          Value<int?> totalHargaSetelahDisc = const Value.absent(),
+          Value<int?> totalDisc = const Value.absent()}) =>
       ResepstmpData(
         id: id ?? this.id,
         kodeBarang: kodeBarang ?? this.kodeBarang,
         namaBarang: namaBarang ?? this.namaBarang,
+        kelompok: kelompok ?? this.kelompok,
+        satuan: satuan ?? this.satuan,
+        hargaBeli: hargaBeli ?? this.hargaBeli,
         hargaJual: hargaJual ?? this.hargaJual,
         jualDiscon: jualDiscon.present ? jualDiscon.value : this.jualDiscon,
+        jumlahJual: jumlahJual.present ? jumlahJual.value : this.jumlahJual,
+        totalHargaSebelumDisc: totalHargaSebelumDisc.present
+            ? totalHargaSebelumDisc.value
+            : this.totalHargaSebelumDisc,
         totalHargaSetelahDisc: totalHargaSetelahDisc.present
             ? totalHargaSetelahDisc.value
             : this.totalHargaSetelahDisc,
-        satuan: satuan ?? this.satuan,
-        jumlahJual: jumlahJual.present ? jumlahJual.value : this.jumlahJual,
-        kelompok: kelompok.present ? kelompok.value : this.kelompok,
-        totalHarga: totalHarga.present ? totalHarga.value : this.totalHarga,
+        totalDisc: totalDisc.present ? totalDisc.value : this.totalDisc,
       );
   ResepstmpData copyWithCompanion(ResepstmpCompanion data) {
     return ResepstmpData(
@@ -6436,18 +6731,21 @@ class ResepstmpData extends DataClass implements Insertable<ResepstmpData> {
           data.kodeBarang.present ? data.kodeBarang.value : this.kodeBarang,
       namaBarang:
           data.namaBarang.present ? data.namaBarang.value : this.namaBarang,
+      kelompok: data.kelompok.present ? data.kelompok.value : this.kelompok,
+      satuan: data.satuan.present ? data.satuan.value : this.satuan,
+      hargaBeli: data.hargaBeli.present ? data.hargaBeli.value : this.hargaBeli,
       hargaJual: data.hargaJual.present ? data.hargaJual.value : this.hargaJual,
       jualDiscon:
           data.jualDiscon.present ? data.jualDiscon.value : this.jualDiscon,
+      jumlahJual:
+          data.jumlahJual.present ? data.jumlahJual.value : this.jumlahJual,
+      totalHargaSebelumDisc: data.totalHargaSebelumDisc.present
+          ? data.totalHargaSebelumDisc.value
+          : this.totalHargaSebelumDisc,
       totalHargaSetelahDisc: data.totalHargaSetelahDisc.present
           ? data.totalHargaSetelahDisc.value
           : this.totalHargaSetelahDisc,
-      satuan: data.satuan.present ? data.satuan.value : this.satuan,
-      jumlahJual:
-          data.jumlahJual.present ? data.jumlahJual.value : this.jumlahJual,
-      kelompok: data.kelompok.present ? data.kelompok.value : this.kelompok,
-      totalHarga:
-          data.totalHarga.present ? data.totalHarga.value : this.totalHarga,
+      totalDisc: data.totalDisc.present ? data.totalDisc.value : this.totalDisc,
     );
   }
 
@@ -6457,13 +6755,15 @@ class ResepstmpData extends DataClass implements Insertable<ResepstmpData> {
           ..write('id: $id, ')
           ..write('kodeBarang: $kodeBarang, ')
           ..write('namaBarang: $namaBarang, ')
+          ..write('kelompok: $kelompok, ')
+          ..write('satuan: $satuan, ')
+          ..write('hargaBeli: $hargaBeli, ')
           ..write('hargaJual: $hargaJual, ')
           ..write('jualDiscon: $jualDiscon, ')
-          ..write('totalHargaSetelahDisc: $totalHargaSetelahDisc, ')
-          ..write('satuan: $satuan, ')
           ..write('jumlahJual: $jumlahJual, ')
-          ..write('kelompok: $kelompok, ')
-          ..write('totalHarga: $totalHarga')
+          ..write('totalHargaSebelumDisc: $totalHargaSebelumDisc, ')
+          ..write('totalHargaSetelahDisc: $totalHargaSetelahDisc, ')
+          ..write('totalDisc: $totalDisc')
           ..write(')'))
         .toString();
   }
@@ -6473,13 +6773,15 @@ class ResepstmpData extends DataClass implements Insertable<ResepstmpData> {
       id,
       kodeBarang,
       namaBarang,
+      kelompok,
+      satuan,
+      hargaBeli,
       hargaJual,
       jualDiscon,
-      totalHargaSetelahDisc,
-      satuan,
       jumlahJual,
-      kelompok,
-      totalHarga);
+      totalHargaSebelumDisc,
+      totalHargaSetelahDisc,
+      totalDisc);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -6487,76 +6789,90 @@ class ResepstmpData extends DataClass implements Insertable<ResepstmpData> {
           other.id == this.id &&
           other.kodeBarang == this.kodeBarang &&
           other.namaBarang == this.namaBarang &&
+          other.kelompok == this.kelompok &&
+          other.satuan == this.satuan &&
+          other.hargaBeli == this.hargaBeli &&
           other.hargaJual == this.hargaJual &&
           other.jualDiscon == this.jualDiscon &&
-          other.totalHargaSetelahDisc == this.totalHargaSetelahDisc &&
-          other.satuan == this.satuan &&
           other.jumlahJual == this.jumlahJual &&
-          other.kelompok == this.kelompok &&
-          other.totalHarga == this.totalHarga);
+          other.totalHargaSebelumDisc == this.totalHargaSebelumDisc &&
+          other.totalHargaSetelahDisc == this.totalHargaSetelahDisc &&
+          other.totalDisc == this.totalDisc);
 }
 
 class ResepstmpCompanion extends UpdateCompanion<ResepstmpData> {
   final Value<int> id;
   final Value<String> kodeBarang;
   final Value<String> namaBarang;
+  final Value<String> kelompok;
+  final Value<String> satuan;
+  final Value<int> hargaBeli;
   final Value<int> hargaJual;
   final Value<int?> jualDiscon;
-  final Value<int?> totalHargaSetelahDisc;
-  final Value<String> satuan;
   final Value<int?> jumlahJual;
-  final Value<String?> kelompok;
-  final Value<int?> totalHarga;
+  final Value<int?> totalHargaSebelumDisc;
+  final Value<int?> totalHargaSetelahDisc;
+  final Value<int?> totalDisc;
   const ResepstmpCompanion({
     this.id = const Value.absent(),
     this.kodeBarang = const Value.absent(),
     this.namaBarang = const Value.absent(),
+    this.kelompok = const Value.absent(),
+    this.satuan = const Value.absent(),
+    this.hargaBeli = const Value.absent(),
     this.hargaJual = const Value.absent(),
     this.jualDiscon = const Value.absent(),
-    this.totalHargaSetelahDisc = const Value.absent(),
-    this.satuan = const Value.absent(),
     this.jumlahJual = const Value.absent(),
-    this.kelompok = const Value.absent(),
-    this.totalHarga = const Value.absent(),
+    this.totalHargaSebelumDisc = const Value.absent(),
+    this.totalHargaSetelahDisc = const Value.absent(),
+    this.totalDisc = const Value.absent(),
   });
   ResepstmpCompanion.insert({
     this.id = const Value.absent(),
     required String kodeBarang,
     required String namaBarang,
+    required String kelompok,
+    required String satuan,
+    this.hargaBeli = const Value.absent(),
     this.hargaJual = const Value.absent(),
     this.jualDiscon = const Value.absent(),
-    this.totalHargaSetelahDisc = const Value.absent(),
-    required String satuan,
     this.jumlahJual = const Value.absent(),
-    this.kelompok = const Value.absent(),
-    this.totalHarga = const Value.absent(),
+    this.totalHargaSebelumDisc = const Value.absent(),
+    this.totalHargaSetelahDisc = const Value.absent(),
+    this.totalDisc = const Value.absent(),
   })  : kodeBarang = Value(kodeBarang),
         namaBarang = Value(namaBarang),
+        kelompok = Value(kelompok),
         satuan = Value(satuan);
   static Insertable<ResepstmpData> custom({
     Expression<int>? id,
     Expression<String>? kodeBarang,
     Expression<String>? namaBarang,
+    Expression<String>? kelompok,
+    Expression<String>? satuan,
+    Expression<int>? hargaBeli,
     Expression<int>? hargaJual,
     Expression<int>? jualDiscon,
-    Expression<int>? totalHargaSetelahDisc,
-    Expression<String>? satuan,
     Expression<int>? jumlahJual,
-    Expression<String>? kelompok,
-    Expression<int>? totalHarga,
+    Expression<int>? totalHargaSebelumDisc,
+    Expression<int>? totalHargaSetelahDisc,
+    Expression<int>? totalDisc,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (kodeBarang != null) 'kode_barang': kodeBarang,
       if (namaBarang != null) 'nama_barang': namaBarang,
+      if (kelompok != null) 'kelompok': kelompok,
+      if (satuan != null) 'satuan': satuan,
+      if (hargaBeli != null) 'harga_beli': hargaBeli,
       if (hargaJual != null) 'harga_jual': hargaJual,
       if (jualDiscon != null) 'jual_discon': jualDiscon,
+      if (jumlahJual != null) 'jumlah_jual': jumlahJual,
+      if (totalHargaSebelumDisc != null)
+        'total_harga_sebelum_disc': totalHargaSebelumDisc,
       if (totalHargaSetelahDisc != null)
         'total_harga_setelah_disc': totalHargaSetelahDisc,
-      if (satuan != null) 'satuan': satuan,
-      if (jumlahJual != null) 'jumlah_jual': jumlahJual,
-      if (kelompok != null) 'kelompok': kelompok,
-      if (totalHarga != null) 'total_harga': totalHarga,
+      if (totalDisc != null) 'total_disc': totalDisc,
     });
   }
 
@@ -6564,25 +6880,30 @@ class ResepstmpCompanion extends UpdateCompanion<ResepstmpData> {
       {Value<int>? id,
       Value<String>? kodeBarang,
       Value<String>? namaBarang,
+      Value<String>? kelompok,
+      Value<String>? satuan,
+      Value<int>? hargaBeli,
       Value<int>? hargaJual,
       Value<int?>? jualDiscon,
-      Value<int?>? totalHargaSetelahDisc,
-      Value<String>? satuan,
       Value<int?>? jumlahJual,
-      Value<String?>? kelompok,
-      Value<int?>? totalHarga}) {
+      Value<int?>? totalHargaSebelumDisc,
+      Value<int?>? totalHargaSetelahDisc,
+      Value<int?>? totalDisc}) {
     return ResepstmpCompanion(
       id: id ?? this.id,
       kodeBarang: kodeBarang ?? this.kodeBarang,
       namaBarang: namaBarang ?? this.namaBarang,
+      kelompok: kelompok ?? this.kelompok,
+      satuan: satuan ?? this.satuan,
+      hargaBeli: hargaBeli ?? this.hargaBeli,
       hargaJual: hargaJual ?? this.hargaJual,
       jualDiscon: jualDiscon ?? this.jualDiscon,
+      jumlahJual: jumlahJual ?? this.jumlahJual,
+      totalHargaSebelumDisc:
+          totalHargaSebelumDisc ?? this.totalHargaSebelumDisc,
       totalHargaSetelahDisc:
           totalHargaSetelahDisc ?? this.totalHargaSetelahDisc,
-      satuan: satuan ?? this.satuan,
-      jumlahJual: jumlahJual ?? this.jumlahJual,
-      kelompok: kelompok ?? this.kelompok,
-      totalHarga: totalHarga ?? this.totalHarga,
+      totalDisc: totalDisc ?? this.totalDisc,
     );
   }
 
@@ -6598,27 +6919,34 @@ class ResepstmpCompanion extends UpdateCompanion<ResepstmpData> {
     if (namaBarang.present) {
       map['nama_barang'] = Variable<String>(namaBarang.value);
     }
+    if (kelompok.present) {
+      map['kelompok'] = Variable<String>(kelompok.value);
+    }
+    if (satuan.present) {
+      map['satuan'] = Variable<String>(satuan.value);
+    }
+    if (hargaBeli.present) {
+      map['harga_beli'] = Variable<int>(hargaBeli.value);
+    }
     if (hargaJual.present) {
       map['harga_jual'] = Variable<int>(hargaJual.value);
     }
     if (jualDiscon.present) {
       map['jual_discon'] = Variable<int>(jualDiscon.value);
     }
+    if (jumlahJual.present) {
+      map['jumlah_jual'] = Variable<int>(jumlahJual.value);
+    }
+    if (totalHargaSebelumDisc.present) {
+      map['total_harga_sebelum_disc'] =
+          Variable<int>(totalHargaSebelumDisc.value);
+    }
     if (totalHargaSetelahDisc.present) {
       map['total_harga_setelah_disc'] =
           Variable<int>(totalHargaSetelahDisc.value);
     }
-    if (satuan.present) {
-      map['satuan'] = Variable<String>(satuan.value);
-    }
-    if (jumlahJual.present) {
-      map['jumlah_jual'] = Variable<int>(jumlahJual.value);
-    }
-    if (kelompok.present) {
-      map['kelompok'] = Variable<String>(kelompok.value);
-    }
-    if (totalHarga.present) {
-      map['total_harga'] = Variable<int>(totalHarga.value);
+    if (totalDisc.present) {
+      map['total_disc'] = Variable<int>(totalDisc.value);
     }
     return map;
   }
@@ -6629,13 +6957,15 @@ class ResepstmpCompanion extends UpdateCompanion<ResepstmpData> {
           ..write('id: $id, ')
           ..write('kodeBarang: $kodeBarang, ')
           ..write('namaBarang: $namaBarang, ')
+          ..write('kelompok: $kelompok, ')
+          ..write('satuan: $satuan, ')
+          ..write('hargaBeli: $hargaBeli, ')
           ..write('hargaJual: $hargaJual, ')
           ..write('jualDiscon: $jualDiscon, ')
-          ..write('totalHargaSetelahDisc: $totalHargaSetelahDisc, ')
-          ..write('satuan: $satuan, ')
           ..write('jumlahJual: $jumlahJual, ')
-          ..write('kelompok: $kelompok, ')
-          ..write('totalHarga: $totalHarga')
+          ..write('totalHargaSebelumDisc: $totalHargaSebelumDisc, ')
+          ..write('totalHargaSetelahDisc: $totalHargaSetelahDisc, ')
+          ..write('totalDisc: $totalDisc')
           ..write(')'))
         .toString();
   }
@@ -9069,6 +9399,7 @@ typedef $$PelanggansTableCreateCompanionBuilder = PelanggansCompanion Function({
   required String kodPelanggan,
   required String namaPelanggan,
   Value<int?> usia,
+  Value<int?> telepon,
   Value<String?> alamat,
   Value<String?> kelompok,
   Value<int?> limitpiutang,
@@ -9082,6 +9413,7 @@ typedef $$PelanggansTableUpdateCompanionBuilder = PelanggansCompanion Function({
   Value<String> kodPelanggan,
   Value<String> namaPelanggan,
   Value<int?> usia,
+  Value<int?> telepon,
   Value<String?> alamat,
   Value<String?> kelompok,
   Value<int?> limitpiutang,
@@ -9111,6 +9443,9 @@ class $$PelanggansTableFilterComposer
 
   ColumnFilters<int> get usia => $composableBuilder(
       column: $table.usia, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get telepon => $composableBuilder(
+      column: $table.telepon, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get alamat => $composableBuilder(
       column: $table.alamat, builder: (column) => ColumnFilters(column));
@@ -9158,6 +9493,9 @@ class $$PelanggansTableOrderingComposer
   ColumnOrderings<int> get usia => $composableBuilder(
       column: $table.usia, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<int> get telepon => $composableBuilder(
+      column: $table.telepon, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<String> get alamat => $composableBuilder(
       column: $table.alamat, builder: (column) => ColumnOrderings(column));
 
@@ -9203,6 +9541,9 @@ class $$PelanggansTableAnnotationComposer
 
   GeneratedColumn<int> get usia =>
       $composableBuilder(column: $table.usia, builder: (column) => column);
+
+  GeneratedColumn<int> get telepon =>
+      $composableBuilder(column: $table.telepon, builder: (column) => column);
 
   GeneratedColumn<String> get alamat =>
       $composableBuilder(column: $table.alamat, builder: (column) => column);
@@ -9253,6 +9594,7 @@ class $$PelanggansTableTableManager extends RootTableManager<
             Value<String> kodPelanggan = const Value.absent(),
             Value<String> namaPelanggan = const Value.absent(),
             Value<int?> usia = const Value.absent(),
+            Value<int?> telepon = const Value.absent(),
             Value<String?> alamat = const Value.absent(),
             Value<String?> kelompok = const Value.absent(),
             Value<int?> limitpiutang = const Value.absent(),
@@ -9266,6 +9608,7 @@ class $$PelanggansTableTableManager extends RootTableManager<
             kodPelanggan: kodPelanggan,
             namaPelanggan: namaPelanggan,
             usia: usia,
+            telepon: telepon,
             alamat: alamat,
             kelompok: kelompok,
             limitpiutang: limitpiutang,
@@ -9279,6 +9622,7 @@ class $$PelanggansTableTableManager extends RootTableManager<
             required String kodPelanggan,
             required String namaPelanggan,
             Value<int?> usia = const Value.absent(),
+            Value<int?> telepon = const Value.absent(),
             Value<String?> alamat = const Value.absent(),
             Value<String?> kelompok = const Value.absent(),
             Value<int?> limitpiutang = const Value.absent(),
@@ -9292,6 +9636,7 @@ class $$PelanggansTableTableManager extends RootTableManager<
             kodPelanggan: kodPelanggan,
             namaPelanggan: namaPelanggan,
             usia: usia,
+            telepon: telepon,
             alamat: alamat,
             kelompok: kelompok,
             limitpiutang: limitpiutang,
@@ -9322,42 +9667,52 @@ typedef $$PelanggansTableProcessedTableManager = ProcessedTableManager<
 typedef $$ResepsTableCreateCompanionBuilder = ResepsCompanion Function({
   Value<int> id,
   required String noResep,
+  required DateTime tanggal,
+  required String kodePelanggan,
+  required String namaPelanggan,
+  Value<String?> kelompokPelanggan,
+  Value<String?> kodeDoctor,
+  required String namaDoctor,
+  Value<int?> usia,
+  Value<String?> alamat,
+  Value<String?> keterangan,
+  Value<String?> noTelp,
   required String kodeBarang,
   required String namaBarang,
-  required String kodPelanggan,
-  required String namaDoctor,
-  Value<String?> kodeDoctor,
-  Value<int?> jualDiscon,
-  required DateTime tanggal,
-  Value<int?> totalHargaSetelahDisc,
+  required String kelompok,
   required String satuan,
+  Value<int> hargaBeli,
+  Value<int> hargaJual,
+  Value<int?> jualDiscon,
   Value<int?> jumlahJual,
-  Value<int?> usia,
-  required String namaPelanggan,
-  Value<String?> alamat,
-  Value<int?> noTelp,
-  Value<String?> kelompok,
-  Value<String?> keterangan,
+  Value<int?> totalHargaSebelumDisc,
+  Value<int?> totalHargaSetelahDisc,
+  Value<int?> totalDisc,
 });
 typedef $$ResepsTableUpdateCompanionBuilder = ResepsCompanion Function({
   Value<int> id,
   Value<String> noResep,
+  Value<DateTime> tanggal,
+  Value<String> kodePelanggan,
+  Value<String> namaPelanggan,
+  Value<String?> kelompokPelanggan,
+  Value<String?> kodeDoctor,
+  Value<String> namaDoctor,
+  Value<int?> usia,
+  Value<String?> alamat,
+  Value<String?> keterangan,
+  Value<String?> noTelp,
   Value<String> kodeBarang,
   Value<String> namaBarang,
-  Value<String> kodPelanggan,
-  Value<String> namaDoctor,
-  Value<String?> kodeDoctor,
-  Value<int?> jualDiscon,
-  Value<DateTime> tanggal,
-  Value<int?> totalHargaSetelahDisc,
+  Value<String> kelompok,
   Value<String> satuan,
+  Value<int> hargaBeli,
+  Value<int> hargaJual,
+  Value<int?> jualDiscon,
   Value<int?> jumlahJual,
-  Value<int?> usia,
-  Value<String> namaPelanggan,
-  Value<String?> alamat,
-  Value<int?> noTelp,
-  Value<String?> kelompok,
-  Value<String?> keterangan,
+  Value<int?> totalHargaSebelumDisc,
+  Value<int?> totalHargaSetelahDisc,
+  Value<int?> totalDisc,
 });
 
 class $$ResepsTableFilterComposer
@@ -9375,54 +9730,71 @@ class $$ResepsTableFilterComposer
   ColumnFilters<String> get noResep => $composableBuilder(
       column: $table.noResep, builder: (column) => ColumnFilters(column));
 
+  ColumnFilters<DateTime> get tanggal => $composableBuilder(
+      column: $table.tanggal, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get kodePelanggan => $composableBuilder(
+      column: $table.kodePelanggan, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get namaPelanggan => $composableBuilder(
+      column: $table.namaPelanggan, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get kelompokPelanggan => $composableBuilder(
+      column: $table.kelompokPelanggan,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get kodeDoctor => $composableBuilder(
+      column: $table.kodeDoctor, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get namaDoctor => $composableBuilder(
+      column: $table.namaDoctor, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get usia => $composableBuilder(
+      column: $table.usia, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get alamat => $composableBuilder(
+      column: $table.alamat, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get keterangan => $composableBuilder(
+      column: $table.keterangan, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get noTelp => $composableBuilder(
+      column: $table.noTelp, builder: (column) => ColumnFilters(column));
+
   ColumnFilters<String> get kodeBarang => $composableBuilder(
       column: $table.kodeBarang, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get namaBarang => $composableBuilder(
       column: $table.namaBarang, builder: (column) => ColumnFilters(column));
 
-  ColumnFilters<String> get kodPelanggan => $composableBuilder(
-      column: $table.kodPelanggan, builder: (column) => ColumnFilters(column));
+  ColumnFilters<String> get kelompok => $composableBuilder(
+      column: $table.kelompok, builder: (column) => ColumnFilters(column));
 
-  ColumnFilters<String> get namaDoctor => $composableBuilder(
-      column: $table.namaDoctor, builder: (column) => ColumnFilters(column));
+  ColumnFilters<String> get satuan => $composableBuilder(
+      column: $table.satuan, builder: (column) => ColumnFilters(column));
 
-  ColumnFilters<String> get kodeDoctor => $composableBuilder(
-      column: $table.kodeDoctor, builder: (column) => ColumnFilters(column));
+  ColumnFilters<int> get hargaBeli => $composableBuilder(
+      column: $table.hargaBeli, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get hargaJual => $composableBuilder(
+      column: $table.hargaJual, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<int> get jualDiscon => $composableBuilder(
       column: $table.jualDiscon, builder: (column) => ColumnFilters(column));
 
-  ColumnFilters<DateTime> get tanggal => $composableBuilder(
-      column: $table.tanggal, builder: (column) => ColumnFilters(column));
+  ColumnFilters<int> get jumlahJual => $composableBuilder(
+      column: $table.jumlahJual, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get totalHargaSebelumDisc => $composableBuilder(
+      column: $table.totalHargaSebelumDisc,
+      builder: (column) => ColumnFilters(column));
 
   ColumnFilters<int> get totalHargaSetelahDisc => $composableBuilder(
       column: $table.totalHargaSetelahDisc,
       builder: (column) => ColumnFilters(column));
 
-  ColumnFilters<String> get satuan => $composableBuilder(
-      column: $table.satuan, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<int> get jumlahJual => $composableBuilder(
-      column: $table.jumlahJual, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<int> get usia => $composableBuilder(
-      column: $table.usia, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<String> get namaPelanggan => $composableBuilder(
-      column: $table.namaPelanggan, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<String> get alamat => $composableBuilder(
-      column: $table.alamat, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<int> get noTelp => $composableBuilder(
-      column: $table.noTelp, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<String> get kelompok => $composableBuilder(
-      column: $table.kelompok, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<String> get keterangan => $composableBuilder(
-      column: $table.keterangan, builder: (column) => ColumnFilters(column));
+  ColumnFilters<int> get totalDisc => $composableBuilder(
+      column: $table.totalDisc, builder: (column) => ColumnFilters(column));
 }
 
 class $$ResepsTableOrderingComposer
@@ -9440,56 +9812,73 @@ class $$ResepsTableOrderingComposer
   ColumnOrderings<String> get noResep => $composableBuilder(
       column: $table.noResep, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<DateTime> get tanggal => $composableBuilder(
+      column: $table.tanggal, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get kodePelanggan => $composableBuilder(
+      column: $table.kodePelanggan,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get namaPelanggan => $composableBuilder(
+      column: $table.namaPelanggan,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get kelompokPelanggan => $composableBuilder(
+      column: $table.kelompokPelanggan,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get kodeDoctor => $composableBuilder(
+      column: $table.kodeDoctor, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get namaDoctor => $composableBuilder(
+      column: $table.namaDoctor, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get usia => $composableBuilder(
+      column: $table.usia, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get alamat => $composableBuilder(
+      column: $table.alamat, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get keterangan => $composableBuilder(
+      column: $table.keterangan, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get noTelp => $composableBuilder(
+      column: $table.noTelp, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<String> get kodeBarang => $composableBuilder(
       column: $table.kodeBarang, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<String> get namaBarang => $composableBuilder(
       column: $table.namaBarang, builder: (column) => ColumnOrderings(column));
 
-  ColumnOrderings<String> get kodPelanggan => $composableBuilder(
-      column: $table.kodPelanggan,
-      builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<String> get kelompok => $composableBuilder(
+      column: $table.kelompok, builder: (column) => ColumnOrderings(column));
 
-  ColumnOrderings<String> get namaDoctor => $composableBuilder(
-      column: $table.namaDoctor, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<String> get satuan => $composableBuilder(
+      column: $table.satuan, builder: (column) => ColumnOrderings(column));
 
-  ColumnOrderings<String> get kodeDoctor => $composableBuilder(
-      column: $table.kodeDoctor, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<int> get hargaBeli => $composableBuilder(
+      column: $table.hargaBeli, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get hargaJual => $composableBuilder(
+      column: $table.hargaJual, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<int> get jualDiscon => $composableBuilder(
       column: $table.jualDiscon, builder: (column) => ColumnOrderings(column));
 
-  ColumnOrderings<DateTime> get tanggal => $composableBuilder(
-      column: $table.tanggal, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<int> get jumlahJual => $composableBuilder(
+      column: $table.jumlahJual, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get totalHargaSebelumDisc => $composableBuilder(
+      column: $table.totalHargaSebelumDisc,
+      builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<int> get totalHargaSetelahDisc => $composableBuilder(
       column: $table.totalHargaSetelahDisc,
       builder: (column) => ColumnOrderings(column));
 
-  ColumnOrderings<String> get satuan => $composableBuilder(
-      column: $table.satuan, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<int> get jumlahJual => $composableBuilder(
-      column: $table.jumlahJual, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<int> get usia => $composableBuilder(
-      column: $table.usia, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<String> get namaPelanggan => $composableBuilder(
-      column: $table.namaPelanggan,
-      builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<String> get alamat => $composableBuilder(
-      column: $table.alamat, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<int> get noTelp => $composableBuilder(
-      column: $table.noTelp, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<String> get kelompok => $composableBuilder(
-      column: $table.kelompok, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<String> get keterangan => $composableBuilder(
-      column: $table.keterangan, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<int> get totalDisc => $composableBuilder(
+      column: $table.totalDisc, builder: (column) => ColumnOrderings(column));
 }
 
 class $$ResepsTableAnnotationComposer
@@ -9507,53 +9896,68 @@ class $$ResepsTableAnnotationComposer
   GeneratedColumn<String> get noResep =>
       $composableBuilder(column: $table.noResep, builder: (column) => column);
 
+  GeneratedColumn<DateTime> get tanggal =>
+      $composableBuilder(column: $table.tanggal, builder: (column) => column);
+
+  GeneratedColumn<String> get kodePelanggan => $composableBuilder(
+      column: $table.kodePelanggan, builder: (column) => column);
+
+  GeneratedColumn<String> get namaPelanggan => $composableBuilder(
+      column: $table.namaPelanggan, builder: (column) => column);
+
+  GeneratedColumn<String> get kelompokPelanggan => $composableBuilder(
+      column: $table.kelompokPelanggan, builder: (column) => column);
+
+  GeneratedColumn<String> get kodeDoctor => $composableBuilder(
+      column: $table.kodeDoctor, builder: (column) => column);
+
+  GeneratedColumn<String> get namaDoctor => $composableBuilder(
+      column: $table.namaDoctor, builder: (column) => column);
+
+  GeneratedColumn<int> get usia =>
+      $composableBuilder(column: $table.usia, builder: (column) => column);
+
+  GeneratedColumn<String> get alamat =>
+      $composableBuilder(column: $table.alamat, builder: (column) => column);
+
+  GeneratedColumn<String> get keterangan => $composableBuilder(
+      column: $table.keterangan, builder: (column) => column);
+
+  GeneratedColumn<String> get noTelp =>
+      $composableBuilder(column: $table.noTelp, builder: (column) => column);
+
   GeneratedColumn<String> get kodeBarang => $composableBuilder(
       column: $table.kodeBarang, builder: (column) => column);
 
   GeneratedColumn<String> get namaBarang => $composableBuilder(
       column: $table.namaBarang, builder: (column) => column);
 
-  GeneratedColumn<String> get kodPelanggan => $composableBuilder(
-      column: $table.kodPelanggan, builder: (column) => column);
-
-  GeneratedColumn<String> get namaDoctor => $composableBuilder(
-      column: $table.namaDoctor, builder: (column) => column);
-
-  GeneratedColumn<String> get kodeDoctor => $composableBuilder(
-      column: $table.kodeDoctor, builder: (column) => column);
-
-  GeneratedColumn<int> get jualDiscon => $composableBuilder(
-      column: $table.jualDiscon, builder: (column) => column);
-
-  GeneratedColumn<DateTime> get tanggal =>
-      $composableBuilder(column: $table.tanggal, builder: (column) => column);
-
-  GeneratedColumn<int> get totalHargaSetelahDisc => $composableBuilder(
-      column: $table.totalHargaSetelahDisc, builder: (column) => column);
+  GeneratedColumn<String> get kelompok =>
+      $composableBuilder(column: $table.kelompok, builder: (column) => column);
 
   GeneratedColumn<String> get satuan =>
       $composableBuilder(column: $table.satuan, builder: (column) => column);
 
+  GeneratedColumn<int> get hargaBeli =>
+      $composableBuilder(column: $table.hargaBeli, builder: (column) => column);
+
+  GeneratedColumn<int> get hargaJual =>
+      $composableBuilder(column: $table.hargaJual, builder: (column) => column);
+
+  GeneratedColumn<int> get jualDiscon => $composableBuilder(
+      column: $table.jualDiscon, builder: (column) => column);
+
   GeneratedColumn<int> get jumlahJual => $composableBuilder(
       column: $table.jumlahJual, builder: (column) => column);
 
-  GeneratedColumn<int> get usia =>
-      $composableBuilder(column: $table.usia, builder: (column) => column);
+  GeneratedColumn<int> get totalHargaSebelumDisc => $composableBuilder(
+      column: $table.totalHargaSebelumDisc, builder: (column) => column);
 
-  GeneratedColumn<String> get namaPelanggan => $composableBuilder(
-      column: $table.namaPelanggan, builder: (column) => column);
+  GeneratedColumn<int> get totalHargaSetelahDisc => $composableBuilder(
+      column: $table.totalHargaSetelahDisc, builder: (column) => column);
 
-  GeneratedColumn<String> get alamat =>
-      $composableBuilder(column: $table.alamat, builder: (column) => column);
-
-  GeneratedColumn<int> get noTelp =>
-      $composableBuilder(column: $table.noTelp, builder: (column) => column);
-
-  GeneratedColumn<String> get kelompok =>
-      $composableBuilder(column: $table.kelompok, builder: (column) => column);
-
-  GeneratedColumn<String> get keterangan => $composableBuilder(
-      column: $table.keterangan, builder: (column) => column);
+  GeneratedColumn<int> get totalDisc =>
+      $composableBuilder(column: $table.totalDisc, builder: (column) => column);
 }
 
 class $$ResepsTableTableManager extends RootTableManager<
@@ -9581,82 +9985,102 @@ class $$ResepsTableTableManager extends RootTableManager<
           updateCompanionCallback: ({
             Value<int> id = const Value.absent(),
             Value<String> noResep = const Value.absent(),
+            Value<DateTime> tanggal = const Value.absent(),
+            Value<String> kodePelanggan = const Value.absent(),
+            Value<String> namaPelanggan = const Value.absent(),
+            Value<String?> kelompokPelanggan = const Value.absent(),
+            Value<String?> kodeDoctor = const Value.absent(),
+            Value<String> namaDoctor = const Value.absent(),
+            Value<int?> usia = const Value.absent(),
+            Value<String?> alamat = const Value.absent(),
+            Value<String?> keterangan = const Value.absent(),
+            Value<String?> noTelp = const Value.absent(),
             Value<String> kodeBarang = const Value.absent(),
             Value<String> namaBarang = const Value.absent(),
-            Value<String> kodPelanggan = const Value.absent(),
-            Value<String> namaDoctor = const Value.absent(),
-            Value<String?> kodeDoctor = const Value.absent(),
-            Value<int?> jualDiscon = const Value.absent(),
-            Value<DateTime> tanggal = const Value.absent(),
-            Value<int?> totalHargaSetelahDisc = const Value.absent(),
+            Value<String> kelompok = const Value.absent(),
             Value<String> satuan = const Value.absent(),
+            Value<int> hargaBeli = const Value.absent(),
+            Value<int> hargaJual = const Value.absent(),
+            Value<int?> jualDiscon = const Value.absent(),
             Value<int?> jumlahJual = const Value.absent(),
-            Value<int?> usia = const Value.absent(),
-            Value<String> namaPelanggan = const Value.absent(),
-            Value<String?> alamat = const Value.absent(),
-            Value<int?> noTelp = const Value.absent(),
-            Value<String?> kelompok = const Value.absent(),
-            Value<String?> keterangan = const Value.absent(),
+            Value<int?> totalHargaSebelumDisc = const Value.absent(),
+            Value<int?> totalHargaSetelahDisc = const Value.absent(),
+            Value<int?> totalDisc = const Value.absent(),
           }) =>
               ResepsCompanion(
             id: id,
             noResep: noResep,
+            tanggal: tanggal,
+            kodePelanggan: kodePelanggan,
+            namaPelanggan: namaPelanggan,
+            kelompokPelanggan: kelompokPelanggan,
+            kodeDoctor: kodeDoctor,
+            namaDoctor: namaDoctor,
+            usia: usia,
+            alamat: alamat,
+            keterangan: keterangan,
+            noTelp: noTelp,
             kodeBarang: kodeBarang,
             namaBarang: namaBarang,
-            kodPelanggan: kodPelanggan,
-            namaDoctor: namaDoctor,
-            kodeDoctor: kodeDoctor,
-            jualDiscon: jualDiscon,
-            tanggal: tanggal,
-            totalHargaSetelahDisc: totalHargaSetelahDisc,
-            satuan: satuan,
-            jumlahJual: jumlahJual,
-            usia: usia,
-            namaPelanggan: namaPelanggan,
-            alamat: alamat,
-            noTelp: noTelp,
             kelompok: kelompok,
-            keterangan: keterangan,
+            satuan: satuan,
+            hargaBeli: hargaBeli,
+            hargaJual: hargaJual,
+            jualDiscon: jualDiscon,
+            jumlahJual: jumlahJual,
+            totalHargaSebelumDisc: totalHargaSebelumDisc,
+            totalHargaSetelahDisc: totalHargaSetelahDisc,
+            totalDisc: totalDisc,
           ),
           createCompanionCallback: ({
             Value<int> id = const Value.absent(),
             required String noResep,
+            required DateTime tanggal,
+            required String kodePelanggan,
+            required String namaPelanggan,
+            Value<String?> kelompokPelanggan = const Value.absent(),
+            Value<String?> kodeDoctor = const Value.absent(),
+            required String namaDoctor,
+            Value<int?> usia = const Value.absent(),
+            Value<String?> alamat = const Value.absent(),
+            Value<String?> keterangan = const Value.absent(),
+            Value<String?> noTelp = const Value.absent(),
             required String kodeBarang,
             required String namaBarang,
-            required String kodPelanggan,
-            required String namaDoctor,
-            Value<String?> kodeDoctor = const Value.absent(),
-            Value<int?> jualDiscon = const Value.absent(),
-            required DateTime tanggal,
-            Value<int?> totalHargaSetelahDisc = const Value.absent(),
+            required String kelompok,
             required String satuan,
+            Value<int> hargaBeli = const Value.absent(),
+            Value<int> hargaJual = const Value.absent(),
+            Value<int?> jualDiscon = const Value.absent(),
             Value<int?> jumlahJual = const Value.absent(),
-            Value<int?> usia = const Value.absent(),
-            required String namaPelanggan,
-            Value<String?> alamat = const Value.absent(),
-            Value<int?> noTelp = const Value.absent(),
-            Value<String?> kelompok = const Value.absent(),
-            Value<String?> keterangan = const Value.absent(),
+            Value<int?> totalHargaSebelumDisc = const Value.absent(),
+            Value<int?> totalHargaSetelahDisc = const Value.absent(),
+            Value<int?> totalDisc = const Value.absent(),
           }) =>
               ResepsCompanion.insert(
             id: id,
             noResep: noResep,
+            tanggal: tanggal,
+            kodePelanggan: kodePelanggan,
+            namaPelanggan: namaPelanggan,
+            kelompokPelanggan: kelompokPelanggan,
+            kodeDoctor: kodeDoctor,
+            namaDoctor: namaDoctor,
+            usia: usia,
+            alamat: alamat,
+            keterangan: keterangan,
+            noTelp: noTelp,
             kodeBarang: kodeBarang,
             namaBarang: namaBarang,
-            kodPelanggan: kodPelanggan,
-            namaDoctor: namaDoctor,
-            kodeDoctor: kodeDoctor,
-            jualDiscon: jualDiscon,
-            tanggal: tanggal,
-            totalHargaSetelahDisc: totalHargaSetelahDisc,
-            satuan: satuan,
-            jumlahJual: jumlahJual,
-            usia: usia,
-            namaPelanggan: namaPelanggan,
-            alamat: alamat,
-            noTelp: noTelp,
             kelompok: kelompok,
-            keterangan: keterangan,
+            satuan: satuan,
+            hargaBeli: hargaBeli,
+            hargaJual: hargaJual,
+            jualDiscon: jualDiscon,
+            jumlahJual: jumlahJual,
+            totalHargaSebelumDisc: totalHargaSebelumDisc,
+            totalHargaSetelahDisc: totalHargaSetelahDisc,
+            totalDisc: totalDisc,
           ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
@@ -9681,25 +10105,29 @@ typedef $$ResepstmpTableCreateCompanionBuilder = ResepstmpCompanion Function({
   Value<int> id,
   required String kodeBarang,
   required String namaBarang,
+  required String kelompok,
+  required String satuan,
+  Value<int> hargaBeli,
   Value<int> hargaJual,
   Value<int?> jualDiscon,
-  Value<int?> totalHargaSetelahDisc,
-  required String satuan,
   Value<int?> jumlahJual,
-  Value<String?> kelompok,
-  Value<int?> totalHarga,
+  Value<int?> totalHargaSebelumDisc,
+  Value<int?> totalHargaSetelahDisc,
+  Value<int?> totalDisc,
 });
 typedef $$ResepstmpTableUpdateCompanionBuilder = ResepstmpCompanion Function({
   Value<int> id,
   Value<String> kodeBarang,
   Value<String> namaBarang,
+  Value<String> kelompok,
+  Value<String> satuan,
+  Value<int> hargaBeli,
   Value<int> hargaJual,
   Value<int?> jualDiscon,
-  Value<int?> totalHargaSetelahDisc,
-  Value<String> satuan,
   Value<int?> jumlahJual,
-  Value<String?> kelompok,
-  Value<int?> totalHarga,
+  Value<int?> totalHargaSebelumDisc,
+  Value<int?> totalHargaSetelahDisc,
+  Value<int?> totalDisc,
 });
 
 class $$ResepstmpTableFilterComposer
@@ -9720,27 +10148,34 @@ class $$ResepstmpTableFilterComposer
   ColumnFilters<String> get namaBarang => $composableBuilder(
       column: $table.namaBarang, builder: (column) => ColumnFilters(column));
 
+  ColumnFilters<String> get kelompok => $composableBuilder(
+      column: $table.kelompok, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get satuan => $composableBuilder(
+      column: $table.satuan, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get hargaBeli => $composableBuilder(
+      column: $table.hargaBeli, builder: (column) => ColumnFilters(column));
+
   ColumnFilters<int> get hargaJual => $composableBuilder(
       column: $table.hargaJual, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<int> get jualDiscon => $composableBuilder(
       column: $table.jualDiscon, builder: (column) => ColumnFilters(column));
 
+  ColumnFilters<int> get jumlahJual => $composableBuilder(
+      column: $table.jumlahJual, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get totalHargaSebelumDisc => $composableBuilder(
+      column: $table.totalHargaSebelumDisc,
+      builder: (column) => ColumnFilters(column));
+
   ColumnFilters<int> get totalHargaSetelahDisc => $composableBuilder(
       column: $table.totalHargaSetelahDisc,
       builder: (column) => ColumnFilters(column));
 
-  ColumnFilters<String> get satuan => $composableBuilder(
-      column: $table.satuan, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<int> get jumlahJual => $composableBuilder(
-      column: $table.jumlahJual, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<String> get kelompok => $composableBuilder(
-      column: $table.kelompok, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<int> get totalHarga => $composableBuilder(
-      column: $table.totalHarga, builder: (column) => ColumnFilters(column));
+  ColumnFilters<int> get totalDisc => $composableBuilder(
+      column: $table.totalDisc, builder: (column) => ColumnFilters(column));
 }
 
 class $$ResepstmpTableOrderingComposer
@@ -9761,27 +10196,34 @@ class $$ResepstmpTableOrderingComposer
   ColumnOrderings<String> get namaBarang => $composableBuilder(
       column: $table.namaBarang, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get kelompok => $composableBuilder(
+      column: $table.kelompok, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get satuan => $composableBuilder(
+      column: $table.satuan, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get hargaBeli => $composableBuilder(
+      column: $table.hargaBeli, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<int> get hargaJual => $composableBuilder(
       column: $table.hargaJual, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<int> get jualDiscon => $composableBuilder(
       column: $table.jualDiscon, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<int> get jumlahJual => $composableBuilder(
+      column: $table.jumlahJual, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get totalHargaSebelumDisc => $composableBuilder(
+      column: $table.totalHargaSebelumDisc,
+      builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<int> get totalHargaSetelahDisc => $composableBuilder(
       column: $table.totalHargaSetelahDisc,
       builder: (column) => ColumnOrderings(column));
 
-  ColumnOrderings<String> get satuan => $composableBuilder(
-      column: $table.satuan, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<int> get jumlahJual => $composableBuilder(
-      column: $table.jumlahJual, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<String> get kelompok => $composableBuilder(
-      column: $table.kelompok, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<int> get totalHarga => $composableBuilder(
-      column: $table.totalHarga, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<int> get totalDisc => $composableBuilder(
+      column: $table.totalDisc, builder: (column) => ColumnOrderings(column));
 }
 
 class $$ResepstmpTableAnnotationComposer
@@ -9802,26 +10244,32 @@ class $$ResepstmpTableAnnotationComposer
   GeneratedColumn<String> get namaBarang => $composableBuilder(
       column: $table.namaBarang, builder: (column) => column);
 
+  GeneratedColumn<String> get kelompok =>
+      $composableBuilder(column: $table.kelompok, builder: (column) => column);
+
+  GeneratedColumn<String> get satuan =>
+      $composableBuilder(column: $table.satuan, builder: (column) => column);
+
+  GeneratedColumn<int> get hargaBeli =>
+      $composableBuilder(column: $table.hargaBeli, builder: (column) => column);
+
   GeneratedColumn<int> get hargaJual =>
       $composableBuilder(column: $table.hargaJual, builder: (column) => column);
 
   GeneratedColumn<int> get jualDiscon => $composableBuilder(
       column: $table.jualDiscon, builder: (column) => column);
 
-  GeneratedColumn<int> get totalHargaSetelahDisc => $composableBuilder(
-      column: $table.totalHargaSetelahDisc, builder: (column) => column);
-
-  GeneratedColumn<String> get satuan =>
-      $composableBuilder(column: $table.satuan, builder: (column) => column);
-
   GeneratedColumn<int> get jumlahJual => $composableBuilder(
       column: $table.jumlahJual, builder: (column) => column);
 
-  GeneratedColumn<String> get kelompok =>
-      $composableBuilder(column: $table.kelompok, builder: (column) => column);
+  GeneratedColumn<int> get totalHargaSebelumDisc => $composableBuilder(
+      column: $table.totalHargaSebelumDisc, builder: (column) => column);
 
-  GeneratedColumn<int> get totalHarga => $composableBuilder(
-      column: $table.totalHarga, builder: (column) => column);
+  GeneratedColumn<int> get totalHargaSetelahDisc => $composableBuilder(
+      column: $table.totalHargaSetelahDisc, builder: (column) => column);
+
+  GeneratedColumn<int> get totalDisc =>
+      $composableBuilder(column: $table.totalDisc, builder: (column) => column);
 }
 
 class $$ResepstmpTableTableManager extends RootTableManager<
@@ -9853,49 +10301,57 @@ class $$ResepstmpTableTableManager extends RootTableManager<
             Value<int> id = const Value.absent(),
             Value<String> kodeBarang = const Value.absent(),
             Value<String> namaBarang = const Value.absent(),
+            Value<String> kelompok = const Value.absent(),
+            Value<String> satuan = const Value.absent(),
+            Value<int> hargaBeli = const Value.absent(),
             Value<int> hargaJual = const Value.absent(),
             Value<int?> jualDiscon = const Value.absent(),
-            Value<int?> totalHargaSetelahDisc = const Value.absent(),
-            Value<String> satuan = const Value.absent(),
             Value<int?> jumlahJual = const Value.absent(),
-            Value<String?> kelompok = const Value.absent(),
-            Value<int?> totalHarga = const Value.absent(),
+            Value<int?> totalHargaSebelumDisc = const Value.absent(),
+            Value<int?> totalHargaSetelahDisc = const Value.absent(),
+            Value<int?> totalDisc = const Value.absent(),
           }) =>
               ResepstmpCompanion(
             id: id,
             kodeBarang: kodeBarang,
             namaBarang: namaBarang,
+            kelompok: kelompok,
+            satuan: satuan,
+            hargaBeli: hargaBeli,
             hargaJual: hargaJual,
             jualDiscon: jualDiscon,
-            totalHargaSetelahDisc: totalHargaSetelahDisc,
-            satuan: satuan,
             jumlahJual: jumlahJual,
-            kelompok: kelompok,
-            totalHarga: totalHarga,
+            totalHargaSebelumDisc: totalHargaSebelumDisc,
+            totalHargaSetelahDisc: totalHargaSetelahDisc,
+            totalDisc: totalDisc,
           ),
           createCompanionCallback: ({
             Value<int> id = const Value.absent(),
             required String kodeBarang,
             required String namaBarang,
+            required String kelompok,
+            required String satuan,
+            Value<int> hargaBeli = const Value.absent(),
             Value<int> hargaJual = const Value.absent(),
             Value<int?> jualDiscon = const Value.absent(),
-            Value<int?> totalHargaSetelahDisc = const Value.absent(),
-            required String satuan,
             Value<int?> jumlahJual = const Value.absent(),
-            Value<String?> kelompok = const Value.absent(),
-            Value<int?> totalHarga = const Value.absent(),
+            Value<int?> totalHargaSebelumDisc = const Value.absent(),
+            Value<int?> totalHargaSetelahDisc = const Value.absent(),
+            Value<int?> totalDisc = const Value.absent(),
           }) =>
               ResepstmpCompanion.insert(
             id: id,
             kodeBarang: kodeBarang,
             namaBarang: namaBarang,
+            kelompok: kelompok,
+            satuan: satuan,
+            hargaBeli: hargaBeli,
             hargaJual: hargaJual,
             jualDiscon: jualDiscon,
-            totalHargaSetelahDisc: totalHargaSetelahDisc,
-            satuan: satuan,
             jumlahJual: jumlahJual,
-            kelompok: kelompok,
-            totalHarga: totalHarga,
+            totalHargaSebelumDisc: totalHargaSebelumDisc,
+            totalHargaSetelahDisc: totalHargaSetelahDisc,
+            totalDisc: totalDisc,
           ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))

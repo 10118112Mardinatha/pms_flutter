@@ -21,7 +21,7 @@ class TestlaporanScreen extends StatefulWidget {
 
 class _TestlaporanScreenState extends State<TestlaporanScreen> {
   late AppDatabase db;
-  List<Pembelian> allPembelian = [];
+  List<Resep> allPembelian = [];
 
   @override
   void initState() {
@@ -31,7 +31,7 @@ class _TestlaporanScreenState extends State<TestlaporanScreen> {
   }
 
   Future<void> _loadBarangs() async {
-    final data = await db.getAllPembelians();
+    final data = await db.getAllReseps();
     setState(() {
       allPembelian = data;
     });
@@ -68,43 +68,29 @@ class _TestlaporanScreenState extends State<TestlaporanScreen> {
                     columnSpacing: 20,
                     dataTextStyle: const TextStyle(fontSize: 11),
                     columns: const [
-                      DataColumn(label: Text('faktur')),
-                      DataColumn(label: Text('Kode')),
-                      DataColumn(label: Text('Nama')),
+                      DataColumn(label: Text('no resep')),
+                      DataColumn(label: Text('pelanggan')),
+                      DataColumn(label: Text('doctor')),
+                      DataColumn(label: Text('tanngal resep')),
                       DataColumn(label: Text('barang')),
-                      DataColumn(label: Text('Expired')),
                       DataColumn(label: Text('Kelompok')),
                       DataColumn(label: Text('Satuan')),
                       DataColumn(label: Text('Harga Beli')),
                       DataColumn(label: Text('Harga Jual')),
-                      DataColumn(label: Text('Disc1')),
-                      DataColumn(label: Text('Disc2')),
-                      DataColumn(label: Text('Disc3')),
-                      DataColumn(label: Text('Disc4')),
-                      DataColumn(label: Text('PPN')),
-                      DataColumn(label: Text('Jumlah')),
-                      DataColumn(label: Text('Total')),
                     ],
                     rows: allPembelian.map((p) {
                       return DataRow(
                         cells: [
-                          DataCell(Text((p.noFaktur ?? 0).toString())),
-                          DataCell(Text(p.kodeSupplier)),
-                          DataCell(Text(p.namaSuppliers)),
-                          DataCell(Text(p.namaBarang)),
+                          DataCell(Text((p.noResep ?? 0).toString())),
+                          DataCell(Text(p.namaPelanggan)),
+                          DataCell(Text(p.namaDoctor)),
                           DataCell(Text(formatDate(
-                              DateTime.parse(p.expired.toString())))),
+                              DateTime.parse(p.tanggal.toString())))),
+                          DataCell(Text(p.namaBarang)),
                           DataCell(Text(p.kelompok)),
                           DataCell(Text(p.satuan)),
                           DataCell(Text(p.hargaBeli.toString())),
                           DataCell(Text(p.hargaJual.toString())),
-                          DataCell(Text((p.jualDisc1 ?? 0).toString())),
-                          DataCell(Text((p.jualDisc2 ?? 0).toString())),
-                          DataCell(Text((p.jualDisc3 ?? 0).toString())),
-                          DataCell(Text((p.jualDisc4 ?? 0).toString())),
-                          DataCell(Text((p.ppn ?? 0).toString())),
-                          DataCell(Text((p.jumlahBeli ?? 0).toString())),
-                          DataCell(Text((p.totalHarga ?? 0).toString())),
                         ],
                       );
                     }).toList(),

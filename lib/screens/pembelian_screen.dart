@@ -33,8 +33,8 @@ class _PembelianScreenState extends State<PembelianScreen> {
   final TextEditingController _SupplierController = TextEditingController();
   final TextEditingController _kodeSupplierController = TextEditingController();
   final expiredCtrl = TextEditingController();
-  final tanggalBeliCtrl = TextEditingController(); // definisikan di atas
-  DateTime? tanggalBeli; // tanggal aslinya tetap disimpan di sini
+  final tanggalBeliCtrl = TextEditingController();
+  DateTime? tanggalBeli;
   final TextEditingController totalSeluruhCtrl = TextEditingController();
   String totalpembelian = '';
 
@@ -174,7 +174,7 @@ class _PembelianScreenState extends State<PembelianScreen> {
     _loadPembelians();
   }
 
-  Future<void> importPembeliansFromExcel({
+  Future<void> importDoctorsFromExcel({
     required File file,
     required AppDatabase db,
     required VoidCallback onFinished,
@@ -186,49 +186,31 @@ class _PembelianScreenState extends State<PembelianScreen> {
       if (sheet == null) return;
 
       for (var row in sheet.rows.skip(1)) {
-        final kodeBarang = row[0]?.value.toString() ?? '';
-        final namaBarang = row[1]?.value.toString() ?? '';
-        final expired = row[2]?.value.toString();
-        final kelompok = row[3]?.value.toString() ?? '';
-        final satuan = row[4]?.value.toString() ?? '';
-        final hargaBeli = row[5]?.value.toString();
-        final hargaJual = row[6]?.value.toString();
-        final jualDisc1 = row[7]?.value.toString();
-        final jualDisc2 = row[8]?.value.toString();
-        final jualDisc3 = row[9]?.value.toString();
-        final jualDisc4 = row[10]?.value.toString();
-        final ppn = row[11]?.value.toString();
-        final totalbeli = row[12]?.value.toString();
-        final toalharga = row[13]?.value.toString();
+        final kodeDoctor = row[0]?.value.toString() ?? '';
+        final namaDoctor = row[1]?.value.toString() ?? '';
+        final alamat = row[2]?.value.toString();
+        final telepon = row[3]?.value.toString();
+        final nilaipenjualan = row[4]?.value;
 
-        if (kodeBarang.isEmpty || namaBarang.isEmpty) continue;
+        if (kodeDoctor.isEmpty || namaDoctor.isEmpty) continue;
 
         // Cek apakah kodeSupplier sudah ada
         final exists = await (db.select(db.doctors)
-              ..where((tbl) => tbl.kodeDoctor.equals(kodeBarang)))
+              ..where((tbl) => tbl.kodeDoctor.equals(kodeDoctor)))
             .getSingleOrNull();
 
         if (exists != null) {
-          debugPrint('Kode $kodeBarang sudah ada, dilewati.');
+          debugPrint('Kode $kodeDoctor sudah ada, dilewati.');
           continue;
         }
 
-        await db.into(db.pembelianstmp).insert(
-              PembelianstmpCompanion(
-                kodeBarang: drift.Value(kodeBarang),
-                namaBarang: drift.Value(namaBarang),
-                expired: drift.Value(expired as DateTime),
-                kelompok: drift.Value(kelompok),
-                satuan: drift.Value(satuan),
-                hargaBeli: drift.Value(int.tryParse(hargaBeli ?? '0') ?? 0),
-                hargaJual: drift.Value(int.tryParse(hargaJual ?? '0') ?? 0),
-                jualDisc1: drift.Value(int.tryParse(jualDisc1 ?? '0') ?? 0),
-                jualDisc2: drift.Value(int.tryParse(jualDisc2 ?? '0') ?? 0),
-                jualDisc3: drift.Value(int.tryParse(jualDisc3 ?? '0') ?? 0),
-                jualDisc4: drift.Value(int.tryParse(jualDisc4 ?? '0') ?? 0),
-                ppn: drift.Value(int.tryParse(ppn ?? '0') ?? 0),
-                jumlahBeli: drift.Value(int.tryParse(totalbeli ?? '0') ?? 0),
-                totalHarga: drift.Value(int.tryParse(toalharga ?? '0') ?? 0),
+        await db.into(db.doctors).insert(
+              DoctorsCompanion(
+                kodeDoctor: drift.Value(kodeDoctor),
+                namaDoctor: drift.Value(namaDoctor),
+                alamat: drift.Value(alamat),
+                telepon: drift.Value(telepon),
+                nilaipenjualan: drift.Value(nilaipenjualan),
               ),
             );
       }
@@ -618,61 +600,6 @@ class _PembelianScreenState extends State<PembelianScreen> {
                       color: Colors.grey[800]),
                 ),
                 Row(children: [
-                  Tooltip(
-                    message: 'Import dari Excel',
-                    preferBelow: false, // Tooltip muncul di atas
-                    child: IconButton(
-                      icon: const Icon(Icons.upload_file),
-                      onPressed: () async {
-                        final result = await FilePicker.platform.pickFiles(
-                          type: FileType.custom,
-                          allowedExtensions: ['xlsx'],
-                        );
-                        if (result != null &&
-                            result.files.single.path != null) {
-                          final file = File(result.files.single.path!);
-
-                          final confirm = await showDialog<bool>(
-                            context: context,
-                            builder: (context) => AlertDialog(
-                              title: const Text('Konfirmasi Import'),
-                              content: const Text(
-                                  'Apakah Anda yakin ingin mengupload file ini?'),
-                              actions: [
-                                TextButton(
-                                  child: const Text('Batal'),
-                                  onPressed: () =>
-                                      Navigator.pop(context, false),
-                                ),
-                                ElevatedButton(
-                                  child: const Text('Ya, Upload'),
-                                  onPressed: () => Navigator.pop(context, true),
-                                ),
-                              ],
-                            ),
-                          );
-
-                          if (confirm == true) {
-                            await importPembeliansFromExcel(
-                                file: file,
-                                db: db,
-                                onFinished: _loadPembelians);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Import berhasil!')),
-                            );
-                          }
-                        } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text('Tidak ada file dipilih')),
-                          );
-                        }
-                      }, // Buat fungsi ini nanti
-                    ),
-                  ),
-                  SizedBox(
-                    width: 15,
-                  ),
                   ElevatedButton.icon(
                     onPressed: prosesbatal,
                     icon: const Icon(Icons.close),
