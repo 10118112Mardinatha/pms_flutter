@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:drift/drift.dart' as drift;
 import 'package:excel/excel.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:printing/printing.dart';
 import '../database/app_database.dart';
@@ -37,11 +38,14 @@ class _PembelianScreenState extends State<PembelianScreen> {
   DateTime? tanggalBeli;
   final TextEditingController totalSeluruhCtrl = TextEditingController();
   String totalpembelian = '';
-
+  bool _supplierValid = false;
   Supplier? selectedSupplier;
   DateTime? _selectedDate;
   int _rowsPerPage = 10;
   final List<int> _rowsPerPageOptions = [10, 20, 30];
+  final formatter =
+      NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
+
   final searchOptions = ['Kode'];
 
   @override
@@ -65,12 +69,23 @@ class _PembelianScreenState extends State<PembelianScreen> {
     final namaSupplier = _SupplierController.text;
     final tanggal = tanggalBeli;
 
-    if (kodeSupplier.isEmpty ||
-        namaSupplier.isEmpty ||
-        noFaktur == 0 ||
+    if (!_supplierValid ||
+        _kodeSupplierController.text.isEmpty ||
+        _nofaktur.text.isEmpty ||
         tanggal == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('No Faktur, Supplier, dan Tanggal wajib diisi')),
+        const SnackBar(
+            content: Text('Pilih supplier dari daftar dan isi semua data')),
+      );
+      return;
+    }
+    // Validasi supplier dari database
+    final supplier = await db.getSupplierByNama(namaSupplier);
+    if (supplier == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text(
+                'Kode supplier tidak valid. Pilih dari daftar yang tersedia.')),
       );
       return;
     }
@@ -174,7 +189,7 @@ class _PembelianScreenState extends State<PembelianScreen> {
     _loadPembelians();
   }
 
-  Future<void> importDoctorsFromExcel({
+  Future<void> importPembelianFromExcel({
     required File file,
     required AppDatabase db,
     required VoidCallback onFinished,
@@ -186,31 +201,51 @@ class _PembelianScreenState extends State<PembelianScreen> {
       if (sheet == null) return;
 
       for (var row in sheet.rows.skip(1)) {
-        final kodeDoctor = row[0]?.value.toString() ?? '';
-        final namaDoctor = row[1]?.value.toString() ?? '';
-        final alamat = row[2]?.value.toString();
-        final telepon = row[3]?.value.toString();
-        final nilaipenjualan = row[4]?.value;
+        final kodeBarang = row[0]?.value.toString() ?? '';
+        final namaBarang = row[1]?.value.toString() ?? '';
+        final expired = row[2]?.value.toString() ?? '';
+        final kelompok = row[3]?.value.toString() ?? '';
+        final satuan = row[4]?.value.toString() ?? '';
+        final hargaBeli = row[5]?.value.toString();
+        final hargaJual = row[6]?.value.toString();
+        final jualDisc1 = row[7]?.value.toString();
+        final jualDisc2 = row[8]?.value.toString();
+        final jualDisc3 = row[9]?.value.toString();
+        final jualDisc4 = row[10]?.value.toString();
+        final ppn = row[11]?.value.toString();
+        final jumlahpembelian = row[12]?.value.toString();
+        final totalhargapembelian = row[13]?.value.toString();
 
-        if (kodeDoctor.isEmpty || namaDoctor.isEmpty) continue;
+        if (kodeBarang.isEmpty || namaBarang.isEmpty) continue;
 
-        // Cek apakah kodeSupplier sudah ada
-        final exists = await (db.select(db.doctors)
-              ..where((tbl) => tbl.kodeDoctor.equals(kodeDoctor)))
+        // Cek apakah Kode Barang sudah ada
+        final exists = await (db.select(db.pembelianstmp)
+              ..where((tbl) => tbl.kodeBarang.equals(kodeBarang)))
             .getSingleOrNull();
 
         if (exists != null) {
-          debugPrint('Kode $kodeDoctor sudah ada, dilewati.');
+          debugPrint('Kode $kodeBarang sudah ada, dilewati.');
           continue;
         }
 
-        await db.into(db.doctors).insert(
-              DoctorsCompanion(
-                kodeDoctor: drift.Value(kodeDoctor),
-                namaDoctor: drift.Value(namaDoctor),
-                alamat: drift.Value(alamat),
-                telepon: drift.Value(telepon),
-                nilaipenjualan: drift.Value(nilaipenjualan),
+        await db.into(db.pembelianstmp).insert(
+              PembelianstmpCompanion(
+                kodeBarang: drift.Value(kodeBarang),
+                namaBarang: drift.Value(namaBarang),
+                expired: drift.Value(expired as DateTime),
+                kelompok: drift.Value(kelompok),
+                satuan: drift.Value(satuan),
+                hargaBeli: drift.Value(int.tryParse(hargaBeli ?? '0') ?? 0),
+                hargaJual: drift.Value(int.tryParse(hargaJual ?? '0') ?? 0),
+                jualDisc1: drift.Value(int.tryParse(jualDisc1 ?? '0') ?? 0),
+                jualDisc2: drift.Value(int.tryParse(jualDisc2 ?? '0') ?? 0),
+                jualDisc3: drift.Value(int.tryParse(jualDisc3 ?? '0') ?? 0),
+                jualDisc4: drift.Value(int.tryParse(jualDisc4 ?? '0') ?? 0),
+                ppn: drift.Value(int.tryParse(ppn ?? '0') ?? 0),
+                jumlahBeli:
+                    drift.Value(int.tryParse(jumlahpembelian ?? '0') ?? 0),
+                totalHarga:
+                    drift.Value(int.tryParse(totalhargapembelian ?? '0') ?? 0),
               ),
             );
       }
@@ -249,15 +284,22 @@ class _PembelianScreenState extends State<PembelianScreen> {
     final totalHargaCtrl =
         TextEditingController(text: data?.totalHarga?.toString() ?? '');
     final TextEditingController _barangController = TextEditingController();
-
+    final formatCurrency =
+        NumberFormat.currency(locale: 'id', symbol: 'Rp ', decimalDigits: 0);
     DateTime? expired;
     Barang? selectedBarang;
 
     void hitungTotalHarga() {
-      final harga = int.tryParse(hargaBeliCtrl.text) ?? 0;
-      final jumlah = int.tryParse(jumlahBeliCtrl.text) ?? 0;
+      final harga =
+          int.tryParse(hargaBeliCtrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
+              0;
+      final jumlah =
+          int.tryParse(jumlahBeliCtrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
+              0;
       final total = harga * jumlah;
-      totalHargaCtrl.text = total.toString();
+      final formatter = NumberFormat.currency(
+          locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
+      totalHargaCtrl.text = formatter.format(total);
     }
 
     hargaBeliCtrl.addListener(hitungTotalHarga);
@@ -351,113 +393,221 @@ class _PembelianScreenState extends State<PembelianScreen> {
                   ),
                   TextFormField(
                     controller: hargaBeliCtrl,
-                    decoration: InputDecoration(labelText: 'Harga Beli'),
                     keyboardType: TextInputType.number,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Harap masukkan angka';
-                      }
-                      // Menggunakan regex untuk memeriksa apakah input hanya angka
-                      if (!RegExp(r'^[0-9]+$').hasMatch(value)) {
-                        return 'Hanya angka yang diperbolehkan';
-                      }
-                      return null; // Valid
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    decoration: InputDecoration(labelText: 'Harga Beli'),
+                    onChanged: (value) {
+                      if (value.isEmpty) return;
+                      final number = int.parse(value.replaceAll('.', ''));
+                      final newText =
+                          formatCurrency.format(number).replaceAll(',00', '');
+                      hargaBeliCtrl.value = TextEditingValue(
+                        text: newText,
+                        selection:
+                            TextSelection.collapsed(offset: newText.length),
+                      );
                     },
+                    validator: (value) => value == null || value.isEmpty
+                        ? 'Wajib diisi tidak boleh kosong'
+                        : null,
                   ),
                   TextFormField(
                     controller: hargaJualCtrl,
-                    decoration: InputDecoration(labelText: 'Harga Jual'),
                     keyboardType: TextInputType.number,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Harap masukkan angka';
-                      }
-                      // Menggunakan regex untuk memeriksa apakah input hanya angka
-                      if (!RegExp(r'^[0-9]+$').hasMatch(value)) {
-                        return 'Hanya angka yang diperbolehkan';
-                      }
-                      return null; // Valid
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    decoration: InputDecoration(labelText: 'Harga Jual'),
+                    onChanged: (value) {
+                      if (value.isEmpty) return;
+                      final number = int.parse(value.replaceAll('.', ''));
+                      final newText =
+                          formatCurrency.format(number).replaceAll(',00', '');
+                      hargaJualCtrl.value = TextEditingValue(
+                        text: newText,
+                        selection:
+                            TextSelection.collapsed(offset: newText.length),
+                      );
                     },
+                    validator: (value) => value == null || value.isEmpty
+                        ? 'Wajib diisi tidak boleh kosong'
+                        : null,
                   ),
                   TextFormField(
                     controller: disc1Ctrl,
                     decoration: InputDecoration(labelText: 'Disc 1'),
                     keyboardType: TextInputType.number,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                    ],
+                    onChanged: (value) {
+                      final clean = value.replaceAll(RegExp(r'[^0-9]'), '');
+                      final formatted =
+                          formatCurrency.format(int.tryParse(clean) ?? 0);
+                      if (value != formatted) {
+                        disc1Ctrl.value = TextEditingValue(
+                          text: formatted,
+                          selection:
+                              TextSelection.collapsed(offset: formatted.length),
+                        );
+                      }
+                    },
                     validator: (value) {
-                      if (value == null || value.isEmpty) {
+                      if (value == null || value.isEmpty)
                         return 'Harap masukkan angka';
-                      }
-                      // Menggunakan regex untuk memeriksa apakah input hanya angka
-                      if (!RegExp(r'^[0-9]+$').hasMatch(value)) {
+                      final clean = value.replaceAll(RegExp(r'[^0-9]'), '');
+                      if (clean.isEmpty)
                         return 'Hanya angka yang diperbolehkan';
+
+                      final hargaJual = int.tryParse(
+                          hargaJualCtrl.text.replaceAll(RegExp(r'[^0-9]'), ''));
+                      final hargaBeli = int.tryParse(
+                          hargaBeliCtrl.text.replaceAll(RegExp(r'[^0-9]'), ''));
+                      final disc = int.tryParse(clean);
+
+                      if (hargaBeli == null || hargaJual == null) {
+                        return 'Isi harga beli & harga jual terlebih dahulu';
                       }
-                      return null; // Valid
+
+                      if (disc != null && disc > hargaJual) {
+                        return 'Diskon tidak boleh lebih besar dari harga jual';
+                      }
+
+                      return null;
                     },
                   ),
                   TextFormField(
                     controller: disc2Ctrl,
                     decoration: InputDecoration(labelText: 'Disc 2'),
                     keyboardType: TextInputType.number,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                    ],
+                    onChanged: (value) {
+                      final clean = value.replaceAll(RegExp(r'[^0-9]'), '');
+                      final formatted =
+                          formatCurrency.format(int.tryParse(clean) ?? 0);
+                      if (value != formatted) {
+                        disc2Ctrl.value = TextEditingValue(
+                          text: formatted,
+                          selection:
+                              TextSelection.collapsed(offset: formatted.length),
+                        );
+                      }
+                    },
                     validator: (value) {
-                      if (value == null || value.isEmpty) {
+                      if (value == null || value.isEmpty)
                         return 'Harap masukkan angka';
-                      }
-                      // Menggunakan regex untuk memeriksa apakah input hanya angka
-                      if (!RegExp(r'^[0-9]+$').hasMatch(value)) {
+                      final clean = value.replaceAll(RegExp(r'[^0-9]'), '');
+                      if (clean.isEmpty)
                         return 'Hanya angka yang diperbolehkan';
+
+                      final hargaJual = int.tryParse(
+                          hargaJualCtrl.text.replaceAll(RegExp(r'[^0-9]'), ''));
+                      final hargaBeli = int.tryParse(
+                          hargaBeliCtrl.text.replaceAll(RegExp(r'[^0-9]'), ''));
+                      final disc = int.tryParse(clean);
+
+                      if (hargaBeli == null || hargaJual == null) {
+                        return 'Isi harga beli & harga jual terlebih dahulu';
                       }
-                      return null; // Valid
+
+                      if (disc != null && disc > hargaJual) {
+                        return 'Diskon tidak boleh lebih besar dari harga jual';
+                      }
+
+                      return null;
                     },
                   ),
                   TextFormField(
                     controller: disc3Ctrl,
                     decoration: InputDecoration(labelText: 'Disc 3'),
                     keyboardType: TextInputType.number,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                    ],
+                    onChanged: (value) {
+                      final clean = value.replaceAll(RegExp(r'[^0-9]'), '');
+                      final formatted =
+                          formatCurrency.format(int.tryParse(clean) ?? 0);
+                      if (value != formatted) {
+                        disc3Ctrl.value = TextEditingValue(
+                          text: formatted,
+                          selection:
+                              TextSelection.collapsed(offset: formatted.length),
+                        );
+                      }
+                    },
                     validator: (value) {
-                      if (value == null || value.isEmpty) {
+                      if (value == null || value.isEmpty)
                         return 'Harap masukkan angka';
-                      }
-                      // Menggunakan regex untuk memeriksa apakah input hanya angka
-                      if (!RegExp(r'^[0-9]+$').hasMatch(value)) {
+                      final clean = value.replaceAll(RegExp(r'[^0-9]'), '');
+                      if (clean.isEmpty)
                         return 'Hanya angka yang diperbolehkan';
+
+                      final hargaJual = int.tryParse(
+                          hargaJualCtrl.text.replaceAll(RegExp(r'[^0-9]'), ''));
+                      final hargaBeli = int.tryParse(
+                          hargaBeliCtrl.text.replaceAll(RegExp(r'[^0-9]'), ''));
+                      final disc = int.tryParse(clean);
+
+                      if (hargaBeli == null || hargaJual == null) {
+                        return 'Isi harga beli & harga jual terlebih dahulu';
                       }
-                      return null; // Valid
+
+                      if (disc != null && disc > hargaJual) {
+                        return 'Diskon tidak boleh lebih besar dari harga jual';
+                      }
+
+                      return null;
                     },
                   ),
                   TextFormField(
                     controller: disc4Ctrl,
                     decoration: InputDecoration(labelText: 'Disc 4'),
                     keyboardType: TextInputType.number,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                    ],
+                    onChanged: (value) {
+                      final clean = value.replaceAll(RegExp(r'[^0-9]'), '');
+                      final formatted =
+                          formatCurrency.format(int.tryParse(clean) ?? 0);
+                      if (value != formatted) {
+                        disc4Ctrl.value = TextEditingValue(
+                          text: formatted,
+                          selection:
+                              TextSelection.collapsed(offset: formatted.length),
+                        );
+                      }
+                    },
                     validator: (value) {
-                      if (value == null || value.isEmpty) {
+                      if (value == null || value.isEmpty)
                         return 'Harap masukkan angka';
-                      }
-                      // Menggunakan regex untuk memeriksa apakah input hanya angka
-                      if (!RegExp(r'^[0-9]+$').hasMatch(value)) {
+                      final clean = value.replaceAll(RegExp(r'[^0-9]'), '');
+                      if (clean.isEmpty)
                         return 'Hanya angka yang diperbolehkan';
+
+                      final hargaJual = int.tryParse(
+                          hargaJualCtrl.text.replaceAll(RegExp(r'[^0-9]'), ''));
+                      final hargaBeli = int.tryParse(
+                          hargaBeliCtrl.text.replaceAll(RegExp(r'[^0-9]'), ''));
+                      final disc = int.tryParse(clean);
+
+                      if (hargaBeli == null || hargaJual == null) {
+                        return 'Isi harga beli & harga jual terlebih dahulu';
                       }
-                      return null; // Valid
+
+                      if (disc != null && disc > hargaJual) {
+                        return 'Diskon tidak boleh lebih besar dari harga jual';
+                      }
+
+                      return null;
                     },
                   ),
                   TextFormField(
-                    controller: ppnCtrl,
-                    decoration: InputDecoration(labelText: 'PPN'),
                     keyboardType: TextInputType.number,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Harap masukkan angka';
-                      }
-                      // Menggunakan regex untuk memeriksa apakah input hanya angka
-                      if (!RegExp(r'^[0-9]+$').hasMatch(value)) {
-                        return 'Hanya angka yang diperbolehkan';
-                      }
-                      return null; // Valid
-                    },
-                  ),
-                  TextFormField(
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     controller: jumlahBeliCtrl,
                     decoration: InputDecoration(labelText: 'Jumlah Beli'),
-                    keyboardType: TextInputType.number,
                     validator: (value) {
                       if (value == null || value.isEmpty) {
                         return 'Harap masukkan angka';
@@ -498,15 +648,29 @@ class _PembelianScreenState extends State<PembelianScreen> {
                     expired: Value(expiredDate),
                     kelompok: Value(kelompokCtrl.text),
                     satuan: Value(satuanCtrl.text),
-                    hargaBeli: Value(int.tryParse(hargaBeliCtrl.text) ?? 0),
-                    hargaJual: Value(int.tryParse(hargaJualCtrl.text) ?? 0),
-                    jualDisc1: Value(int.tryParse(disc1Ctrl.text)),
-                    jualDisc2: Value(int.tryParse(disc2Ctrl.text)),
-                    jualDisc3: Value(int.tryParse(disc3Ctrl.text)),
-                    jualDisc4: Value(int.tryParse(disc4Ctrl.text)),
+                    hargaBeli: Value(int.tryParse(hargaBeliCtrl.text
+                            .replaceAll(RegExp(r'[^0-9]'), '')) ??
+                        0),
+                    hargaJual: Value(int.tryParse(hargaJualCtrl.text
+                            .replaceAll(RegExp(r'[^0-9]'), '')) ??
+                        0),
+                    jualDisc1: Value(int.tryParse(
+                            disc1Ctrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
+                        0),
+                    jualDisc2: Value(int.tryParse(
+                            disc2Ctrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
+                        0),
+                    jualDisc3: Value(int.tryParse(
+                            disc3Ctrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
+                        0),
+                    jualDisc4: Value(int.tryParse(
+                            disc4Ctrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
+                        0),
                     ppn: Value(int.tryParse(ppnCtrl.text)),
                     jumlahBeli: Value(int.tryParse(jumlahBeliCtrl.text)),
-                    totalHarga: Value(int.tryParse(totalHargaCtrl.text)),
+                    totalHarga: Value(int.tryParse(totalHargaCtrl.text
+                            .replaceAll(RegExp(r'[^0-9]'), '')) ??
+                        0),
                   ));
                 } else {
                   await db.updatePembelianTmp(
@@ -516,17 +680,32 @@ class _PembelianScreenState extends State<PembelianScreen> {
                       expired: expiredDate,
                       kelompok: kelompokCtrl.text,
                       satuan: satuanCtrl.text,
-                      hargaBeli: int.tryParse(hargaBeliCtrl.text) ?? 0,
-                      hargaJual: int.tryParse(hargaJualCtrl.text) ?? 0,
-
+                      hargaBeli: int.tryParse(hargaBeliCtrl.text
+                              .replaceAll(RegExp(r'[^0-9]'), '')) ??
+                          0,
+                      hargaJual: int.tryParse(hargaJualCtrl.text
+                              .replaceAll(RegExp(r'[^0-9]'), '')) ??
+                          0,
                       // Mulai dari sini pakai Value karena nullable
-                      jualDisc1: Value(int.tryParse(disc1Ctrl.text)),
-                      jualDisc2: Value(int.tryParse(disc2Ctrl.text)),
-                      jualDisc3: Value(int.tryParse(disc3Ctrl.text)),
-                      jualDisc4: Value(int.tryParse(disc4Ctrl.text)),
+                      jualDisc1: Value(int.tryParse(disc1Ctrl.text
+                              .replaceAll(RegExp(r'[^0-9]'), '')) ??
+                          0),
+                      jualDisc2: Value(int.tryParse(disc2Ctrl.text
+                              .replaceAll(RegExp(r'[^0-9]'), '')) ??
+                          0),
+                      jualDisc3: Value(int.tryParse(disc3Ctrl.text
+                              .replaceAll(RegExp(r'[^0-9]'), '')) ??
+                          0),
+                      jualDisc4: Value(int.tryParse(disc4Ctrl.text
+                              .replaceAll(RegExp(r'[^0-9]'), '')) ??
+                          0),
                       ppn: Value(int.tryParse(ppnCtrl.text)),
                       jumlahBeli: Value(int.tryParse(jumlahBeliCtrl.text)),
-                      totalHarga: Value(int.tryParse(totalHargaCtrl.text)),
+                      totalHarga: Value(
+                        int.tryParse(totalHargaCtrl.text
+                                .replaceAll(RegExp(r'[^0-9]'), '')) ??
+                            0,
+                      ),
                     ),
                   );
                 }
@@ -600,6 +779,51 @@ class _PembelianScreenState extends State<PembelianScreen> {
                       color: Colors.grey[800]),
                 ),
                 Row(children: [
+                  IconButton(
+                    tooltip: 'Import Excel',
+                    icon: const Icon(Icons.upload_file),
+                    onPressed: () async {
+                      final result = await FilePicker.platform.pickFiles(
+                        type: FileType.custom,
+                        allowedExtensions: ['xlsx'],
+                      );
+                      if (result != null && result.files.single.path != null) {
+                        final file = File(result.files.single.path!);
+
+                        final confirm = await showDialog<bool>(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: const Text('Konfirmasi Import'),
+                            content: const Text(
+                                'Apakah Anda yakin ingin mengupload file ini?'),
+                            actions: [
+                              TextButton(
+                                child: const Text('Batal'),
+                                onPressed: () => Navigator.pop(context, false),
+                              ),
+                              ElevatedButton(
+                                child: const Text('Ya, Upload'),
+                                onPressed: () => Navigator.pop(context, true),
+                              ),
+                            ],
+                          ),
+                        );
+
+                        if (confirm == true) {
+                          await importPembelianFromExcel(
+                              file: file, db: db, onFinished: _loadPembelians);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Import berhasil!')),
+                          );
+                        }
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content: Text('Tidak ada file dipilih')),
+                        );
+                      }
+                    },
+                  ),
                   ElevatedButton.icon(
                     onPressed: prosesbatal,
                     icon: const Icon(Icons.close),
@@ -641,17 +865,16 @@ class _PembelianScreenState extends State<PembelianScreen> {
                 SizedBox(
                   height: 35,
                   width: 250,
-                  child: TypeAheadField<Supplier>(
+                  child: TypeAheadFormField<Supplier>(
                     textFieldConfiguration: TextFieldConfiguration(
+                      controller: _SupplierController,
                       decoration: InputDecoration(
                         border: OutlineInputBorder(),
                         labelText: 'Nama Supplier',
                       ),
-                      controller: _SupplierController,
                     ),
                     suggestionsCallback: (pattern) async {
-                      return await db.searchSupplier(
-                          pattern); // db adalah instance AppDatabase
+                      return await db.searchSupplier(pattern);
                     },
                     itemBuilder: (context, Supplier suggestion) {
                       return ListTile(
@@ -662,9 +885,17 @@ class _PembelianScreenState extends State<PembelianScreen> {
                     onSuggestionSelected: (Supplier suggestion) {
                       _SupplierController.text = suggestion.namaSupplier;
                       _kodeSupplierController.text = suggestion.kodeSupplier;
-
-                      // kamu bisa simpan juga id barang atau kodeBarang ke variabel lain
                       selectedSupplier = suggestion;
+                      _supplierValid = true;
+                    },
+                    validator: (value) {
+                      if (!_supplierValid || value == null || value.isEmpty) {
+                        return 'Pilih supplier dari daftar';
+                      }
+                      return null;
+                    },
+                    onSaved: (value) {
+                      _supplierValid = true;
                     },
                   ),
                 ),
@@ -714,7 +945,7 @@ class _PembelianScreenState extends State<PembelianScreen> {
                     controller: _kodeSupplierController,
                     decoration: InputDecoration(
                       border: OutlineInputBorder(),
-                      labelText: 'kode Supplier',
+                      labelText: 'Kode Supplier',
                     ),
                     readOnly: true,
                   ),
@@ -794,21 +1025,76 @@ class _PembelianScreenState extends State<PembelianScreen> {
                     rows: allPembeliantmp.map((p) {
                       return DataRow(
                         cells: [
-                          DataCell(Text(p.kodeBarang)),
-                          DataCell(Text(p.namaBarang)),
+                          DataCell(Tooltip(
+                            message: 'Kode Barang',
+                            child: Text(p.kodeBarang),
+                          )),
+                          DataCell(Tooltip(
+                            message: 'Nama Barang',
+                            child: Text(p.namaBarang),
+                          )),
                           DataCell(Text(formatDate(
                               DateTime.parse(p.expired.toString())))),
-                          DataCell(Text(p.kelompok)),
-                          DataCell(Text(p.satuan)),
-                          DataCell(Text(p.hargaBeli.toString())),
-                          DataCell(Text(p.hargaJual.toString())),
-                          DataCell(Text((p.jualDisc1 ?? 0).toString())),
-                          DataCell(Text((p.jualDisc2 ?? 0).toString())),
-                          DataCell(Text((p.jualDisc3 ?? 0).toString())),
-                          DataCell(Text((p.jualDisc4 ?? 0).toString())),
-                          DataCell(Text((p.ppn ?? 0).toString())),
-                          DataCell(Text((p.jumlahBeli ?? 0).toString())),
-                          DataCell(Text((p.totalHarga ?? 0).toString())),
+                          DataCell(Tooltip(
+                            message: 'Kelompok',
+                            child: Text(p.kelompok),
+                          )),
+                          DataCell(Tooltip(
+                            message: 'Satuan',
+                            child: Text(p.satuan),
+                          )),
+                          DataCell(
+                            Tooltip(
+                              message: 'Harga Beli',
+                              child: Text(formatter.format(p.hargaBeli)),
+                            ),
+                          ),
+                          DataCell(
+                            Tooltip(
+                              message: 'Harga Jual',
+                              child: Text(formatter.format(p.hargaJual)),
+                            ),
+                          ),
+                          DataCell(
+                            Tooltip(
+                              message: 'Jual Disc 1',
+                              child: Text(formatter.format(p.jualDisc1 ?? 0)),
+                            ),
+                          ),
+                          DataCell(
+                            Tooltip(
+                              message: 'Jual Disc 2',
+                              child: Text(formatter.format(p.jualDisc2 ?? 0)),
+                            ),
+                          ),
+                          DataCell(
+                            Tooltip(
+                              message: 'Jual Disc 3',
+                              child: Text(formatter.format(p.jualDisc3 ?? 0)),
+                            ),
+                          ),
+                          DataCell(
+                            Tooltip(
+                              message: 'Jual Disc 4',
+                              child: Text(formatter.format(p.jualDisc4 ?? 0)),
+                            ),
+                          ),
+                          DataCell(Tooltip(
+                            message: 'PPN',
+                            child: Text(p.ppn.toString()),
+                          )),
+                          DataCell(
+                            Tooltip(
+                              message: 'Jumlah Beli',
+                              child: Text(formatter.format(p.jumlahBeli ?? 0)),
+                            ),
+                          ),
+                          DataCell(
+                            Tooltip(
+                              message: 'Total Harga',
+                              child: Text(formatter.format(p.totalHarga ?? 0)),
+                            ),
+                          ),
                           DataCell(Row(
                             children: [
                               IconButton(

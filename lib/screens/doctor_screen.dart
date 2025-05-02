@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:drift/drift.dart' as drift;
 import 'package:excel/excel.dart';
+import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 import 'package:printing/printing.dart';
 import '../database/app_database.dart';
 import 'dart:typed_data';
@@ -28,6 +30,9 @@ class _DoctorScreenState extends State<DoctorScreen> {
   final TextEditingController _searchController = TextEditingController();
   int _rowsPerPage = 10;
   final List<int> _rowsPerPageOptions = [10, 20, 30];
+  final formatter =
+      NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
+
   final searchOptions = ['Kode', 'Nama', 'Alamat', 'Telepon', 'Penjualan'];
 
   @override
@@ -116,6 +121,8 @@ class _DoctorScreenState extends State<DoctorScreen> {
     final teleponCtrl = TextEditingController(text: doctor?.telepon ?? '');
     final nilaipenjualanCtrl =
         TextEditingController(text: doctor?.nilaipenjualan.toString() ?? '');
+    final formatter =
+        NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
 
     showDialog(
       context: context,
@@ -158,13 +165,28 @@ class _DoctorScreenState extends State<DoctorScreen> {
                 TextFormField(
                   controller: teleponCtrl,
                   decoration: InputDecoration(labelText: 'Telepon'),
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   validator: (value) => value == null || value.isEmpty
-                      ? 'Wajib diisi tidak boleh kosong'
+                      ? 'Wajib diisi tidak boleh kosong dan berupa angka'
                       : null,
                 ),
                 TextFormField(
                   controller: nilaipenjualanCtrl,
-                  decoration: InputDecoration(labelText: 'Penjualan'),
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  decoration: InputDecoration(labelText: ' Nilai Penjualan'),
+                  onChanged: (value) {
+                    if (value.isEmpty) return;
+                    final number = int.parse(value.replaceAll('.', ''));
+                    final newText =
+                        formatter.format(number).replaceAll(',00', '');
+                    nilaipenjualanCtrl.value = TextEditingValue(
+                      text: newText,
+                      selection:
+                          TextSelection.collapsed(offset: newText.length),
+                    );
+                  },
                   validator: (value) => value == null || value.isEmpty
                       ? 'Wajib diisi tidak boleh kosong'
                       : null,
@@ -189,9 +211,9 @@ class _DoctorScreenState extends State<DoctorScreen> {
                         alamatCtrl.text.isNotEmpty ? alamatCtrl.text : null),
                     telepon: Value(
                         teleponCtrl.text.isNotEmpty ? teleponCtrl.text : null),
-                    nilaipenjualan: Value(nilaipenjualanCtrl.text.isNotEmpty
-                        ? int.tryParse(nilaipenjualanCtrl.text)
-                        : null),
+                    nilaipenjualan: Value(int.tryParse(nilaipenjualanCtrl.text
+                            .replaceAll(RegExp(r'[^0-9]'), '')) ??
+                        0),
                   ));
                 } else {
                   await db.updateDoctors(
@@ -203,9 +225,9 @@ class _DoctorScreenState extends State<DoctorScreen> {
                       telepon: Value(teleponCtrl.text.isNotEmpty
                           ? teleponCtrl.text
                           : null),
-                      nilaipenjualan: Value(nilaipenjualanCtrl.text.isNotEmpty
-                          ? int.tryParse(nilaipenjualanCtrl.text)
-                          : null),
+                      nilaipenjualan: Value(int.tryParse(nilaipenjualanCtrl.text
+                              .replaceAll(RegExp(r'[^0-9]'), '')) ??
+                          0),
                     ),
                   );
                 }
@@ -541,10 +563,8 @@ class _DoctorScreenState extends State<DoctorScreen> {
                         ),
                         DataCell(
                           Tooltip(
-                            message: 'Nilai Penjualan',
-                            child: Text(
-                                'Rp. ${s.nilaipenjualan?.toString() ?? '0'}'),
-                          ),
+                              message: 'Nilai Penjualan',
+                              child: Text(formatter.format(s.nilaipenjualan))),
                         ),
                         DataCell(Row(
                           children: [

@@ -59,7 +59,7 @@ class _SidebarState extends State<Sidebar> {
               ? 70
               : isTablet
                   ? 250
-                  : 250,
+                  : 180,
           decoration: const BoxDecoration(
             color: Color(0xFFe3f2fd),
             boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)],
@@ -68,7 +68,6 @@ class _SidebarState extends State<Sidebar> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildAppHeader(),
-              _buildInfoShortcut(),
               const Divider(thickness: 1, height: 1),
               Expanded(
                 child: ListView(
@@ -204,7 +203,7 @@ class _SidebarState extends State<Sidebar> {
             children: [
               const Icon(Icons.menu, size: 28, color: Colors.blue),
               if (!_isCollapsed) ...[
-                const SizedBox(width: 8),
+                const SizedBox(width: 5),
                 Text(
                   'Pharmacy PMS',
                   style: Theme.of(context).textTheme.titleMedium!.copyWith(
@@ -217,26 +216,6 @@ class _SidebarState extends State<Sidebar> {
         ),
       ),
     );
-  }
-
-  Widget _buildInfoShortcut() {
-    return !_isCollapsed
-        ? Padding(
-            padding: const EdgeInsets.only(left: 16, bottom: 8),
-            child: Row(
-              children: const [
-                Icon(Icons.info_outline, size: 16, color: Colors.blueGrey),
-                SizedBox(width: 6),
-                Flexible(
-                  child: Text(
-                    'Gunakan tombol TAB untuk toggle sidebar.',
-                    style: TextStyle(fontSize: 11, color: Colors.blueGrey),
-                  ),
-                ),
-              ],
-            ),
-          )
-        : const SizedBox.shrink();
   }
 
   Widget _menuItem(IconData icon, String title) {

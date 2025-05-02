@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:drift/drift.dart' as drift;
 import 'package:excel/excel.dart';
+import 'package:flutter/services.dart';
 import 'package:printing/printing.dart';
 import '../database/app_database.dart';
 import 'dart:typed_data';
@@ -157,8 +158,10 @@ class _SupplierScreenState extends State<SupplierScreen> {
                 TextFormField(
                   controller: teleponCtrl,
                   decoration: InputDecoration(labelText: 'Telepon'),
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   validator: (value) => value == null || value.isEmpty
-                      ? 'Wajib diisi tidak boleh kosong'
+                      ? 'Wajib diisi tidak boleh kosong dan berupa angka'
                       : null,
                 ),
                 TextFormField(

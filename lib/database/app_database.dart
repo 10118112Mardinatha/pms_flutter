@@ -317,6 +317,11 @@ class AppDatabase extends _$AppDatabase {
         .get();
   }
 
+  Future<Supplier?> getSupplierByNama(String nama) async {
+    return (select(suppliers)..where((tbl) => tbl.namaSupplier.equals(nama)))
+        .getSingleOrNull();
+  }
+
 // DOCTOR
   Future<List<Doctor>> getAllDoctors() => select(doctors).get();
 

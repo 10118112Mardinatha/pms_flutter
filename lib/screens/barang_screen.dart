@@ -3,8 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:drift/drift.dart' as drift;
 import 'package:excel/excel.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
+import 'package:intl/intl.dart';
 import 'package:printing/printing.dart';
+import 'package:collection/collection.dart';
 import '../database/app_database.dart';
 import 'dart:typed_data';
 import 'package:pdf/widgets.dart' as pw;
@@ -34,6 +37,8 @@ class _BarangScreenState extends State<BarangScreen> {
     'Kelompok',
     'Satuan',
   ];
+  final formatter =
+      NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
 
   @override
   void initState() {
@@ -144,7 +149,8 @@ class _BarangScreenState extends State<BarangScreen> {
         TextEditingController(text: barang?.jualDisc3.toString() ?? '');
     final dic4Ctrl =
         TextEditingController(text: barang?.jualDisc4.toString() ?? '');
-
+    final formatCurrency =
+        NumberFormat.currency(locale: 'id', symbol: 'Rp ', decimalDigits: 0);
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
@@ -215,21 +221,49 @@ class _BarangScreenState extends State<BarangScreen> {
                   ),
                   TextFormField(
                     controller: stokCtrl,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     decoration: const InputDecoration(labelText: 'Stok Aktual'),
                     validator: (value) => value == null || value.isEmpty
-                        ? 'Wajib diisi tidak boleh kosong'
+                        ? 'Wajib diisi tidak boleh kosong dan hanya angka'
                         : null,
                   ),
                   TextFormField(
                     controller: hargaBCtrl,
-                    decoration: const InputDecoration(labelText: 'Harga Beli'),
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    decoration: InputDecoration(labelText: 'Harga Beli'),
+                    onChanged: (value) {
+                      if (value.isEmpty) return;
+                      final number = int.parse(value.replaceAll('.', ''));
+                      final newText =
+                          formatCurrency.format(number).replaceAll(',00', '');
+                      hargaBCtrl.value = TextEditingValue(
+                        text: newText,
+                        selection:
+                            TextSelection.collapsed(offset: newText.length),
+                      );
+                    },
                     validator: (value) => value == null || value.isEmpty
                         ? 'Wajib diisi tidak boleh kosong'
                         : null,
                   ),
                   TextFormField(
                     controller: hargaJCtrl,
-                    decoration: const InputDecoration(labelText: 'Harga Jual'),
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    decoration: InputDecoration(labelText: 'Harga Jual'),
+                    onChanged: (value) {
+                      if (value.isEmpty) return;
+                      final number = int.parse(value.replaceAll('.', ''));
+                      final newText =
+                          formatCurrency.format(number).replaceAll(',00', '');
+                      hargaBCtrl.value = TextEditingValue(
+                        text: newText,
+                        selection:
+                            TextSelection.collapsed(offset: newText.length),
+                      );
+                    },
                     validator: (value) => value == null || value.isEmpty
                         ? 'Wajib diisi tidak boleh kosong'
                         : null,
@@ -239,35 +273,103 @@ class _BarangScreenState extends State<BarangScreen> {
                   if (barang != null) ...[
                     TextFormField(
                       controller: dic1Ctrl,
-                      decoration:
-                          const InputDecoration(labelText: 'Jual Disc 1'),
-                      validator: (value) => value == null || value.isEmpty
-                          ? 'Wajib diisi tidak boleh kosong'
-                          : null,
+                      decoration: InputDecoration(labelText: 'Disc 3'),
+                      keyboardType: TextInputType.number,
+                      validator: (value) {
+                        if (value == null || value.isEmpty)
+                          return 'Harap masukkan angka';
+                        if (!RegExp(r'^[0-9]+$').hasMatch(value))
+                          return 'Hanya angka yang diperbolehkan';
+
+                        final hargaJual = int.tryParse(hargaJCtrl.text);
+                        final hargaBeli = int.tryParse(hargaBCtrl.text);
+                        final disc = int.tryParse(value);
+
+                        if (hargaBeli == null || hargaJual == null) {
+                          return 'Isi harga beli & harga jual terlebih dahulu';
+                        }
+
+                        if (disc != null && disc > hargaJual) {
+                          return 'Diskon tidak boleh lebih besar dari harga jual';
+                        }
+
+                        return null;
+                      },
                     ),
                     TextFormField(
                       controller: dic2Ctrl,
-                      decoration:
-                          const InputDecoration(labelText: 'Jual Disc 2'),
-                      validator: (value) => value == null || value.isEmpty
-                          ? 'Wajib diisi tidak boleh kosong'
-                          : null,
+                      decoration: InputDecoration(labelText: 'Disc 3'),
+                      keyboardType: TextInputType.number,
+                      validator: (value) {
+                        if (value == null || value.isEmpty)
+                          return 'Harap masukkan angka';
+                        if (!RegExp(r'^[0-9]+$').hasMatch(value))
+                          return 'Hanya angka yang diperbolehkan';
+
+                        final hargaJual = int.tryParse(hargaJCtrl.text);
+                        final hargaBeli = int.tryParse(hargaBCtrl.text);
+                        final disc = int.tryParse(value);
+
+                        if (hargaBeli == null || hargaJual == null) {
+                          return 'Isi harga beli & harga jual terlebih dahulu';
+                        }
+
+                        if (disc != null && disc > hargaJual) {
+                          return 'Diskon tidak boleh lebih besar dari harga jual';
+                        }
+
+                        return null;
+                      },
                     ),
                     TextFormField(
                       controller: dic3Ctrl,
-                      decoration:
-                          const InputDecoration(labelText: 'Jual Disc 3'),
-                      validator: (value) => value == null || value.isEmpty
-                          ? 'Wajib diisi tidak boleh kosong'
-                          : null,
+                      decoration: InputDecoration(labelText: 'Disc 3'),
+                      keyboardType: TextInputType.number,
+                      validator: (value) {
+                        if (value == null || value.isEmpty)
+                          return 'Harap masukkan angka';
+                        if (!RegExp(r'^[0-9]+$').hasMatch(value))
+                          return 'Hanya angka yang diperbolehkan';
+
+                        final hargaJual = int.tryParse(hargaJCtrl.text);
+                        final hargaBeli = int.tryParse(hargaBCtrl.text);
+                        final disc = int.tryParse(value);
+
+                        if (hargaBeli == null || hargaJual == null) {
+                          return 'Isi harga beli & harga jual terlebih dahulu';
+                        }
+
+                        if (disc != null && disc > hargaJual) {
+                          return 'Diskon tidak boleh lebih besar dari harga jual';
+                        }
+
+                        return null;
+                      },
                     ),
                     TextFormField(
                       controller: dic4Ctrl,
-                      decoration:
-                          const InputDecoration(labelText: 'Jual Disc 4'),
-                      validator: (value) => value == null || value.isEmpty
-                          ? 'Wajib diisi tidak boleh kosong'
-                          : null,
+                      decoration: InputDecoration(labelText: 'Disc 3'),
+                      keyboardType: TextInputType.number,
+                      validator: (value) {
+                        if (value == null || value.isEmpty)
+                          return 'Harap masukkan angka';
+                        if (!RegExp(r'^[0-9]+$').hasMatch(value))
+                          return 'Hanya angka yang diperbolehkan';
+
+                        final hargaJual = int.tryParse(hargaJCtrl.text);
+                        final hargaBeli = int.tryParse(hargaBCtrl.text);
+                        final disc = int.tryParse(value);
+
+                        if (hargaBeli == null || hargaJual == null) {
+                          return 'Isi harga beli & harga jual terlebih dahulu';
+                        }
+
+                        if (disc != null && disc > hargaJual) {
+                          return 'Diskon tidak boleh lebih besar dari harga jual';
+                        }
+
+                        return null;
+                      },
                     ),
                   ],
                 ],
@@ -284,21 +386,53 @@ class _BarangScreenState extends State<BarangScreen> {
             onPressed: () async {
               if (formKey.currentState!.validate()) {
                 if (barang == null) {
-                  // Tambah Barang
-                  await db.insertBarangs(BarangsCompanion(
-                    kodeBarang: Value(kodeCtrl.text),
-                    namaBarang: Value(namaBrgCtrl.text),
-                    noRak: Value(noRakCtrl.text),
-                    kelompok: Value(kelompoktCtrl.text),
-                    satuan: Value(satuanCtrl.text),
-                    stokAktual: Value(int.tryParse(stokCtrl.text) ?? 0),
-                    hargaBeli: Value(int.tryParse(hargaBCtrl.text) ?? 0),
-                    hargaJual: Value(int.tryParse(hargaJCtrl.text) ?? 0),
-                    jualDisc1: const Value(0),
-                    jualDisc2: const Value(0),
-                    jualDisc3: const Value(0),
-                    jualDisc4: const Value(0),
-                  ));
+                  // Cek apakah barang dengan kode & nama sama sudah ada
+                  final existing = allBarangs.firstWhereOrNull(
+                    (b) =>
+                        b.kodeBarang == kodeCtrl.text &&
+                        b.namaBarang.toLowerCase() ==
+                            namaBrgCtrl.text.toLowerCase(),
+                  );
+
+                  if (existing != null) {
+                    // Jika barang sudah ada, update stok dan field lain
+                    final updatedStok = existing.stokAktual +
+                        (int.tryParse(stokCtrl.text) ?? 0);
+                    await db.updateBarangs(
+                      existing.copyWith(
+                        noRak: noRakCtrl.text,
+                        kelompok: kelompoktCtrl.text,
+                        satuan: satuanCtrl.text,
+                        stokAktual: updatedStok,
+                        hargaBeli: int.tryParse(hargaBCtrl.text
+                                .replaceAll(RegExp(r'[^0-9]'), '')) ??
+                            0,
+                        hargaJual: int.tryParse(hargaJCtrl.text
+                                .replaceAll(RegExp(r'[^0-9]'), '')) ??
+                            0,
+                      ),
+                    );
+                  } else {
+                    // Tambah Barang Baru
+                    await db.insertBarangs(BarangsCompanion(
+                      kodeBarang: Value(kodeCtrl.text),
+                      namaBarang: Value(namaBrgCtrl.text),
+                      noRak: Value(noRakCtrl.text),
+                      kelompok: Value(kelompoktCtrl.text),
+                      satuan: Value(satuanCtrl.text),
+                      stokAktual: Value(int.tryParse(stokCtrl.text) ?? 0),
+                      hargaBeli: Value(int.tryParse(hargaBCtrl.text
+                              .replaceAll(RegExp(r'[^0-9]'), '')) ??
+                          0),
+                      hargaJual: Value(int.tryParse(hargaJCtrl.text
+                              .replaceAll(RegExp(r'[^0-9]'), '')) ??
+                          0),
+                      jualDisc1: const Value(0),
+                      jualDisc2: const Value(0),
+                      jualDisc3: const Value(0),
+                      jualDisc4: const Value(0),
+                    ));
+                  }
                 } else {
                   // Edit Barang
                   await db.updateBarangs(
@@ -309,8 +443,12 @@ class _BarangScreenState extends State<BarangScreen> {
                       kelompok: kelompoktCtrl.text,
                       satuan: satuanCtrl.text,
                       stokAktual: int.tryParse(stokCtrl.text) ?? 0,
-                      hargaBeli: int.tryParse(hargaBCtrl.text) ?? 0,
-                      hargaJual: int.tryParse(hargaJCtrl.text) ?? 0,
+                      hargaBeli: int.tryParse(hargaBCtrl.text
+                              .replaceAll(RegExp(r'[^0-9]'), '')) ??
+                          0,
+                      hargaJual: int.tryParse(hargaJCtrl.text
+                              .replaceAll(RegExp(r'[^0-9]'), '')) ??
+                          0,
                       jualDisc1: Value(int.tryParse(dic1Ctrl.text) ?? 0),
                       jualDisc2: Value(int.tryParse(dic2Ctrl.text) ?? 0),
                       jualDisc3: Value(int.tryParse(dic3Ctrl.text) ?? 0),
@@ -318,6 +456,7 @@ class _BarangScreenState extends State<BarangScreen> {
                     ),
                   );
                 }
+
                 if (context.mounted) Navigator.pop(context);
                 await _loadBarangs();
               }
@@ -709,39 +848,40 @@ class _BarangScreenState extends State<BarangScreen> {
                         DataCell(
                           Tooltip(
                             message: 'Harga Beli',
-                            child: Text(s.hargaBeli.toString()),
+                            child: Text(formatter.format(s.hargaBeli)),
                           ),
                         ),
                         DataCell(
                           Tooltip(
                             message: 'Harga Jual',
-                            child: Text(s.hargaJual.toString()),
+                            child: Text(formatter.format(s.hargaJual)),
                           ),
                         ),
                         DataCell(
                           Tooltip(
                             message: 'Jual Disc 1',
-                            child: Text(s.jualDisc1.toString()),
+                            child: Text(formatter.format(s.jualDisc1)),
                           ),
                         ),
                         DataCell(
                           Tooltip(
                             message: 'Jual Disc 2',
-                            child: Text(s.jualDisc2.toString()),
+                            child: Text(formatter.format(s.jualDisc2)),
                           ),
                         ),
                         DataCell(
                           Tooltip(
                             message: 'Jual Disc 3',
-                            child: Text(s.jualDisc3.toString()),
+                            child: Text(formatter.format(s.jualDisc3)),
                           ),
                         ),
                         DataCell(
                           Tooltip(
                             message: 'Jual Disc 4',
-                            child: Text(s.jualDisc4.toString()),
+                            child: Text(formatter.format(s.jualDisc4)),
                           ),
                         ),
+
                         DataCell(Row(
                           children: [
                             IconButton(
