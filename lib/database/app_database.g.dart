@@ -1703,6 +1703,30 @@ class $PenjualansTable extends Penjualans
   late final GeneratedColumn<String> noFaktur = GeneratedColumn<String>(
       'no_faktur', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _kodePelangganMeta =
+      const VerificationMeta('kodePelanggan');
+  @override
+  late final GeneratedColumn<String> kodePelanggan = GeneratedColumn<String>(
+      'kode_pelanggan', aliasedName, false,
+      additionalChecks:
+          GeneratedColumn.checkTextLength(minTextLength: 1, maxTextLength: 50),
+      type: DriftSqlType.string,
+      requiredDuringInsert: true);
+  static const VerificationMeta _namaPelangganMeta =
+      const VerificationMeta('namaPelanggan');
+  @override
+  late final GeneratedColumn<String> namaPelanggan = GeneratedColumn<String>(
+      'nama_pelanggan', aliasedName, false,
+      additionalChecks:
+          GeneratedColumn.checkTextLength(minTextLength: 1, maxTextLength: 50),
+      type: DriftSqlType.string,
+      requiredDuringInsert: true);
+  static const VerificationMeta _tanggalPenjualanMeta =
+      const VerificationMeta('tanggalPenjualan');
+  @override
+  late final GeneratedColumn<DateTime> tanggalPenjualan =
+      GeneratedColumn<DateTime>('tanggal_penjualan', aliasedName, false,
+          type: DriftSqlType.dateTime, requiredDuringInsert: true);
   static const VerificationMeta _kodeBarangMeta =
       const VerificationMeta('kodeBarang');
   @override
@@ -1718,12 +1742,6 @@ class $PenjualansTable extends Penjualans
   late final GeneratedColumn<String> namaBarang = GeneratedColumn<String>(
       'nama_barang', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
-  static const VerificationMeta _tanggalBeliMeta =
-      const VerificationMeta('tanggalBeli');
-  @override
-  late final GeneratedColumn<DateTime> tanggalBeli = GeneratedColumn<DateTime>(
-      'tanggal_beli', aliasedName, false,
-      type: DriftSqlType.dateTime, requiredDuringInsert: true);
   static const VerificationMeta _expiredMeta =
       const VerificationMeta('expired');
   @override
@@ -1791,9 +1809,11 @@ class $PenjualansTable extends Penjualans
   List<GeneratedColumn> get $columns => [
         id,
         noFaktur,
+        kodePelanggan,
+        namaPelanggan,
+        tanggalPenjualan,
         kodeBarang,
         namaBarang,
-        tanggalBeli,
         expired,
         kelompok,
         satuan,
@@ -1824,6 +1844,30 @@ class $PenjualansTable extends Penjualans
     } else if (isInserting) {
       context.missing(_noFakturMeta);
     }
+    if (data.containsKey('kode_pelanggan')) {
+      context.handle(
+          _kodePelangganMeta,
+          kodePelanggan.isAcceptableOrUnknown(
+              data['kode_pelanggan']!, _kodePelangganMeta));
+    } else if (isInserting) {
+      context.missing(_kodePelangganMeta);
+    }
+    if (data.containsKey('nama_pelanggan')) {
+      context.handle(
+          _namaPelangganMeta,
+          namaPelanggan.isAcceptableOrUnknown(
+              data['nama_pelanggan']!, _namaPelangganMeta));
+    } else if (isInserting) {
+      context.missing(_namaPelangganMeta);
+    }
+    if (data.containsKey('tanggal_penjualan')) {
+      context.handle(
+          _tanggalPenjualanMeta,
+          tanggalPenjualan.isAcceptableOrUnknown(
+              data['tanggal_penjualan']!, _tanggalPenjualanMeta));
+    } else if (isInserting) {
+      context.missing(_tanggalPenjualanMeta);
+    }
     if (data.containsKey('kode_barang')) {
       context.handle(
           _kodeBarangMeta,
@@ -1839,14 +1883,6 @@ class $PenjualansTable extends Penjualans
               data['nama_barang']!, _namaBarangMeta));
     } else if (isInserting) {
       context.missing(_namaBarangMeta);
-    }
-    if (data.containsKey('tanggal_beli')) {
-      context.handle(
-          _tanggalBeliMeta,
-          tanggalBeli.isAcceptableOrUnknown(
-              data['tanggal_beli']!, _tanggalBeliMeta));
-    } else if (isInserting) {
-      context.missing(_tanggalBeliMeta);
     }
     if (data.containsKey('expired')) {
       context.handle(_expiredMeta,
@@ -1915,12 +1951,16 @@ class $PenjualansTable extends Penjualans
           .read(DriftSqlType.int, data['${effectivePrefix}id'])!,
       noFaktur: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}no_faktur'])!,
+      kodePelanggan: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}kode_pelanggan'])!,
+      namaPelanggan: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}nama_pelanggan'])!,
+      tanggalPenjualan: attachedDatabase.typeMapping.read(
+          DriftSqlType.dateTime, data['${effectivePrefix}tanggal_penjualan'])!,
       kodeBarang: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}kode_barang'])!,
       namaBarang: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}nama_barang'])!,
-      tanggalBeli: attachedDatabase.typeMapping
-          .read(DriftSqlType.dateTime, data['${effectivePrefix}tanggal_beli'])!,
       expired: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}expired'])!,
       kelompok: attachedDatabase.typeMapping
@@ -1953,9 +1993,11 @@ class $PenjualansTable extends Penjualans
 class Penjualan extends DataClass implements Insertable<Penjualan> {
   final int id;
   final String noFaktur;
+  final String kodePelanggan;
+  final String namaPelanggan;
+  final DateTime tanggalPenjualan;
   final String kodeBarang;
   final String namaBarang;
-  final DateTime tanggalBeli;
   final DateTime expired;
   final String kelompok;
   final String satuan;
@@ -1969,9 +2011,11 @@ class Penjualan extends DataClass implements Insertable<Penjualan> {
   const Penjualan(
       {required this.id,
       required this.noFaktur,
+      required this.kodePelanggan,
+      required this.namaPelanggan,
+      required this.tanggalPenjualan,
       required this.kodeBarang,
       required this.namaBarang,
-      required this.tanggalBeli,
       required this.expired,
       required this.kelompok,
       required this.satuan,
@@ -1987,9 +2031,11 @@ class Penjualan extends DataClass implements Insertable<Penjualan> {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
     map['no_faktur'] = Variable<String>(noFaktur);
+    map['kode_pelanggan'] = Variable<String>(kodePelanggan);
+    map['nama_pelanggan'] = Variable<String>(namaPelanggan);
+    map['tanggal_penjualan'] = Variable<DateTime>(tanggalPenjualan);
     map['kode_barang'] = Variable<String>(kodeBarang);
     map['nama_barang'] = Variable<String>(namaBarang);
-    map['tanggal_beli'] = Variable<DateTime>(tanggalBeli);
     map['expired'] = Variable<DateTime>(expired);
     map['kelompok'] = Variable<String>(kelompok);
     map['satuan'] = Variable<String>(satuan);
@@ -2017,9 +2063,11 @@ class Penjualan extends DataClass implements Insertable<Penjualan> {
     return PenjualansCompanion(
       id: Value(id),
       noFaktur: Value(noFaktur),
+      kodePelanggan: Value(kodePelanggan),
+      namaPelanggan: Value(namaPelanggan),
+      tanggalPenjualan: Value(tanggalPenjualan),
       kodeBarang: Value(kodeBarang),
       namaBarang: Value(namaBarang),
-      tanggalBeli: Value(tanggalBeli),
       expired: Value(expired),
       kelompok: Value(kelompok),
       satuan: Value(satuan),
@@ -2049,9 +2097,11 @@ class Penjualan extends DataClass implements Insertable<Penjualan> {
     return Penjualan(
       id: serializer.fromJson<int>(json['id']),
       noFaktur: serializer.fromJson<String>(json['noFaktur']),
+      kodePelanggan: serializer.fromJson<String>(json['kodePelanggan']),
+      namaPelanggan: serializer.fromJson<String>(json['namaPelanggan']),
+      tanggalPenjualan: serializer.fromJson<DateTime>(json['tanggalPenjualan']),
       kodeBarang: serializer.fromJson<String>(json['kodeBarang']),
       namaBarang: serializer.fromJson<String>(json['namaBarang']),
-      tanggalBeli: serializer.fromJson<DateTime>(json['tanggalBeli']),
       expired: serializer.fromJson<DateTime>(json['expired']),
       kelompok: serializer.fromJson<String>(json['kelompok']),
       satuan: serializer.fromJson<String>(json['satuan']),
@@ -2072,9 +2122,11 @@ class Penjualan extends DataClass implements Insertable<Penjualan> {
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
       'noFaktur': serializer.toJson<String>(noFaktur),
+      'kodePelanggan': serializer.toJson<String>(kodePelanggan),
+      'namaPelanggan': serializer.toJson<String>(namaPelanggan),
+      'tanggalPenjualan': serializer.toJson<DateTime>(tanggalPenjualan),
       'kodeBarang': serializer.toJson<String>(kodeBarang),
       'namaBarang': serializer.toJson<String>(namaBarang),
-      'tanggalBeli': serializer.toJson<DateTime>(tanggalBeli),
       'expired': serializer.toJson<DateTime>(expired),
       'kelompok': serializer.toJson<String>(kelompok),
       'satuan': serializer.toJson<String>(satuan),
@@ -2091,9 +2143,11 @@ class Penjualan extends DataClass implements Insertable<Penjualan> {
   Penjualan copyWith(
           {int? id,
           String? noFaktur,
+          String? kodePelanggan,
+          String? namaPelanggan,
+          DateTime? tanggalPenjualan,
           String? kodeBarang,
           String? namaBarang,
-          DateTime? tanggalBeli,
           DateTime? expired,
           String? kelompok,
           String? satuan,
@@ -2107,9 +2161,11 @@ class Penjualan extends DataClass implements Insertable<Penjualan> {
       Penjualan(
         id: id ?? this.id,
         noFaktur: noFaktur ?? this.noFaktur,
+        kodePelanggan: kodePelanggan ?? this.kodePelanggan,
+        namaPelanggan: namaPelanggan ?? this.namaPelanggan,
+        tanggalPenjualan: tanggalPenjualan ?? this.tanggalPenjualan,
         kodeBarang: kodeBarang ?? this.kodeBarang,
         namaBarang: namaBarang ?? this.namaBarang,
-        tanggalBeli: tanggalBeli ?? this.tanggalBeli,
         expired: expired ?? this.expired,
         kelompok: kelompok ?? this.kelompok,
         satuan: satuan ?? this.satuan,
@@ -2129,12 +2185,19 @@ class Penjualan extends DataClass implements Insertable<Penjualan> {
     return Penjualan(
       id: data.id.present ? data.id.value : this.id,
       noFaktur: data.noFaktur.present ? data.noFaktur.value : this.noFaktur,
+      kodePelanggan: data.kodePelanggan.present
+          ? data.kodePelanggan.value
+          : this.kodePelanggan,
+      namaPelanggan: data.namaPelanggan.present
+          ? data.namaPelanggan.value
+          : this.namaPelanggan,
+      tanggalPenjualan: data.tanggalPenjualan.present
+          ? data.tanggalPenjualan.value
+          : this.tanggalPenjualan,
       kodeBarang:
           data.kodeBarang.present ? data.kodeBarang.value : this.kodeBarang,
       namaBarang:
           data.namaBarang.present ? data.namaBarang.value : this.namaBarang,
-      tanggalBeli:
-          data.tanggalBeli.present ? data.tanggalBeli.value : this.tanggalBeli,
       expired: data.expired.present ? data.expired.value : this.expired,
       kelompok: data.kelompok.present ? data.kelompok.value : this.kelompok,
       satuan: data.satuan.present ? data.satuan.value : this.satuan,
@@ -2159,9 +2222,11 @@ class Penjualan extends DataClass implements Insertable<Penjualan> {
     return (StringBuffer('Penjualan(')
           ..write('id: $id, ')
           ..write('noFaktur: $noFaktur, ')
+          ..write('kodePelanggan: $kodePelanggan, ')
+          ..write('namaPelanggan: $namaPelanggan, ')
+          ..write('tanggalPenjualan: $tanggalPenjualan, ')
           ..write('kodeBarang: $kodeBarang, ')
           ..write('namaBarang: $namaBarang, ')
-          ..write('tanggalBeli: $tanggalBeli, ')
           ..write('expired: $expired, ')
           ..write('kelompok: $kelompok, ')
           ..write('satuan: $satuan, ')
@@ -2180,9 +2245,11 @@ class Penjualan extends DataClass implements Insertable<Penjualan> {
   int get hashCode => Object.hash(
       id,
       noFaktur,
+      kodePelanggan,
+      namaPelanggan,
+      tanggalPenjualan,
       kodeBarang,
       namaBarang,
-      tanggalBeli,
       expired,
       kelompok,
       satuan,
@@ -2199,9 +2266,11 @@ class Penjualan extends DataClass implements Insertable<Penjualan> {
       (other is Penjualan &&
           other.id == this.id &&
           other.noFaktur == this.noFaktur &&
+          other.kodePelanggan == this.kodePelanggan &&
+          other.namaPelanggan == this.namaPelanggan &&
+          other.tanggalPenjualan == this.tanggalPenjualan &&
           other.kodeBarang == this.kodeBarang &&
           other.namaBarang == this.namaBarang &&
-          other.tanggalBeli == this.tanggalBeli &&
           other.expired == this.expired &&
           other.kelompok == this.kelompok &&
           other.satuan == this.satuan &&
@@ -2217,9 +2286,11 @@ class Penjualan extends DataClass implements Insertable<Penjualan> {
 class PenjualansCompanion extends UpdateCompanion<Penjualan> {
   final Value<int> id;
   final Value<String> noFaktur;
+  final Value<String> kodePelanggan;
+  final Value<String> namaPelanggan;
+  final Value<DateTime> tanggalPenjualan;
   final Value<String> kodeBarang;
   final Value<String> namaBarang;
-  final Value<DateTime> tanggalBeli;
   final Value<DateTime> expired;
   final Value<String> kelompok;
   final Value<String> satuan;
@@ -2233,9 +2304,11 @@ class PenjualansCompanion extends UpdateCompanion<Penjualan> {
   const PenjualansCompanion({
     this.id = const Value.absent(),
     this.noFaktur = const Value.absent(),
+    this.kodePelanggan = const Value.absent(),
+    this.namaPelanggan = const Value.absent(),
+    this.tanggalPenjualan = const Value.absent(),
     this.kodeBarang = const Value.absent(),
     this.namaBarang = const Value.absent(),
-    this.tanggalBeli = const Value.absent(),
     this.expired = const Value.absent(),
     this.kelompok = const Value.absent(),
     this.satuan = const Value.absent(),
@@ -2250,9 +2323,11 @@ class PenjualansCompanion extends UpdateCompanion<Penjualan> {
   PenjualansCompanion.insert({
     this.id = const Value.absent(),
     required String noFaktur,
+    required String kodePelanggan,
+    required String namaPelanggan,
+    required DateTime tanggalPenjualan,
     required String kodeBarang,
     required String namaBarang,
-    required DateTime tanggalBeli,
     required DateTime expired,
     required String kelompok,
     required String satuan,
@@ -2264,18 +2339,22 @@ class PenjualansCompanion extends UpdateCompanion<Penjualan> {
     this.totalHargaSetelahDisc = const Value.absent(),
     this.totalDisc = const Value.absent(),
   })  : noFaktur = Value(noFaktur),
+        kodePelanggan = Value(kodePelanggan),
+        namaPelanggan = Value(namaPelanggan),
+        tanggalPenjualan = Value(tanggalPenjualan),
         kodeBarang = Value(kodeBarang),
         namaBarang = Value(namaBarang),
-        tanggalBeli = Value(tanggalBeli),
         expired = Value(expired),
         kelompok = Value(kelompok),
         satuan = Value(satuan);
   static Insertable<Penjualan> custom({
     Expression<int>? id,
     Expression<String>? noFaktur,
+    Expression<String>? kodePelanggan,
+    Expression<String>? namaPelanggan,
+    Expression<DateTime>? tanggalPenjualan,
     Expression<String>? kodeBarang,
     Expression<String>? namaBarang,
-    Expression<DateTime>? tanggalBeli,
     Expression<DateTime>? expired,
     Expression<String>? kelompok,
     Expression<String>? satuan,
@@ -2290,9 +2369,11 @@ class PenjualansCompanion extends UpdateCompanion<Penjualan> {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (noFaktur != null) 'no_faktur': noFaktur,
+      if (kodePelanggan != null) 'kode_pelanggan': kodePelanggan,
+      if (namaPelanggan != null) 'nama_pelanggan': namaPelanggan,
+      if (tanggalPenjualan != null) 'tanggal_penjualan': tanggalPenjualan,
       if (kodeBarang != null) 'kode_barang': kodeBarang,
       if (namaBarang != null) 'nama_barang': namaBarang,
-      if (tanggalBeli != null) 'tanggal_beli': tanggalBeli,
       if (expired != null) 'expired': expired,
       if (kelompok != null) 'kelompok': kelompok,
       if (satuan != null) 'satuan': satuan,
@@ -2311,9 +2392,11 @@ class PenjualansCompanion extends UpdateCompanion<Penjualan> {
   PenjualansCompanion copyWith(
       {Value<int>? id,
       Value<String>? noFaktur,
+      Value<String>? kodePelanggan,
+      Value<String>? namaPelanggan,
+      Value<DateTime>? tanggalPenjualan,
       Value<String>? kodeBarang,
       Value<String>? namaBarang,
-      Value<DateTime>? tanggalBeli,
       Value<DateTime>? expired,
       Value<String>? kelompok,
       Value<String>? satuan,
@@ -2327,9 +2410,11 @@ class PenjualansCompanion extends UpdateCompanion<Penjualan> {
     return PenjualansCompanion(
       id: id ?? this.id,
       noFaktur: noFaktur ?? this.noFaktur,
+      kodePelanggan: kodePelanggan ?? this.kodePelanggan,
+      namaPelanggan: namaPelanggan ?? this.namaPelanggan,
+      tanggalPenjualan: tanggalPenjualan ?? this.tanggalPenjualan,
       kodeBarang: kodeBarang ?? this.kodeBarang,
       namaBarang: namaBarang ?? this.namaBarang,
-      tanggalBeli: tanggalBeli ?? this.tanggalBeli,
       expired: expired ?? this.expired,
       kelompok: kelompok ?? this.kelompok,
       satuan: satuan ?? this.satuan,
@@ -2354,14 +2439,20 @@ class PenjualansCompanion extends UpdateCompanion<Penjualan> {
     if (noFaktur.present) {
       map['no_faktur'] = Variable<String>(noFaktur.value);
     }
+    if (kodePelanggan.present) {
+      map['kode_pelanggan'] = Variable<String>(kodePelanggan.value);
+    }
+    if (namaPelanggan.present) {
+      map['nama_pelanggan'] = Variable<String>(namaPelanggan.value);
+    }
+    if (tanggalPenjualan.present) {
+      map['tanggal_penjualan'] = Variable<DateTime>(tanggalPenjualan.value);
+    }
     if (kodeBarang.present) {
       map['kode_barang'] = Variable<String>(kodeBarang.value);
     }
     if (namaBarang.present) {
       map['nama_barang'] = Variable<String>(namaBarang.value);
-    }
-    if (tanggalBeli.present) {
-      map['tanggal_beli'] = Variable<DateTime>(tanggalBeli.value);
     }
     if (expired.present) {
       map['expired'] = Variable<DateTime>(expired.value);
@@ -2403,9 +2494,11 @@ class PenjualansCompanion extends UpdateCompanion<Penjualan> {
     return (StringBuffer('PenjualansCompanion(')
           ..write('id: $id, ')
           ..write('noFaktur: $noFaktur, ')
+          ..write('kodePelanggan: $kodePelanggan, ')
+          ..write('namaPelanggan: $namaPelanggan, ')
+          ..write('tanggalPenjualan: $tanggalPenjualan, ')
           ..write('kodeBarang: $kodeBarang, ')
           ..write('namaBarang: $namaBarang, ')
-          ..write('tanggalBeli: $tanggalBeli, ')
           ..write('expired: $expired, ')
           ..write('kelompok: $kelompok, ')
           ..write('satuan: $satuan, ')
@@ -2451,6 +2544,12 @@ class $PenjualanstmpTable extends Penjualanstmp
   late final GeneratedColumn<String> namaBarang = GeneratedColumn<String>(
       'nama_barang', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _expiredMeta =
+      const VerificationMeta('expired');
+  @override
+  late final GeneratedColumn<DateTime> expired = GeneratedColumn<DateTime>(
+      'expired', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
   static const VerificationMeta _kelompokMeta =
       const VerificationMeta('kelompok');
   @override
@@ -2513,6 +2612,7 @@ class $PenjualanstmpTable extends Penjualanstmp
         id,
         kodeBarang,
         namaBarang,
+        expired,
         kelompok,
         satuan,
         hargaBeli,
@@ -2551,6 +2651,12 @@ class $PenjualanstmpTable extends Penjualanstmp
               data['nama_barang']!, _namaBarangMeta));
     } else if (isInserting) {
       context.missing(_namaBarangMeta);
+    }
+    if (data.containsKey('expired')) {
+      context.handle(_expiredMeta,
+          expired.isAcceptableOrUnknown(data['expired']!, _expiredMeta));
+    } else if (isInserting) {
+      context.missing(_expiredMeta);
     }
     if (data.containsKey('kelompok')) {
       context.handle(_kelompokMeta,
@@ -2615,6 +2721,8 @@ class $PenjualanstmpTable extends Penjualanstmp
           .read(DriftSqlType.string, data['${effectivePrefix}kode_barang'])!,
       namaBarang: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}nama_barang'])!,
+      expired: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}expired'])!,
       kelompok: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}kelompok'])!,
       satuan: attachedDatabase.typeMapping
@@ -2647,6 +2755,7 @@ class PenjualanstmpData extends DataClass
   final int id;
   final String kodeBarang;
   final String namaBarang;
+  final DateTime expired;
   final String kelompok;
   final String satuan;
   final int hargaBeli;
@@ -2660,6 +2769,7 @@ class PenjualanstmpData extends DataClass
       {required this.id,
       required this.kodeBarang,
       required this.namaBarang,
+      required this.expired,
       required this.kelompok,
       required this.satuan,
       required this.hargaBeli,
@@ -2675,6 +2785,7 @@ class PenjualanstmpData extends DataClass
     map['id'] = Variable<int>(id);
     map['kode_barang'] = Variable<String>(kodeBarang);
     map['nama_barang'] = Variable<String>(namaBarang);
+    map['expired'] = Variable<DateTime>(expired);
     map['kelompok'] = Variable<String>(kelompok);
     map['satuan'] = Variable<String>(satuan);
     map['harga_beli'] = Variable<int>(hargaBeli);
@@ -2702,6 +2813,7 @@ class PenjualanstmpData extends DataClass
       id: Value(id),
       kodeBarang: Value(kodeBarang),
       namaBarang: Value(namaBarang),
+      expired: Value(expired),
       kelompok: Value(kelompok),
       satuan: Value(satuan),
       hargaBeli: Value(hargaBeli),
@@ -2731,6 +2843,7 @@ class PenjualanstmpData extends DataClass
       id: serializer.fromJson<int>(json['id']),
       kodeBarang: serializer.fromJson<String>(json['kodeBarang']),
       namaBarang: serializer.fromJson<String>(json['namaBarang']),
+      expired: serializer.fromJson<DateTime>(json['expired']),
       kelompok: serializer.fromJson<String>(json['kelompok']),
       satuan: serializer.fromJson<String>(json['satuan']),
       hargaBeli: serializer.fromJson<int>(json['hargaBeli']),
@@ -2751,6 +2864,7 @@ class PenjualanstmpData extends DataClass
       'id': serializer.toJson<int>(id),
       'kodeBarang': serializer.toJson<String>(kodeBarang),
       'namaBarang': serializer.toJson<String>(namaBarang),
+      'expired': serializer.toJson<DateTime>(expired),
       'kelompok': serializer.toJson<String>(kelompok),
       'satuan': serializer.toJson<String>(satuan),
       'hargaBeli': serializer.toJson<int>(hargaBeli),
@@ -2767,6 +2881,7 @@ class PenjualanstmpData extends DataClass
           {int? id,
           String? kodeBarang,
           String? namaBarang,
+          DateTime? expired,
           String? kelompok,
           String? satuan,
           int? hargaBeli,
@@ -2780,6 +2895,7 @@ class PenjualanstmpData extends DataClass
         id: id ?? this.id,
         kodeBarang: kodeBarang ?? this.kodeBarang,
         namaBarang: namaBarang ?? this.namaBarang,
+        expired: expired ?? this.expired,
         kelompok: kelompok ?? this.kelompok,
         satuan: satuan ?? this.satuan,
         hargaBeli: hargaBeli ?? this.hargaBeli,
@@ -2801,6 +2917,7 @@ class PenjualanstmpData extends DataClass
           data.kodeBarang.present ? data.kodeBarang.value : this.kodeBarang,
       namaBarang:
           data.namaBarang.present ? data.namaBarang.value : this.namaBarang,
+      expired: data.expired.present ? data.expired.value : this.expired,
       kelompok: data.kelompok.present ? data.kelompok.value : this.kelompok,
       satuan: data.satuan.present ? data.satuan.value : this.satuan,
       hargaBeli: data.hargaBeli.present ? data.hargaBeli.value : this.hargaBeli,
@@ -2825,6 +2942,7 @@ class PenjualanstmpData extends DataClass
           ..write('id: $id, ')
           ..write('kodeBarang: $kodeBarang, ')
           ..write('namaBarang: $namaBarang, ')
+          ..write('expired: $expired, ')
           ..write('kelompok: $kelompok, ')
           ..write('satuan: $satuan, ')
           ..write('hargaBeli: $hargaBeli, ')
@@ -2843,6 +2961,7 @@ class PenjualanstmpData extends DataClass
       id,
       kodeBarang,
       namaBarang,
+      expired,
       kelompok,
       satuan,
       hargaBeli,
@@ -2859,6 +2978,7 @@ class PenjualanstmpData extends DataClass
           other.id == this.id &&
           other.kodeBarang == this.kodeBarang &&
           other.namaBarang == this.namaBarang &&
+          other.expired == this.expired &&
           other.kelompok == this.kelompok &&
           other.satuan == this.satuan &&
           other.hargaBeli == this.hargaBeli &&
@@ -2874,6 +2994,7 @@ class PenjualanstmpCompanion extends UpdateCompanion<PenjualanstmpData> {
   final Value<int> id;
   final Value<String> kodeBarang;
   final Value<String> namaBarang;
+  final Value<DateTime> expired;
   final Value<String> kelompok;
   final Value<String> satuan;
   final Value<int> hargaBeli;
@@ -2887,6 +3008,7 @@ class PenjualanstmpCompanion extends UpdateCompanion<PenjualanstmpData> {
     this.id = const Value.absent(),
     this.kodeBarang = const Value.absent(),
     this.namaBarang = const Value.absent(),
+    this.expired = const Value.absent(),
     this.kelompok = const Value.absent(),
     this.satuan = const Value.absent(),
     this.hargaBeli = const Value.absent(),
@@ -2901,6 +3023,7 @@ class PenjualanstmpCompanion extends UpdateCompanion<PenjualanstmpData> {
     this.id = const Value.absent(),
     required String kodeBarang,
     required String namaBarang,
+    required DateTime expired,
     required String kelompok,
     required String satuan,
     this.hargaBeli = const Value.absent(),
@@ -2912,12 +3035,14 @@ class PenjualanstmpCompanion extends UpdateCompanion<PenjualanstmpData> {
     this.totalDisc = const Value.absent(),
   })  : kodeBarang = Value(kodeBarang),
         namaBarang = Value(namaBarang),
+        expired = Value(expired),
         kelompok = Value(kelompok),
         satuan = Value(satuan);
   static Insertable<PenjualanstmpData> custom({
     Expression<int>? id,
     Expression<String>? kodeBarang,
     Expression<String>? namaBarang,
+    Expression<DateTime>? expired,
     Expression<String>? kelompok,
     Expression<String>? satuan,
     Expression<int>? hargaBeli,
@@ -2932,6 +3057,7 @@ class PenjualanstmpCompanion extends UpdateCompanion<PenjualanstmpData> {
       if (id != null) 'id': id,
       if (kodeBarang != null) 'kode_barang': kodeBarang,
       if (namaBarang != null) 'nama_barang': namaBarang,
+      if (expired != null) 'expired': expired,
       if (kelompok != null) 'kelompok': kelompok,
       if (satuan != null) 'satuan': satuan,
       if (hargaBeli != null) 'harga_beli': hargaBeli,
@@ -2950,6 +3076,7 @@ class PenjualanstmpCompanion extends UpdateCompanion<PenjualanstmpData> {
       {Value<int>? id,
       Value<String>? kodeBarang,
       Value<String>? namaBarang,
+      Value<DateTime>? expired,
       Value<String>? kelompok,
       Value<String>? satuan,
       Value<int>? hargaBeli,
@@ -2963,6 +3090,7 @@ class PenjualanstmpCompanion extends UpdateCompanion<PenjualanstmpData> {
       id: id ?? this.id,
       kodeBarang: kodeBarang ?? this.kodeBarang,
       namaBarang: namaBarang ?? this.namaBarang,
+      expired: expired ?? this.expired,
       kelompok: kelompok ?? this.kelompok,
       satuan: satuan ?? this.satuan,
       hargaBeli: hargaBeli ?? this.hargaBeli,
@@ -2988,6 +3116,9 @@ class PenjualanstmpCompanion extends UpdateCompanion<PenjualanstmpData> {
     }
     if (namaBarang.present) {
       map['nama_barang'] = Variable<String>(namaBarang.value);
+    }
+    if (expired.present) {
+      map['expired'] = Variable<DateTime>(expired.value);
     }
     if (kelompok.present) {
       map['kelompok'] = Variable<String>(kelompok.value);
@@ -3027,6 +3158,7 @@ class PenjualanstmpCompanion extends UpdateCompanion<PenjualanstmpData> {
           ..write('id: $id, ')
           ..write('kodeBarang: $kodeBarang, ')
           ..write('namaBarang: $namaBarang, ')
+          ..write('expired: $expired, ')
           ..write('kelompok: $kelompok, ')
           ..write('satuan: $satuan, ')
           ..write('hargaBeli: $hargaBeli, ')
@@ -8120,9 +8252,11 @@ typedef $$BarangsTableProcessedTableManager = ProcessedTableManager<
 typedef $$PenjualansTableCreateCompanionBuilder = PenjualansCompanion Function({
   Value<int> id,
   required String noFaktur,
+  required String kodePelanggan,
+  required String namaPelanggan,
+  required DateTime tanggalPenjualan,
   required String kodeBarang,
   required String namaBarang,
-  required DateTime tanggalBeli,
   required DateTime expired,
   required String kelompok,
   required String satuan,
@@ -8137,9 +8271,11 @@ typedef $$PenjualansTableCreateCompanionBuilder = PenjualansCompanion Function({
 typedef $$PenjualansTableUpdateCompanionBuilder = PenjualansCompanion Function({
   Value<int> id,
   Value<String> noFaktur,
+  Value<String> kodePelanggan,
+  Value<String> namaPelanggan,
+  Value<DateTime> tanggalPenjualan,
   Value<String> kodeBarang,
   Value<String> namaBarang,
-  Value<DateTime> tanggalBeli,
   Value<DateTime> expired,
   Value<String> kelompok,
   Value<String> satuan,
@@ -8167,14 +8303,21 @@ class $$PenjualansTableFilterComposer
   ColumnFilters<String> get noFaktur => $composableBuilder(
       column: $table.noFaktur, builder: (column) => ColumnFilters(column));
 
+  ColumnFilters<String> get kodePelanggan => $composableBuilder(
+      column: $table.kodePelanggan, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get namaPelanggan => $composableBuilder(
+      column: $table.namaPelanggan, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get tanggalPenjualan => $composableBuilder(
+      column: $table.tanggalPenjualan,
+      builder: (column) => ColumnFilters(column));
+
   ColumnFilters<String> get kodeBarang => $composableBuilder(
       column: $table.kodeBarang, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get namaBarang => $composableBuilder(
       column: $table.namaBarang, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<DateTime> get tanggalBeli => $composableBuilder(
-      column: $table.tanggalBeli, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get expired => $composableBuilder(
       column: $table.expired, builder: (column) => ColumnFilters(column));
@@ -8224,14 +8367,23 @@ class $$PenjualansTableOrderingComposer
   ColumnOrderings<String> get noFaktur => $composableBuilder(
       column: $table.noFaktur, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get kodePelanggan => $composableBuilder(
+      column: $table.kodePelanggan,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get namaPelanggan => $composableBuilder(
+      column: $table.namaPelanggan,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get tanggalPenjualan => $composableBuilder(
+      column: $table.tanggalPenjualan,
+      builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<String> get kodeBarang => $composableBuilder(
       column: $table.kodeBarang, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<String> get namaBarang => $composableBuilder(
       column: $table.namaBarang, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<DateTime> get tanggalBeli => $composableBuilder(
-      column: $table.tanggalBeli, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<DateTime> get expired => $composableBuilder(
       column: $table.expired, builder: (column) => ColumnOrderings(column));
@@ -8281,14 +8433,20 @@ class $$PenjualansTableAnnotationComposer
   GeneratedColumn<String> get noFaktur =>
       $composableBuilder(column: $table.noFaktur, builder: (column) => column);
 
+  GeneratedColumn<String> get kodePelanggan => $composableBuilder(
+      column: $table.kodePelanggan, builder: (column) => column);
+
+  GeneratedColumn<String> get namaPelanggan => $composableBuilder(
+      column: $table.namaPelanggan, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get tanggalPenjualan => $composableBuilder(
+      column: $table.tanggalPenjualan, builder: (column) => column);
+
   GeneratedColumn<String> get kodeBarang => $composableBuilder(
       column: $table.kodeBarang, builder: (column) => column);
 
   GeneratedColumn<String> get namaBarang => $composableBuilder(
       column: $table.namaBarang, builder: (column) => column);
-
-  GeneratedColumn<DateTime> get tanggalBeli => $composableBuilder(
-      column: $table.tanggalBeli, builder: (column) => column);
 
   GeneratedColumn<DateTime> get expired =>
       $composableBuilder(column: $table.expired, builder: (column) => column);
@@ -8346,9 +8504,11 @@ class $$PenjualansTableTableManager extends RootTableManager<
           updateCompanionCallback: ({
             Value<int> id = const Value.absent(),
             Value<String> noFaktur = const Value.absent(),
+            Value<String> kodePelanggan = const Value.absent(),
+            Value<String> namaPelanggan = const Value.absent(),
+            Value<DateTime> tanggalPenjualan = const Value.absent(),
             Value<String> kodeBarang = const Value.absent(),
             Value<String> namaBarang = const Value.absent(),
-            Value<DateTime> tanggalBeli = const Value.absent(),
             Value<DateTime> expired = const Value.absent(),
             Value<String> kelompok = const Value.absent(),
             Value<String> satuan = const Value.absent(),
@@ -8363,9 +8523,11 @@ class $$PenjualansTableTableManager extends RootTableManager<
               PenjualansCompanion(
             id: id,
             noFaktur: noFaktur,
+            kodePelanggan: kodePelanggan,
+            namaPelanggan: namaPelanggan,
+            tanggalPenjualan: tanggalPenjualan,
             kodeBarang: kodeBarang,
             namaBarang: namaBarang,
-            tanggalBeli: tanggalBeli,
             expired: expired,
             kelompok: kelompok,
             satuan: satuan,
@@ -8380,9 +8542,11 @@ class $$PenjualansTableTableManager extends RootTableManager<
           createCompanionCallback: ({
             Value<int> id = const Value.absent(),
             required String noFaktur,
+            required String kodePelanggan,
+            required String namaPelanggan,
+            required DateTime tanggalPenjualan,
             required String kodeBarang,
             required String namaBarang,
-            required DateTime tanggalBeli,
             required DateTime expired,
             required String kelompok,
             required String satuan,
@@ -8397,9 +8561,11 @@ class $$PenjualansTableTableManager extends RootTableManager<
               PenjualansCompanion.insert(
             id: id,
             noFaktur: noFaktur,
+            kodePelanggan: kodePelanggan,
+            namaPelanggan: namaPelanggan,
+            tanggalPenjualan: tanggalPenjualan,
             kodeBarang: kodeBarang,
             namaBarang: namaBarang,
-            tanggalBeli: tanggalBeli,
             expired: expired,
             kelompok: kelompok,
             satuan: satuan,
@@ -8435,6 +8601,7 @@ typedef $$PenjualanstmpTableCreateCompanionBuilder = PenjualanstmpCompanion
   Value<int> id,
   required String kodeBarang,
   required String namaBarang,
+  required DateTime expired,
   required String kelompok,
   required String satuan,
   Value<int> hargaBeli,
@@ -8450,6 +8617,7 @@ typedef $$PenjualanstmpTableUpdateCompanionBuilder = PenjualanstmpCompanion
   Value<int> id,
   Value<String> kodeBarang,
   Value<String> namaBarang,
+  Value<DateTime> expired,
   Value<String> kelompok,
   Value<String> satuan,
   Value<int> hargaBeli,
@@ -8478,6 +8646,9 @@ class $$PenjualanstmpTableFilterComposer
 
   ColumnFilters<String> get namaBarang => $composableBuilder(
       column: $table.namaBarang, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get expired => $composableBuilder(
+      column: $table.expired, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get kelompok => $composableBuilder(
       column: $table.kelompok, builder: (column) => ColumnFilters(column));
@@ -8527,6 +8698,9 @@ class $$PenjualanstmpTableOrderingComposer
   ColumnOrderings<String> get namaBarang => $composableBuilder(
       column: $table.namaBarang, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<DateTime> get expired => $composableBuilder(
+      column: $table.expired, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<String> get kelompok => $composableBuilder(
       column: $table.kelompok, builder: (column) => ColumnOrderings(column));
 
@@ -8574,6 +8748,9 @@ class $$PenjualanstmpTableAnnotationComposer
 
   GeneratedColumn<String> get namaBarang => $composableBuilder(
       column: $table.namaBarang, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get expired =>
+      $composableBuilder(column: $table.expired, builder: (column) => column);
 
   GeneratedColumn<String> get kelompok =>
       $composableBuilder(column: $table.kelompok, builder: (column) => column);
@@ -8632,6 +8809,7 @@ class $$PenjualanstmpTableTableManager extends RootTableManager<
             Value<int> id = const Value.absent(),
             Value<String> kodeBarang = const Value.absent(),
             Value<String> namaBarang = const Value.absent(),
+            Value<DateTime> expired = const Value.absent(),
             Value<String> kelompok = const Value.absent(),
             Value<String> satuan = const Value.absent(),
             Value<int> hargaBeli = const Value.absent(),
@@ -8646,6 +8824,7 @@ class $$PenjualanstmpTableTableManager extends RootTableManager<
             id: id,
             kodeBarang: kodeBarang,
             namaBarang: namaBarang,
+            expired: expired,
             kelompok: kelompok,
             satuan: satuan,
             hargaBeli: hargaBeli,
@@ -8660,6 +8839,7 @@ class $$PenjualanstmpTableTableManager extends RootTableManager<
             Value<int> id = const Value.absent(),
             required String kodeBarang,
             required String namaBarang,
+            required DateTime expired,
             required String kelompok,
             required String satuan,
             Value<int> hargaBeli = const Value.absent(),
@@ -8674,6 +8854,7 @@ class $$PenjualanstmpTableTableManager extends RootTableManager<
             id: id,
             kodeBarang: kodeBarang,
             namaBarang: namaBarang,
+            expired: expired,
             kelompok: kelompok,
             satuan: satuan,
             hargaBeli: hargaBeli,

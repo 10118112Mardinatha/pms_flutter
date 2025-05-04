@@ -204,12 +204,6 @@ class _SidebarState extends State<Sidebar> {
               const Icon(Icons.menu, size: 28, color: Colors.blue),
               if (!_isCollapsed) ...[
                 const SizedBox(width: 5),
-                Text(
-                  'Pharmacy PMS',
-                  style: Theme.of(context).textTheme.titleMedium!.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                ),
               ],
             ],
           ),

@@ -258,7 +258,7 @@ class _BarangScreenState extends State<BarangScreen> {
                       final number = int.parse(value.replaceAll('.', ''));
                       final newText =
                           formatCurrency.format(number).replaceAll(',00', '');
-                      hargaBCtrl.value = TextEditingValue(
+                      hargaJCtrl.value = TextEditingValue(
                         text: newText,
                         selection:
                             TextSelection.collapsed(offset: newText.length),

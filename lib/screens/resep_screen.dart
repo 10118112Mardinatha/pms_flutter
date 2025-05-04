@@ -51,7 +51,6 @@ class _ResepScreenState extends State<ResepScreen> {
   String kelompok = '';
   int hargabeli = 0;
   int hargajual = 0;
-  int jualdiscon = 0;
   int jumlahjual = 0;
   int totalharga = 0;
   int totalhargastlhdiskon = 0;
@@ -183,7 +182,7 @@ class _ResepScreenState extends State<ResepScreen> {
 
     // Notifikasi sukses
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Data pembelian berhasil diproses.')),
+      SnackBar(content: Text('Resep berhasil disimpan.')),
     );
   }
 
@@ -194,8 +193,9 @@ class _ResepScreenState extends State<ResepScreen> {
   Future<void> ProsesTambahresep() async {
     String namabarang = _barangController.text;
     jumlahjual = int.tryParse(_jumlahbarangController.text) ?? 0;
+    int jualdiscon = int.tryParse(_discController.text) ?? hargajual;
     totalharga = (hargajual * jumlahjual);
-    totalhargastlhdiskon = totalharga - jualdiscon;
+    totalhargastlhdiskon = (jualdiscon * jumlahjual);
     totaldiskon = totalharga - totalhargastlhdiskon;
 
     if (namabarang != '') {
@@ -214,6 +214,7 @@ class _ResepScreenState extends State<ResepScreen> {
     }
     _barangController.clear();
     _jumlahbarangController.clear();
+    _discController.clear();
     _loadResep();
   }
 

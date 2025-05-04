@@ -96,10 +96,12 @@ class Pembelianstmp extends Table {
 class Penjualans extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get noFaktur => text()();
+  TextColumn get kodePelanggan => text().withLength(min: 1, max: 50)();
+  TextColumn get namaPelanggan => text().withLength(min: 1, max: 50)();
+  DateTimeColumn get tanggalPenjualan => dateTime()();
   TextColumn get kodeBarang =>
       text().withLength(min: 1, max: 20)(); // 🔗 relasi
   TextColumn get namaBarang => text()();
-  DateTimeColumn get tanggalBeli => dateTime()();
   DateTimeColumn get expired => dateTime()();
   TextColumn get kelompok => text()();
   TextColumn get satuan => text()();
@@ -116,6 +118,7 @@ class Penjualanstmp extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get kodeBarang => text().withLength(min: 1, max: 20)();
   TextColumn get namaBarang => text()();
+  DateTimeColumn get expired => dateTime()();
   TextColumn get kelompok => text()();
   TextColumn get satuan => text()();
   IntColumn get hargaBeli => integer().withDefault(const Constant(0))();
@@ -371,6 +374,24 @@ class AppDatabase extends _$AppDatabase {
         .getSingleOrNull();
   }
 
+  Future<String> generateKodeBarang() async {
+    final last = await (select(barangs)
+          ..orderBy([
+            (tbl) => OrderingTerm(expression: tbl.id, mode: OrderingMode.desc)
+          ])
+          ..limit(1))
+        .getSingleOrNull();
+
+    int nextNumber = 1;
+    if (last != null) {
+      final match = RegExp(r'BRG(\d+)').firstMatch(last.kodeBarang);
+      if (match != null) {
+        nextNumber = int.parse(match.group(1)!) + 1;
+      }
+    }
+    return 'BRG${nextNumber.toString().padLeft(4, '0')}';
+  }
+
 //penjualan
   Future<List<Penjualan>> getAllPenjualans() => select(penjualans).get();
 
@@ -384,6 +405,15 @@ class AppDatabase extends _$AppDatabase {
 
   Future<int> deletePenjualan(int id) {
     return (delete(penjualans)..where((tbl) => tbl.id.equals(id))).go();
+  }
+
+  Future<int> getTotalHargaSetelahDiscPenjualanTmp() async {
+    final result = await customSelect(
+      'SELECT SUM(total_harga_setelah_disc) as total FROM penjualanstmp',
+      readsFrom: {penjualanstmp},
+    ).getSingle();
+
+    return result.data['total'] as int? ?? 0;
   }
 
   //penjualanstmp

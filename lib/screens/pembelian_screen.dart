@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:drift/drift.dart' show Value;
+import 'package:drift/drift.dart' show OrderingMode, OrderingTerm, Value;
 import 'package:drift/drift.dart' as drift;
 import 'package:excel/excel.dart';
 import 'package:flutter/services.dart';
@@ -35,7 +35,7 @@ class _PembelianScreenState extends State<PembelianScreen> {
   final TextEditingController _kodeSupplierController = TextEditingController();
   final expiredCtrl = TextEditingController();
   final tanggalBeliCtrl = TextEditingController();
-  DateTime? tanggalBeli;
+  DateTime? tanggalBeli = DateTime.now();
   final TextEditingController totalSeluruhCtrl = TextEditingController();
   String totalpembelian = '';
   bool _supplierValid = false;
@@ -57,10 +57,57 @@ class _PembelianScreenState extends State<PembelianScreen> {
 
   Future<void> _loadPembelians() async {
     final data = await db.getAllPembeliansTmp();
+    tanggalBeliCtrl.text = DateTime.now().toIso8601String().split('T').first;
     setState(() {
       allPembeliantmp = data;
     });
     updateTotalSeluruh();
+  }
+
+  Future<String> generateKodeBarang() async {
+    final last = await (db.select(db.barangs)
+          ..orderBy([
+            (tbl) => OrderingTerm(expression: tbl.id, mode: OrderingMode.desc)
+          ])
+          ..limit(1))
+        .getSingleOrNull();
+
+    int nextNumber = 1;
+    if (last != null) {
+      final match = RegExp(r'BRG(\d+)').firstMatch(last.kodeBarang);
+      if (match != null) {
+        nextNumber = int.parse(match.group(1)!) + 1;
+      }
+    }
+
+    return 'BRG${nextNumber.toString().padLeft(4, '0')}';
+  }
+
+  Future<void> generateNoFakturPembelian(
+      AppDatabase db, TextEditingController noFakturController) async {
+    int counter = 1;
+    String newNoFaktur;
+
+    while (true) {
+      newNoFaktur = 'PB${counter.toString().padLeft(5, '0')}';
+
+      final query = db.select(db.pembelians)
+        ..where((tbl) => tbl.noFaktur.equals(newNoFaktur));
+
+      final exists = await query.getSingleOrNull();
+
+      if (exists == null) {
+        break; // NoResep unik
+      }
+
+      counter++;
+    }
+
+    noFakturController.text = newNoFaktur;
+  }
+
+  Future<void> setNofaktur() async {
+    generateNoFakturPembelian(db, _nofaktur);
   }
 
   Future<void> prosesPembelian() async {
@@ -161,9 +208,8 @@ class _PembelianScreenState extends State<PembelianScreen> {
     _nofaktur.clear();
     _kodeSupplierController.clear();
     _SupplierController.clear();
-    tanggalBeli = null;
-    tanggalBeliCtrl
-        .clear(); // Kalau kamu pakai TextEditingController untuk tanggal
+    tanggalBeli = DateTime.now();
+
     totalSeluruhCtrl.clear();
 
     // Refresh tampilan
@@ -308,8 +354,7 @@ class _PembelianScreenState extends State<PembelianScreen> {
     await showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title:
-            Text(data == null ? 'Tambah Pembelian Tmp' : 'Edit Pembelian Tmp'),
+        title: Text(data == null ? 'Tambah kepembelian' : 'Edit Pembelian'),
         content: SizedBox(
           width: 420,
           child: Form(
@@ -340,6 +385,12 @@ class _PembelianScreenState extends State<PembelianScreen> {
                       kodeBarangCtrl.text = suggestion.kodeBarang;
                       satuanCtrl.text = suggestion.satuan;
                       kelompokCtrl.text = suggestion.kelompok;
+                      hargaJualCtrl.text = suggestion.hargaJual.toString();
+                      hargaBeliCtrl.text = suggestion.hargaBeli.toString();
+                      disc1Ctrl.text = suggestion.jualDisc1.toString();
+                      disc2Ctrl.text = suggestion.jualDisc2.toString();
+                      disc3Ctrl.text = suggestion.jualDisc3.toString();
+                      disc4Ctrl.text = suggestion.jualDisc4.toString();
                       // kamu bisa simpan juga id barang atau kodeBarang ke variabel lain
                       selectedBarang = suggestion;
                     },
@@ -377,20 +428,28 @@ class _PembelianScreenState extends State<PembelianScreen> {
                       }
                     },
                   ),
-                  Visibility(
-                    visible: false,
-                    child: TextFormField(
-                      controller: kelompokCtrl,
-                      decoration: InputDecoration(labelText: 'Kelompok'),
+                  Row(children: [
+                    SizedBox(
+                      height: 50,
+                      width: 200,
+                      child: TextFormField(
+                        controller: kelompokCtrl,
+                        decoration: InputDecoration(labelText: 'Kelompok'),
+                      ),
                     ),
-                  ),
-                  Visibility(
-                    visible: false,
-                    child: TextFormField(
-                      controller: satuanCtrl,
-                      decoration: InputDecoration(labelText: 'Satuan'),
+                    SizedBox(width: 20),
+                    SizedBox(
+                      height: 50,
+                      width: 200,
+                      child: TextFormField(
+                        controller: satuanCtrl,
+                        decoration: InputDecoration(
+                          labelText: 'Satuan',
+                          contentPadding: EdgeInsets.all(5),
+                        ),
+                      ),
                     ),
-                  ),
+                  ]),
                   TextFormField(
                     controller: hargaBeliCtrl,
                     keyboardType: TextInputType.number,
@@ -619,12 +678,15 @@ class _PembelianScreenState extends State<PembelianScreen> {
                       return null; // Valid
                     },
                   ),
-                  TextFormField(
-                    controller: totalHargaCtrl,
-                    decoration: InputDecoration(labelText: 'Total Harga'),
-                    keyboardType: TextInputType.number,
-                    readOnly: true,
-                  ),
+                  Visibility(
+                    visible: false,
+                    child: TextFormField(
+                      controller: totalHargaCtrl,
+                      decoration: InputDecoration(labelText: 'Total Harga'),
+                      keyboardType: TextInputType.number,
+                      readOnly: true,
+                    ),
+                  )
                 ],
               ),
             ),
@@ -640,8 +702,66 @@ class _PembelianScreenState extends State<PembelianScreen> {
               if (formKey.currentState!.validate()) {
                 final expiredDate = DateTime.tryParse(expiredCtrl.text);
                 if (expiredDate == null) return;
-
                 if (data == null) {
+                  final existingBarang =
+                      await db.getBarangByKode(kodeBarangCtrl.text);
+
+                  if (existingBarang == null) {
+                    final shouldInsert = await showDialog<bool>(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: Text('Barang belum terdaftar'),
+                        content: Text(
+                            'Data barang belum ada. Ingin ditambahkan ke daftar barang?'),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.of(context).pop(false),
+                            child: Text('Tidak'),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.of(context).pop(true),
+                            child: Text('Ya'),
+                          ),
+                        ],
+                      ),
+                    );
+
+                    if (shouldInsert == true) {
+                      // ✅ Generate kode unik yang belum dipakai
+                      String generatedKode;
+                      do {
+                        generatedKode = await db.generateKodeBarang();
+                      } while (await db.getBarangByKode(generatedKode) != null);
+
+                      // ✅ Insert ke tabel barangs
+                      await db.insertBarangs(BarangsCompanion(
+                        kodeBarang: Value(generatedKode),
+                        namaBarang: Value(_barangController.text),
+                        kelompok: Value(kelompokCtrl.text),
+                        satuan: Value(satuanCtrl.text),
+                        noRak: Value(''), // atau input manual jika ada
+                        stokAktual: Value(0),
+                        hargaBeli: Value(int.tryParse(hargaBeliCtrl.text
+                                .replaceAll(RegExp(r'[^0-9]'), '')) ??
+                            0),
+                        hargaJual: Value(int.tryParse(hargaJualCtrl.text
+                                .replaceAll(RegExp(r'[^0-9]'), '')) ??
+                            0),
+                        jualDisc1: Value(int.tryParse(
+                            disc1Ctrl.text.replaceAll(RegExp(r'[^0-9]'), ''))),
+                        jualDisc2: Value(int.tryParse(
+                            disc2Ctrl.text.replaceAll(RegExp(r'[^0-9]'), ''))),
+                        jualDisc3: Value(int.tryParse(
+                            disc3Ctrl.text.replaceAll(RegExp(r'[^0-9]'), ''))),
+                        jualDisc4: Value(int.tryParse(
+                            disc4Ctrl.text.replaceAll(RegExp(r'[^0-9]'), ''))),
+                      ));
+
+                      // ✅ Gunakan kode yang digenerate juga untuk pembelianstmp
+                      kodeBarangCtrl.text = generatedKode;
+                    }
+                  }
+                  //Masuk tabel sementara
                   await db.insertPembelianTmp(PembelianstmpCompanion(
                     kodeBarang: Value(kodeBarangCtrl.text),
                     namaBarang: Value(_barangController.text),
@@ -861,7 +981,16 @@ class _PembelianScreenState extends State<PembelianScreen> {
                     ),
                   ),
                 ),
-                SizedBox(width: 250), // Spacing between the text fields
+                SizedBox(width: 25),
+                SizedBox(
+                  height: 35,
+                  width: 125,
+                  child: ElevatedButton.icon(
+                    onPressed: setNofaktur,
+                    label: const Text('Otomatis'),
+                  ),
+                ),
+                SizedBox(width: 100), // Spacing between the text fields
                 SizedBox(
                   height: 35,
                   width: 250,

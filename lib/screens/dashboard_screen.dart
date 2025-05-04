@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:pms_flutter/database/app_database.dart';
 import 'package:pms_flutter/screens/pelanggan_screen.dart';
+import 'package:pms_flutter/screens/pembelian_lap_screen.dart';
 import 'package:pms_flutter/screens/pembelian_screen.dart';
+import 'package:pms_flutter/screens/penjualan_lap_screen.dart';
 import 'package:pms_flutter/screens/penjualan_screen.dart';
+import 'package:pms_flutter/screens/resep_lap_screen.dart';
 import 'package:pms_flutter/screens/resep_screen.dart';
 import 'package:pms_flutter/screens/test_laporan.dart';
 import '../models/user_model.dart'; // Ganti sesuai path model user kamu
@@ -50,7 +53,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
       case 'Rak':
         return RakScreen(database: db);
       case 'Laporan Pembelian':
-        return TestlaporanScreen(database: db);
+        return LaporanPembelianScreen(database: db);
+      case 'Laporan Penjualan':
+        return LaporanPenjualanScreen(database: db);
+      case 'Laporan Resep':
+        return LaporanResepScreen(database: db);
       case 'Obat / Jasa':
         return BarangScreen(database: db);
       case 'User':
