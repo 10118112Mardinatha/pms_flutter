@@ -167,76 +167,102 @@ class _LaporanPembelianScreenState extends State<LaporanPembelianScreen> {
   @override
   Widget build(BuildContext context) {
     final showTable = selectedFilter != 'Pilih Filter' || dateRange != null;
+
     return Scaffold(
       appBar: AppBar(title: const Text('Laporan Pembelian')),
       body: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Wrap(
-              crossAxisAlignment: WrapCrossAlignment.center,
-              spacing: 12,
-              runSpacing: 8,
-              alignment: WrapAlignment.center,
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                DropdownButton<String>(
-                  value: selectedFilter,
-                  items: filterOptions
-                      .map((filter) =>
-                          DropdownMenuItem(value: filter, child: Text(filter)))
-                      .toList(),
+                Expanded(
+                  child: Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 12,
+                    runSpacing: 8,
+                    alignment: WrapAlignment.start,
+                    children: [
+                      DropdownButton<String>(
+                        value: selectedFilter,
+                        items: filterOptions
+                            .map((filter) => DropdownMenuItem(
+                                  value: filter,
+                                  child: Text(filter),
+                                ))
+                            .toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            selectedFilter = value!;
+                            triggerSearchWithLoading();
+                          });
+                        },
+                      ),
+                      if (selectedFilter != 'Pilih Filter')
+                        SizedBox(
+                          width: 200,
+                          child: TextField(
+                            decoration: const InputDecoration(
+                                hintText: 'Kata kunci...'),
+                            onChanged: (value) {
+                              setState(() {
+                                keyword = value;
+                                triggerSearchWithLoading();
+                              });
+                            },
+                          ),
+                        ),
+                      IconButton(
+                        icon: const Icon(Icons.date_range),
+                        tooltip: 'Pilih Tanggal',
+                        onPressed: () async {
+                          final picked = await showDateRangePicker(
+                            context: context,
+                            firstDate: DateTime(2000),
+                            lastDate: DateTime.now(),
+                            builder: (context, child) => Center(
+                                child: SizedBox(width: 400, child: child)),
+                          );
+                          if (picked != null) {
+                            setState(() {
+                              dateRange = picked;
+                              triggerSearchWithLoading();
+                            });
+                          }
+                        },
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.clear),
+                        tooltip: 'Clear Filter',
+                        onPressed: () {
+                          clearFilter();
+                          triggerSearchWithLoading();
+                        },
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.download),
+                        tooltip: 'Export Excel',
+                        onPressed: () => exportToExcel(filteredData),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                DropdownButton<int>(
+                  value: rowsPerPage,
                   onChanged: (value) {
                     setState(() {
-                      selectedFilter = value!;
-                      triggerSearchWithLoading();
+                      rowsPerPage = value!;
+                      currentPage = 0;
                     });
                   },
-                ),
-                if (selectedFilter != 'Pilih Filter')
-                  SizedBox(
-                    width: 200,
-                    child: TextField(
-                      decoration:
-                          const InputDecoration(hintText: 'Kata kunci...'),
-                      onChanged: (value) {
-                        setState(() {
-                          keyword = value;
-                          triggerSearchWithLoading();
-                        });
-                      },
-                    ),
-                  ),
-                IconButton(
-                  icon: const Icon(Icons.date_range),
-                  tooltip: 'Pilih Tanggal',
-                  onPressed: () async {
-                    final picked = await showDateRangePicker(
-                      context: context,
-                      firstDate: DateTime(2000),
-                      lastDate: DateTime.now(),
-                      builder: (context, child) =>
-                          Center(child: SizedBox(width: 400, child: child)),
-                    );
-                    if (picked != null) {
-                      setState(() {
-                        dateRange = picked;
-                        triggerSearchWithLoading();
-                      });
-                    }
-                  },
-                ),
-                IconButton(
-                  icon: const Icon(Icons.clear),
-                  tooltip: 'Clear Filter',
-                  onPressed: () {
-                    clearFilter();
-                    triggerSearchWithLoading();
-                  },
-                ),
-                IconButton(
-                  icon: const Icon(Icons.download),
-                  tooltip: 'Export Excel',
-                  onPressed: () => exportToExcel(filteredData),
+                  items: const [
+                    DropdownMenuItem(value: 10, child: Text('10 Baris')),
+                    DropdownMenuItem(value: 20, child: Text('20 Baris')),
+                    DropdownMenuItem(value: 30, child: Text('30 Baris')),
+                  ],
                 ),
               ],
             ),
@@ -253,26 +279,68 @@ class _LaporanPembelianScreenState extends State<LaporanPembelianScreen> {
                               child: Text('Tidak ada data yang cocok'))
                           : ListView(
                               children: [
-                                DataTable(
-                                  columns: const [
-                                    DataColumn(label: Text('No Faktur')),
-                                    DataColumn(label: Text('Nama Barang')),
-                                    DataColumn(label: Text('Tanggal Beli')),
-                                    DataColumn(label: Text('Jumlah')),
-                                    DataColumn(label: Text('Total')),
-                                  ],
-                                  rows: paginatedData.map((e) {
-                                    return DataRow(cells: [
-                                      DataCell(Text(e.noFaktur)),
-                                      DataCell(Text(e.namaBarang)),
-                                      DataCell(Text(DateFormat('dd-MM-yyyy')
-                                          .format(e.tanggalBeli))),
-                                      DataCell(Text('${e.jumlahBeli ?? 0}')),
-                                      DataCell(Text(NumberFormat.currency(
-                                              locale: 'id', symbol: 'Rp ')
-                                          .format(e.totalHarga ?? 0))),
-                                    ]);
-                                  }).toList(),
+                                SingleChildScrollView(
+                                  scrollDirection: Axis.horizontal,
+                                  child: DataTable(
+                                    columns: const [
+                                      DataColumn(label: Text('No')),
+                                      DataColumn(label: Text('No Faktur')),
+                                      DataColumn(label: Text('Kode Supplier')),
+                                      DataColumn(label: Text('Nama Supplier')),
+                                      DataColumn(label: Text('Kode Barang')),
+                                      DataColumn(label: Text('Nama Barang')),
+                                      DataColumn(label: Text('Tanggal Beli')),
+                                      DataColumn(label: Text('Expired')),
+                                      DataColumn(label: Text('Kelompok')),
+                                      DataColumn(label: Text('Satuan')),
+                                      DataColumn(label: Text('Harga Beli')),
+                                      DataColumn(label: Text('Harga Jual')),
+                                      DataColumn(label: Text('Disc1')),
+                                      DataColumn(label: Text('Disc2')),
+                                      DataColumn(label: Text('Disc3')),
+                                      DataColumn(label: Text('Disc4')),
+                                      DataColumn(label: Text('PPN')),
+                                      DataColumn(label: Text('Jumlah Beli')),
+                                      DataColumn(label: Text('Total Harga')),
+                                    ],
+                                    rows: List.generate(
+                                      paginatedData.length,
+                                      (index) {
+                                        final p = paginatedData[index];
+                                        return DataRow(cells: [
+                                          DataCell(Text(
+                                              '${currentPage * rowsPerPage + index + 1}')),
+                                          DataCell(Text(p.noFaktur)),
+                                          DataCell(Text(p.kodeSupplier)),
+                                          DataCell(Text(p.namaSuppliers)),
+                                          DataCell(Text(p.kodeBarang)),
+                                          DataCell(Text(p.namaBarang)),
+                                          DataCell(Text(DateFormat('dd-MM-yyyy')
+                                              .format(p.tanggalBeli))),
+                                          DataCell(Text(DateFormat('dd-MM-yyyy')
+                                              .format(p.expired))),
+                                          DataCell(Text(p.kelompok)),
+                                          DataCell(Text(p.satuan)),
+                                          DataCell(Text(NumberFormat.currency(
+                                                  locale: 'id', symbol: 'Rp ')
+                                              .format(p.hargaBeli))),
+                                          DataCell(Text(NumberFormat.currency(
+                                                  locale: 'id', symbol: 'Rp ')
+                                              .format(p.hargaJual))),
+                                          DataCell(Text('${p.jualDisc1 ?? 0}')),
+                                          DataCell(Text('${p.jualDisc2 ?? 0}')),
+                                          DataCell(Text('${p.jualDisc3 ?? 0}')),
+                                          DataCell(Text('${p.jualDisc4 ?? 0}')),
+                                          DataCell(Text('${p.ppn ?? 0}')),
+                                          DataCell(
+                                              Text('${p.jumlahBeli ?? 0}')),
+                                          DataCell(Text(NumberFormat.currency(
+                                                  locale: 'id', symbol: 'Rp ')
+                                              .format(p.totalHarga ?? 0))),
+                                        ]);
+                                      },
+                                    ),
+                                  ),
                                 ),
                                 const SizedBox(height: 10),
                                 Row(

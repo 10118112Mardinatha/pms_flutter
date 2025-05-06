@@ -98,6 +98,8 @@ class Penjualans extends Table {
   TextColumn get noFaktur => text()();
   TextColumn get kodePelanggan => text().withLength(min: 1, max: 50)();
   TextColumn get namaPelanggan => text().withLength(min: 1, max: 50)();
+  TextColumn get kodeDoctor => text().withLength(min: 1, max: 20)();
+  TextColumn get namaDoctor => text().withLength(min: 1, max: 50)();
   DateTimeColumn get tanggalPenjualan => dateTime()();
   TextColumn get kodeBarang =>
       text().withLength(min: 1, max: 20)(); // 🔗 relasi
@@ -118,7 +120,8 @@ class Penjualanstmp extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get kodeBarang => text().withLength(min: 1, max: 20)();
   TextColumn get namaBarang => text()();
-  DateTimeColumn get expired => dateTime()();
+  IntColumn get idStok => integer().nullable()();
+  DateTimeColumn get expired => dateTime().nullable()();
   TextColumn get kelompok => text()();
   TextColumn get satuan => text()();
   IntColumn get hargaBeli => integer().withDefault(const Constant(0))();
@@ -194,6 +197,21 @@ class Raks extends Table {
   TextColumn get keterangan => text().nullable()();
 }
 
+class Stoks extends Table {
+  IntColumn get idStok => integer().autoIncrement()();
+  TextColumn get noFaktur => text()();
+  TextColumn get kodeSupplier => text().withLength(min: 1, max: 20)();
+  TextColumn get namaSuppliers => text()();
+  TextColumn get kodeBarang =>
+      text().withLength(min: 1, max: 20)(); // 🔗 relasi
+  TextColumn get namaBarang => text()();
+  DateTimeColumn get tanggalBeli => dateTime()();
+  DateTimeColumn get expired => dateTime()();
+  TextColumn get kelompok => text()();
+  TextColumn get satuan => text()();
+  IntColumn get stok => integer().nullable()();
+}
+
 // Kelas utama database
 @DriftDatabase(tables: [
   Users,
@@ -208,6 +226,7 @@ class Raks extends Table {
   Reseps,
   Resepstmp,
   Raks,
+  Stoks
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase._internal() : super(_openConnection());
@@ -374,6 +393,13 @@ class AppDatabase extends _$AppDatabase {
         .getSingleOrNull();
   }
 
+  Future<Barang?> getBarangByKodeDanNama(String kode, String nama) {
+    return (select(barangs)
+          ..where((tbl) =>
+              tbl.kodeBarang.equals(kode) & tbl.namaBarang.equals(nama)))
+        .getSingleOrNull();
+  }
+
   Future<String> generateKodeBarang() async {
     final last = await (select(barangs)
           ..orderBy([
@@ -516,6 +542,12 @@ class AppDatabase extends _$AppDatabase {
     return (delete(reseps)..where((tbl) => tbl.id.equals(id))).go();
   }
 
+  Future<List<Resep>> getResepByKodePelanggan(String kodePelanggan) {
+    return (select(reseps)
+          ..where((tbl) => tbl.kodePelanggan.equals(kodePelanggan)))
+        .get();
+  }
+
 //pembelian tmp
   Future<List<ResepstmpData>> getAllResepsTmp() {
     return select(resepstmp).get();
@@ -561,6 +593,49 @@ class AppDatabase extends _$AppDatabase {
     return (select(raks)
           ..where((tbl) => tbl.kodeRak.like('%$query%'))
           ..limit(10))
+        .get();
+  }
+
+  //Stok
+
+  Future<List<Stok>> getAllStok() {
+    return select(stoks).get();
+  }
+
+  Future<int> insertStok(StoksCompanion entry) {
+    return into(stoks).insert(entry);
+  }
+
+  Future<bool> updateStok(Stok entry) {
+    return update(stoks).replace(entry);
+  }
+
+  Future<int> deleteStok(int id) {
+    return (delete(stoks)..where((tbl) => tbl.idStok.equals(id))).go();
+  }
+
+  Future<List<Stok>> getExpiredListByKodeBarang(String kodeBarang) {
+    final now = DateTime.now();
+
+    return (select(stoks)
+          ..where((tbl) =>
+              tbl.kodeBarang.equals(kodeBarang) &
+              tbl.expired.isBiggerThanValue(now) &
+              tbl.stok.isBiggerOrEqualValue(1))
+          ..orderBy([
+            (tbl) =>
+                OrderingTerm(expression: tbl.expired, mode: OrderingMode.asc)
+          ]))
+        .get();
+  }
+
+  Future<List<Stok>> getStokListByKodeBarang(String kodeBarang) {
+    final today = DateTime.now();
+    return (select(stoks)
+          ..where((tbl) =>
+              tbl.kodeBarang.equals(kodeBarang) &
+              tbl.expired.isBiggerThanValue(today) &
+              tbl.stok.isBiggerOrEqualValue(1)))
         .get();
   }
 }

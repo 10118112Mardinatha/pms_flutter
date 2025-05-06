@@ -148,81 +148,102 @@ class _LaporanPenjualanScreenState extends State<LaporanPenjualanScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Laporan Penjualan')),
       body: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(12),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Center(
-              child: Wrap(
-                alignment: WrapAlignment.center,
-                spacing: 12,
-                runSpacing: 8,
-                children: [
-                  DropdownButton<String>(
-                    value: selectedFilter,
-                    items: filterOptions.map((val) {
-                      return DropdownMenuItem(value: val, child: Text(val));
-                    }).toList(),
-                    onChanged: (value) =>
-                        setState(() => selectedFilter = value!),
-                  ),
-                  if (selectedFilter != 'Pilih Filter')
-                    SizedBox(
-                      width: 200,
-                      child: TextField(
-                        decoration:
-                            const InputDecoration(labelText: 'Kata kunci'),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 12,
+                    runSpacing: 8,
+                    alignment: WrapAlignment.start,
+                    children: [
+                      DropdownButton<String>(
+                        value: selectedFilter,
+                        items: filterOptions
+                            .map((filter) => DropdownMenuItem(
+                                  value: filter,
+                                  child: Text(filter),
+                                ))
+                            .toList(),
                         onChanged: (value) {
                           setState(() {
-                            keyword = value;
-                            currentPage = 0;
+                            selectedFilter = value!;
                             triggerSearchWithLoading();
                           });
                         },
                       ),
-                    ),
-                  Tooltip(
-                    message: 'Pilih Tanggal',
-                    child: IconButton(
-                      icon: const Icon(Icons.date_range),
-                      onPressed: () async {
-                        final picked = await showDateRangePicker(
-                          context: context,
-                          firstDate: DateTime(2000),
-                          lastDate: DateTime.now(),
-                          builder: (context, child) =>
-                              Center(child: SizedBox(width: 400, child: child)),
-                        );
-                        if (picked != null) {
-                          setState(() {
-                            dateRange = picked;
-                            currentPage = 0;
-                            triggerSearchWithLoading();
-                          });
-                        }
-                      },
-                    ),
+                      if (selectedFilter != 'Pilih Filter')
+                        SizedBox(
+                          width: 200,
+                          child: TextField(
+                            decoration: const InputDecoration(
+                                hintText: 'Kata kunci...'),
+                            onChanged: (value) {
+                              setState(() {
+                                keyword = value;
+                                triggerSearchWithLoading();
+                              });
+                            },
+                          ),
+                        ),
+                      IconButton(
+                        icon: const Icon(Icons.date_range),
+                        tooltip: 'Pilih Tanggal',
+                        onPressed: () async {
+                          final picked = await showDateRangePicker(
+                            context: context,
+                            firstDate: DateTime(2000),
+                            lastDate: DateTime.now(),
+                            builder: (context, child) => Center(
+                                child: SizedBox(width: 400, child: child)),
+                          );
+                          if (picked != null) {
+                            setState(() {
+                              dateRange = picked;
+                              triggerSearchWithLoading();
+                            });
+                          }
+                        },
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.clear),
+                        tooltip: 'Clear Filter',
+                        onPressed: () {
+                          clearFilter();
+                          triggerSearchWithLoading();
+                        },
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.download),
+                        tooltip: 'Export Excel',
+                        onPressed: () => exportToExcel(filteredData),
+                      ),
+                    ],
                   ),
-                  Tooltip(
-                    message: 'Clear Filter',
-                    child: IconButton(
-                      icon: const Icon(Icons.clear),
-                      onPressed: () {
-                        clearFilter();
-                        triggerSearchWithLoading();
-                      },
-                    ),
-                  ),
-                  Tooltip(
-                    message: 'Export ke Excel',
-                    child: IconButton(
-                      icon: const Icon(Icons.download),
-                      onPressed: () => exportToExcel(filteredData),
-                    ),
-                  ),
-                ],
-              ),
+                ),
+                const SizedBox(width: 12),
+                DropdownButton<int>(
+                  value: rowsPerPage,
+                  onChanged: (value) {
+                    setState(() {
+                      rowsPerPage = value!;
+                      currentPage = 0;
+                    });
+                  },
+                  items: const [
+                    DropdownMenuItem(value: 10, child: Text('10 Baris')),
+                    DropdownMenuItem(value: 20, child: Text('20 Baris')),
+                    DropdownMenuItem(value: 30, child: Text('30 Baris')),
+                  ],
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             Expanded(
               child: isLoading
                   ? const Center(child: CircularProgressIndicator())
@@ -232,29 +253,29 @@ class _LaporanPenjualanScreenState extends State<LaporanPenjualanScreen> {
                               'Silakan pilih filter terlebih dahulu untuk menampilkan data.'))
                       : filteredData.isEmpty
                           ? const Center(
-                              child: Text('Tidak ada data yang cocok.'))
-                          : Column(
+                              child: Text('Tidak ada data yang cocok'))
+                          : ListView(
                               children: [
-                                Expanded(
-                                  child: SingleChildScrollView(
-                                    scrollDirection: Axis.horizontal,
-                                    child: DataTable(
-                                      columns: const [
-                                        DataColumn(label: Text('No')),
-                                        DataColumn(label: Text('No Faktur')),
-                                        DataColumn(label: Text('Nama Barang')),
-                                        DataColumn(label: Text('Tanggal Beli')),
-                                        DataColumn(label: Text('Kelompok')),
-                                        DataColumn(label: Text('Harga Beli')),
-                                        DataColumn(label: Text('Harga Jual')),
-                                        DataColumn(label: Text('Total Harga')),
-                                      ],
-                                      rows: List.generate(paginatedData.length,
-                                          (index) {
+                                SingleChildScrollView(
+                                  scrollDirection: Axis.horizontal,
+                                  child: DataTable(
+                                    columns: const [
+                                      DataColumn(label: Text('No')),
+                                      DataColumn(label: Text('No Faktur')),
+                                      DataColumn(label: Text('Nama Barang')),
+                                      DataColumn(label: Text('Tanggal Beli')),
+                                      DataColumn(label: Text('Kelompok')),
+                                      DataColumn(label: Text('Harga Beli')),
+                                      DataColumn(label: Text('Harga Jual')),
+                                      DataColumn(label: Text('Total Harga')),
+                                    ],
+                                    rows: List.generate(
+                                      paginatedData.length,
+                                      (index) {
                                         final p = paginatedData[index];
                                         return DataRow(cells: [
                                           DataCell(Text(
-                                              '${index + 1 + currentPage * rowsPerPage}')),
+                                              '${currentPage * rowsPerPage + index + 1}')),
                                           DataCell(Text(p.noFaktur)),
                                           DataCell(Text(p.namaBarang)),
                                           DataCell(Text(DateFormat('dd-MM-yyyy')
@@ -267,34 +288,34 @@ class _LaporanPenjualanScreenState extends State<LaporanPenjualanScreen> {
                                           DataCell(Text(
                                               'Rp ${NumberFormat("#,##0", "id_ID").format(p.totalHargaSetelahDisc ?? 0)}')),
                                         ]);
-                                      }),
+                                      },
                                     ),
                                   ),
                                 ),
                                 const SizedBox(height: 10),
                                 Row(
-                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    TextButton(
+                                    IconButton(
+                                      icon: const Icon(Icons.chevron_left),
                                       onPressed: currentPage > 0
                                           ? () => setState(() => currentPage--)
                                           : null,
-                                      child: const Text("Prev"),
                                     ),
-                                    Text("Halaman ${currentPage + 1}"),
-                                    TextButton(
+                                    Text('Halaman ${currentPage + 1}'),
+                                    IconButton(
+                                      icon: const Icon(Icons.chevron_right),
                                       onPressed: (currentPage + 1) *
                                                   rowsPerPage <
                                               filteredData.length
                                           ? () => setState(() => currentPage++)
                                           : null,
-                                      child: const Text("Next"),
                                     ),
                                   ],
                                 ),
                               ],
                             ),
-            ),
+            )
           ],
         ),
       ),

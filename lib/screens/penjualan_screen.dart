@@ -33,10 +33,16 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
   final TextEditingController _pelangganController = TextEditingController();
   final TextEditingController _nofakturController = TextEditingController();
   final TextEditingController _discController = TextEditingController();
+  TextEditingController _expiredController = TextEditingController();
+  final TextEditingController _doctorController = TextEditingController();
+
+  DateTime? tgexpired;
+  String kodeDoctor = ' ';
   Barang? selectedBarang;
   String totalpenjualan = '';
   String kodebarang = '';
-
+  int idstok = 0;
+  int sisaStok = 0;
   String kodepelanggan = ' ';
   String satuan = '';
   String kelompok = '';
@@ -85,12 +91,11 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
       final query = db.select(db.penjualans)
         ..where((tbl) => tbl.noFaktur.equals(newNoFaktur));
 
-      final exists = await query.getSingleOrNull();
+      final results = await query.get();
 
-      if (exists == null) {
-        break; // NoResep unik
+      if (results.isEmpty) {
+        break; // NoFaktur unik
       }
-
       counter++;
     }
 
@@ -104,19 +109,34 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
     totalharga = (hargajual * jumlahjual);
     totalhargastlhdiskon = (jualdiscon * jumlahjual);
     totaldiskon = totalharga - totalhargastlhdiskon;
+    final tanggalexpired = tgexpired;
+    final id = idstok;
+    final sisa = sisaStok;
 
     if (namabarang != '') {
-      // Ambil tanggal expired paling tua dari Penjualans berdasarkan kodeBarang
-      final expiredTertua = await (db.select(db.penjualans)
-            ..where((tbl) => tbl.kodeBarang.equals(kodebarang))
-            ..orderBy([(tbl) => OrderingTerm(expression: tbl.expired)]))
-          .map((row) => row.expired)
-          .getSingleOrNull();
-
+      if (jumlahjual != null && sisaStok != null && jumlahjual! > sisa!) {
+        await showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Text('Stok Tidak Cukup'),
+            content: Text(
+                'Stok tersedia hanya $sisaStok, tetapi jumlah jual $jumlahjual.'),
+            actions: [
+              TextButton(
+                child: Text('OK'),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ],
+          ),
+        );
+        return; // ❌ Jangan lanjut insert
+      }
       await db.insertPenjualanTmp(PenjualanstmpCompanion(
         kodeBarang: Value(kodebarang),
         namaBarang: Value(_barangController.text),
-        expired: Value(expiredTertua ?? DateTime.now()), // fallback jika kosong
+        idStok: Value(id),
+        expired:
+            Value(tanggalexpired ?? DateTime.now()), // fallback jika kosong
         kelompok: Value(kelompok),
         satuan: Value(satuan),
         hargaBeli: Value(hargabeli),
@@ -131,7 +151,9 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
 
     _barangController.clear();
     _discController.clear();
+    tgexpired = null;
     _jumlahbarangController.clear();
+    _expiredController.clear;
     _loadPenjualan();
   }
 
@@ -146,6 +168,9 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
 
     // Reset form input
     _loadPenjualan();
+    _doctorController.clear();
+    kodeDoctor = '';
+    kodepelanggan = '';
     _pelangganController.clear();
   }
 
@@ -172,6 +197,199 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
     }
   }
 
+  Future<void> _showForm({PenjualanstmpData? penjualanstmp}) async {
+    final formKey = GlobalKey<FormState>();
+    final kodebarangCtrl =
+        TextEditingController(text: penjualanstmp?.kodeBarang ?? '');
+    final namabarangCtrl =
+        TextEditingController(text: penjualanstmp?.namaBarang ?? '');
+    final expiredCtrl =
+        TextEditingController(text: penjualanstmp?.expired?.toString() ?? '');
+
+    final jualdiscCtrl = TextEditingController(
+        text: penjualanstmp?.jualDiscon?.toString() ?? '');
+    final jumlahCtrl =
+        TextEditingController(text: penjualanstmp?.jumlahJual.toString() ?? '');
+
+    DateTime? expiredtanggal;
+    Barang? pilihBarang = await db.getBarangByKode(kodebarangCtrl.text);
+    int idstokupdate = 0;
+    int sisaStokupdate = 0;
+
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text(
+            PenjualanScreen == null ? 'Tambah Penjualan' : 'Edit Penjualan'),
+        content: SizedBox(
+          width: 400,
+          child: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: kodebarangCtrl,
+                  decoration: InputDecoration(labelText: 'Kode barang'),
+                  readOnly: true,
+                ),
+                TextFormField(
+                  controller: namabarangCtrl,
+                  decoration: InputDecoration(labelText: 'Nama '),
+                  readOnly: true,
+                ),
+                TypeAheadFormField<Stok>(
+                  textFieldConfiguration: TextFieldConfiguration(
+                    decoration: InputDecoration(
+                      contentPadding: EdgeInsets.all(5),
+                      labelText: 'Expired',
+                    ),
+                    controller: expiredCtrl,
+                  ),
+                  suggestionsCallback: (pattern) async {
+                    if (kodebarangCtrl.text == null ||
+                        kodebarangCtrl.text.isEmpty) return [];
+
+                    // Ambil stok berdasarkan kodeBarang dengan expired lebih besar dari sekarang
+                    return await db
+                        .getStokListByKodeBarang(kodebarangCtrl.text);
+                  },
+                  itemBuilder: (context, Stok suggestion) {
+                    return ListTile(
+                      title: Text(
+                          DateFormat('dd-MM-yyyy').format(suggestion.expired)),
+                      subtitle: Text('Stok tersedia: ${suggestion.stok ?? 0}'),
+                    );
+                  },
+                  onSuggestionSelected: (Stok suggestion) {
+                    expiredCtrl.text =
+                        DateFormat('dd-MM-yyyy').format(suggestion.expired);
+
+                    idstokupdate = suggestion.idStok;
+                    sisaStokupdate = suggestion.stok ?? 0;
+                    expiredtanggal = suggestion.expired;
+
+                    setState(() {});
+                  },
+                ),
+                TypeAheadFormField<Map<String, dynamic>>(
+                  textFieldConfiguration: TextFieldConfiguration(
+                    controller: jualdiscCtrl,
+                    decoration: InputDecoration(
+                      contentPadding: EdgeInsets.all(5),
+                      labelText: 'Jual Diskon',
+                    ),
+                  ),
+                  suggestionsCallback: (pattern) {
+                    if (pilihBarang == null) return [];
+
+                    final discs = <Map<String, dynamic>>[];
+
+                    if (pilihBarang!.jualDisc1 != null &&
+                        pilihBarang!.jualDisc1 != 0) {
+                      discs.add({
+                        'label': 'Diskon 1',
+                        'value': pilihBarang!.jualDisc1
+                      });
+                    }
+                    if (pilihBarang!.jualDisc2 != null &&
+                        pilihBarang!.jualDisc2 != 0) {
+                      discs.add({
+                        'label': 'Diskon 2',
+                        'value': pilihBarang!.jualDisc2
+                      });
+                    }
+                    if (pilihBarang!.jualDisc3 != null &&
+                        pilihBarang!.jualDisc3 != 0) {
+                      discs.add({
+                        'label': 'Diskon 3',
+                        'value': pilihBarang!.jualDisc3
+                      });
+                    }
+                    if (pilihBarang!.jualDisc4 != null &&
+                        pilihBarang!.jualDisc4 != 0) {
+                      discs.add({
+                        'label': 'Diskon 4',
+                        'value': pilihBarang!.jualDisc4
+                      });
+                    }
+
+                    return discs
+                        .where((d) => d['value'].toString().contains(pattern));
+                  },
+                  itemBuilder: (context, suggestion) {
+                    return ListTile(
+                      title: Text(suggestion['value'].toString()),
+                      subtitle: Text(suggestion['label']),
+                    );
+                  },
+                  onSuggestionSelected: (suggestion) {
+                    jualdiscCtrl.text = suggestion['value'].toString();
+                  },
+                  noItemsFoundBuilder: (context) =>
+                      Text('Diskon tidak tersedia'),
+                ),
+                TextFormField(
+                  controller: jumlahCtrl,
+                  decoration: InputDecoration(labelText: 'Jumlah jual'),
+                  validator: (value) => value == null || value.isEmpty
+                      ? 'Wajib diisi tidak boleh kosong'
+                      : null,
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (formKey.currentState!.validate()) {
+                if (penjualanstmp != null) {
+                  int jumlah = int.tryParse(jumlahCtrl.text) ?? 0;
+                  if (jumlah != null &&
+                      sisaStokupdate != null &&
+                      jumlah! > sisaStokupdate!) {
+                    await showDialog(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: Text('Stok Tidak Cukup'),
+                        content: Text(
+                            'Stok tersedia hanya $sisaStokupdate, tetapi jumlah jual $jumlah.'),
+                        actions: [
+                          TextButton(
+                            child: Text('OK'),
+                            onPressed: () => Navigator.of(context).pop(),
+                          ),
+                        ],
+                      ),
+                    );
+                    return; // ❌ Jangan lanjut insert
+                  }
+                  await db.updatePenjualanTmp(
+                    penjualanstmp.copyWith(
+                        kodeBarang: kodebarangCtrl.text,
+                        namaBarang: namabarangCtrl.text,
+                        idStok: Value(idstokupdate),
+                        expired: Value(expiredtanggal),
+                        jualDiscon: Value(int.tryParse(jualdiscCtrl.text)),
+                        jumlahJual: Value(int.tryParse(jumlahCtrl.text))),
+                  );
+                }
+                if (context.mounted) Navigator.pop(context);
+                await _loadPenjualan();
+              }
+            },
+            child: const Text('Simpan'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> prosesSimpan() async {
     final nofaktur = _nofakturController.text;
     final kdpelanggan = kodepelanggan;
@@ -179,6 +397,9 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
         ? 'umum'
         : _pelangganController.text.trim();
     final tanggalpenjualan = tanggaljual;
+    final namadoctor =
+        _doctorController.text.isEmpty ? ' ' : _doctorController.text;
+    final kddoctor = kodeDoctor;
 
     if (nofaktur.isEmpty || tanggalpenjualan == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -205,10 +426,12 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
                 noFaktur: Value(nofaktur),
                 kodePelanggan: Value(kdpelanggan),
                 namaPelanggan: Value(namapelanggan),
+                kodeDoctor: Value(kddoctor),
+                namaDoctor: Value(namadoctor),
                 tanggalPenjualan: Value(tanggalpenjualan),
                 kodeBarang: Value(item.kodeBarang),
                 namaBarang: Value(item.namaBarang),
-                expired: Value(item.expired),
+                expired: Value(item.expired!),
                 kelompok: Value(item.kelompok),
                 satuan: Value(item.satuan),
                 hargaBeli: Value(item.hargaBeli),
@@ -233,6 +456,19 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
             item.kodeBarang,
           ],
         );
+
+        batch.customStatement(
+          '''
+    UPDATE stoks
+    SET stok = stok - ?
+    WHERE id_stok = ? AND stok >= ?
+    ''',
+          [
+            item.jumlahJual!,
+            item.idStok,
+            item.jumlahJual!,
+          ],
+        );
       }
     });
 
@@ -241,7 +477,10 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
 
     // Reset form input
     _pelangganController.clear();
-    kodepelanggan = '';
+    kodepelanggan = ' ';
+    _pelangganController.clear();
+    _doctorController.clear();
+    kodeDoctor = ' ';
     tanggaljual = DateTime.now();
 
     // Refresh tampilan
@@ -414,10 +653,41 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
                 Row(children: [
                   Checkbox(
                     value: iscekresep,
-                    onChanged: (bool? newvalue) {
+                    onChanged: (bool? newvalue) async {
                       setState(() {
                         iscekresep = newvalue ?? false;
                       });
+
+                      if (iscekresep && kodepelanggan.isNotEmpty) {
+                        // Ambil resep dari DB
+                        final resepList =
+                            await db.getResepByKodePelanggan(kodepelanggan);
+
+                        // Masukkan ke Penjualanstmp
+                        for (final resep in resepList) {
+                          await db.insertPenjualanTmp(PenjualanstmpCompanion(
+                            kodeBarang: Value(resep.kodeBarang),
+                            namaBarang: Value(resep
+                                .namaBarang), // Gunakan expired default sementara
+                            kelompok: Value(resep.kelompok),
+                            satuan: Value(resep.satuan),
+                            hargaBeli: Value(resep.hargaBeli),
+                            hargaJual: Value(resep.hargaJual),
+                            jualDiscon: Value(resep.jualDiscon),
+                            jumlahJual: Value(resep.jumlahJual),
+                            totalHargaSebelumDisc:
+                                Value(resep.totalHargaSebelumDisc),
+                            totalHargaSetelahDisc:
+                                Value(resep.totalHargaSetelahDisc),
+                            totalDisc: Value(resep.totalDisc),
+                          ));
+                          _doctorController.text = resep.namaDoctor;
+                          kodeDoctor = resep.kodeDoctor!;
+                        }
+                        // Trigger UI refresh jika perlu
+                        _loadPenjualan(); // Refresh data
+                        setState(() {});
+                      }
                     },
                   ),
                   const Text('Resep'),
@@ -425,12 +695,35 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
                 SizedBox(
                   height: 35,
                   width: 200,
-                  child: TextFormField(
-                    decoration: InputDecoration(
-                      contentPadding: EdgeInsets.all(5),
-                      border: OutlineInputBorder(),
-                      labelText: 'Dokter',
-                    ),
+                  child: TypeAheadField<Doctor>(
+                    textFieldConfiguration: TextFieldConfiguration(
+                        decoration: InputDecoration(
+                          contentPadding: EdgeInsets.all(5),
+                          border: OutlineInputBorder(),
+                          labelText: 'Kode/Nama Dokter',
+                        ),
+                        controller: _doctorController,
+                        onChanged: (value) {
+                          if (value.trim().isEmpty) {
+                            kodeDoctor = '';
+                            // Kalau perlu trigger UI refresh
+                            setState(() {});
+                          }
+                        }),
+                    suggestionsCallback: (pattern) async {
+                      return await db.searcDoctor(
+                          pattern); // db adalah instance AppDatabase
+                    },
+                    itemBuilder: (context, Doctor suggestion) {
+                      return ListTile(
+                        title: Text(suggestion.namaDoctor),
+                        subtitle: Text('Kode: ${suggestion.kodeDoctor}'),
+                      );
+                    },
+                    onSuggestionSelected: (Doctor suggestion) {
+                      _doctorController.text = suggestion.namaDoctor;
+                      kodeDoctor = suggestion.kodeDoctor;
+                    },
                   ),
                 ),
               ],
@@ -469,6 +762,60 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
                       hargabeli = suggestion.hargaBeli;
                       hargajual = suggestion.hargaJual;
                       selectedBarang = await db.getBarangByKode(kodebarang);
+                      // Ambil expired paling tua
+                      final expiredList =
+                          await db.getExpiredListByKodeBarang(kodebarang!);
+                      if (expiredList.isNotEmpty) {
+                        idstok = expiredList.first.idStok;
+                        sisaStok = expiredList.first.stok ?? 0;
+                        tgexpired = expiredList.first.expired;
+                        _expiredController.text =
+                            DateFormat('dd-MM-yyyy').format(tgexpired!);
+                      } else {
+                        tgexpired = null;
+                        _expiredController.clear();
+                      }
+
+                      setState(() {});
+                    },
+                  ),
+                ),
+                SizedBox(width: 15),
+                SizedBox(
+                  height: 35,
+                  width: 150,
+                  child: TypeAheadFormField<Stok>(
+                    textFieldConfiguration: TextFieldConfiguration(
+                      decoration: InputDecoration(
+                        contentPadding: EdgeInsets.all(5),
+                        border: OutlineInputBorder(),
+                        labelText: 'Expired',
+                      ),
+                      controller: _expiredController,
+                    ),
+                    suggestionsCallback: (pattern) async {
+                      if (kodebarang == null || kodebarang!.isEmpty) return [];
+
+                      // Ambil stok berdasarkan kodeBarang dengan expired lebih besar dari sekarang
+                      return await db.getStokListByKodeBarang(kodebarang);
+                    },
+                    itemBuilder: (context, Stok suggestion) {
+                      return ListTile(
+                        title: Text(DateFormat('dd-MM-yyyy')
+                            .format(suggestion.expired)),
+                        subtitle:
+                            Text('Stok tersedia: ${suggestion.stok ?? 0}'),
+                      );
+                    },
+                    onSuggestionSelected: (Stok suggestion) {
+                      _expiredController.text =
+                          DateFormat('dd-MM-yyyy').format(suggestion.expired);
+
+                      // Ambil seluruh data stok
+                      tgexpired = suggestion.expired;
+                      idstok = suggestion.idStok;
+                      sisaStok = suggestion.stok ?? 0;
+
                       setState(() {});
                     },
                   ),
@@ -489,14 +836,14 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
                 SizedBox(width: 15),
                 SizedBox(
                   height: 35,
-                  width: 250,
+                  width: 150,
                   child: TypeAheadFormField<Map<String, dynamic>>(
                     textFieldConfiguration: TextFieldConfiguration(
                       controller: _discController,
                       decoration: InputDecoration(
                         contentPadding: EdgeInsets.all(5),
                         border: OutlineInputBorder(),
-                        labelText: 'Pilih Diskon',
+                        labelText: 'Jual Diskon',
                       ),
                     ),
                     suggestionsCallback: (pattern) {
@@ -504,25 +851,29 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
 
                       final discs = <Map<String, dynamic>>[];
 
-                      if (selectedBarang!.jualDisc1 != null) {
+                      if (selectedBarang!.jualDisc1 != null &&
+                          selectedBarang!.jualDisc1 != 0) {
                         discs.add({
                           'label': 'Diskon 1',
                           'value': selectedBarang!.jualDisc1
                         });
                       }
-                      if (selectedBarang!.jualDisc2 != null) {
+                      if (selectedBarang!.jualDisc2 != null &&
+                          selectedBarang!.jualDisc2 != 0) {
                         discs.add({
                           'label': 'Diskon 2',
                           'value': selectedBarang!.jualDisc2
                         });
                       }
-                      if (selectedBarang!.jualDisc3 != null) {
+                      if (selectedBarang!.jualDisc3 != null &&
+                          selectedBarang!.jualDisc3 != 0) {
                         discs.add({
                           'label': 'Diskon 3',
                           'value': selectedBarang!.jualDisc3
                         });
                       }
-                      if (selectedBarang!.jualDisc4 != null) {
+                      if (selectedBarang!.jualDisc4 != null &&
+                          selectedBarang!.jualDisc4 != 0) {
                         discs.add({
                           'label': 'Diskon 4',
                           'value': selectedBarang!.jualDisc4
@@ -590,8 +941,9 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
                           DataCell(Text(p.namaBarang)),
                           DataCell(Text(p.kelompok)),
                           DataCell(Text(p.satuan)),
-                          DataCell(Text(formatDate(
-                              DateTime.parse(p.expired.toString())))),
+                          DataCell(Text(p.expired != null
+                              ? formatDate(DateTime.parse(p.expired.toString()))
+                              : '')),
                           DataCell(Text(p.hargaJual.toString())),
                           DataCell(Text((p.jualDiscon ?? 0).toString())),
                           DataCell(Text((p.jumlahJual ?? 0).toString())),
@@ -606,7 +958,7 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
                                 tooltip: 'Edit Data',
                                 icon:
                                     const Icon(Icons.edit, color: Colors.blue),
-                                onPressed: () => (data: p),
+                                onPressed: () => _showForm(penjualanstmp: p),
                               ),
                               IconButton(
                                 tooltip: 'Hapus Data',

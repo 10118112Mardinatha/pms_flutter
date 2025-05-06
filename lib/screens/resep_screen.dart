@@ -88,12 +88,11 @@ class _ResepScreenState extends State<ResepScreen> {
       final query = db.select(db.reseps)
         ..where((tbl) => tbl.noResep.equals(newNoResep));
 
-      final exists = await query.getSingleOrNull();
+      final results = await query.get();
 
-      if (exists == null) {
-        break; // NoResep unik
+      if (results.isEmpty) {
+        break; // NoFaktur unik
       }
-
       counter++;
     }
 
@@ -393,6 +392,10 @@ class _ResepScreenState extends State<ResepScreen> {
                     onSuggestionSelected: (Pelanggan suggestion) {
                       _pelangganController.text = suggestion.namaPelanggan;
                       kodePelanggan = suggestion.kodPelanggan;
+                      _alamatController.text = suggestion.alamat!;
+                      _umurController.text = suggestion.usia.toString();
+                      _kelompokController.text = suggestion.kelompok!;
+                      _noHpController.text = suggestion.telepon.toString();
                     },
                   ),
                 ),
@@ -544,25 +547,29 @@ class _ResepScreenState extends State<ResepScreen> {
 
                       final discs = <Map<String, dynamic>>[];
 
-                      if (selectedBarang!.jualDisc1 != null) {
+                      if (selectedBarang!.jualDisc1 != null &&
+                          selectedBarang!.jualDisc1 != 0) {
                         discs.add({
                           'label': 'Diskon 1',
                           'value': selectedBarang!.jualDisc1
                         });
                       }
-                      if (selectedBarang!.jualDisc2 != null) {
+                      if (selectedBarang!.jualDisc2 != null &&
+                          selectedBarang!.jualDisc2 != 0) {
                         discs.add({
                           'label': 'Diskon 2',
                           'value': selectedBarang!.jualDisc2
                         });
                       }
-                      if (selectedBarang!.jualDisc3 != null) {
+                      if (selectedBarang!.jualDisc3 != null &&
+                          selectedBarang!.jualDisc3 != 0) {
                         discs.add({
                           'label': 'Diskon 3',
                           'value': selectedBarang!.jualDisc3
                         });
                       }
-                      if (selectedBarang!.jualDisc4 != null) {
+                      if (selectedBarang!.jualDisc4 != null &&
+                          selectedBarang!.jualDisc4 != 0) {
                         discs.add({
                           'label': 'Diskon 4',
                           'value': selectedBarang!.jualDisc4

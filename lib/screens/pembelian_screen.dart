@@ -94,10 +94,10 @@ class _PembelianScreenState extends State<PembelianScreen> {
       final query = db.select(db.pembelians)
         ..where((tbl) => tbl.noFaktur.equals(newNoFaktur));
 
-      final exists = await query.getSingleOrNull();
+      final results = await query.get();
 
-      if (exists == null) {
-        break; // NoResep unik
+      if (results.isEmpty) {
+        break; // NoFaktur unik
       }
 
       counter++;
@@ -171,6 +171,23 @@ class _PembelianScreenState extends State<PembelianScreen> {
                   jumlahBeli: Value(item.jumlahBeli),
                   totalHarga: Value(item.totalHarga),
                 ))
+            .toList(),
+      );
+
+      batch.insertAll(
+        db.stoks,
+        items
+            .map((item) => StoksCompanion(
+                noFaktur: Value(noFaktur),
+                kodeSupplier: Value(kodeSupplier),
+                namaSuppliers: Value(namaSupplier),
+                kodeBarang: Value(item.kodeBarang),
+                namaBarang: Value(item.namaBarang),
+                tanggalBeli: Value(tanggal),
+                expired: Value(item.expired),
+                kelompok: Value(item.kelompok),
+                satuan: Value(item.satuan),
+                stok: Value(item.jumlahBeli)))
             .toList(),
       );
       for (final item in items) {
@@ -703,8 +720,8 @@ class _PembelianScreenState extends State<PembelianScreen> {
                 final expiredDate = DateTime.tryParse(expiredCtrl.text);
                 if (expiredDate == null) return;
                 if (data == null) {
-                  final existingBarang =
-                      await db.getBarangByKode(kodeBarangCtrl.text);
+                  final existingBarang = await db.getBarangByKodeDanNama(
+                      kodeBarangCtrl.text, _barangController.text);
 
                   if (existingBarang == null) {
                     final shouldInsert = await showDialog<bool>(
@@ -759,6 +776,8 @@ class _PembelianScreenState extends State<PembelianScreen> {
 
                       // ✅ Gunakan kode yang digenerate juga untuk pembelianstmp
                       kodeBarangCtrl.text = generatedKode;
+                    } else {
+                      return;
                     }
                   }
                   //Masuk tabel sementara
