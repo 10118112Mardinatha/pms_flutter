@@ -204,15 +204,12 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
         TextEditingController(text: penjualanstmp?.kodeBarang ?? '');
     final namabarangCtrl =
         TextEditingController(text: penjualanstmp?.namaBarang ?? '');
-    final expiredCtrl =
-        TextEditingController(text: penjualanstmp?.expired?.toString() ?? '');
 
     final jualdiscCtrl = TextEditingController(
         text: penjualanstmp?.jualDiscon?.toString() ?? '');
     final jumlahCtrl =
         TextEditingController(text: penjualanstmp?.jumlahJual.toString() ?? '');
 
-    DateTime? expiredtanggal;
     Barang? pilihBarang = await db.getBarangByKode(kodebarangCtrl.text);
     int idstokupdate = 0;
     int sisaStokupdate = 0;
@@ -238,40 +235,6 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
                   controller: namabarangCtrl,
                   decoration: InputDecoration(labelText: 'Nama '),
                   readOnly: true,
-                ),
-                TypeAheadFormField<Stok>(
-                  textFieldConfiguration: TextFieldConfiguration(
-                    decoration: InputDecoration(
-                      contentPadding: EdgeInsets.all(5),
-                      labelText: 'Expired',
-                    ),
-                    controller: expiredCtrl,
-                  ),
-                  suggestionsCallback: (pattern) async {
-                    if (kodebarangCtrl.text == null ||
-                        kodebarangCtrl.text.isEmpty) return [];
-
-                    // Ambil stok berdasarkan kodeBarang dengan expired lebih besar dari sekarang
-                    return await db
-                        .getStokListByKodeBarang(kodebarangCtrl.text);
-                  },
-                  itemBuilder: (context, Stok suggestion) {
-                    return ListTile(
-                      title: Text(
-                          DateFormat('dd-MM-yyyy').format(suggestion.expired)),
-                      subtitle: Text('Stok tersedia: ${suggestion.stok ?? 0}'),
-                    );
-                  },
-                  onSuggestionSelected: (Stok suggestion) {
-                    expiredCtrl.text =
-                        DateFormat('dd-MM-yyyy').format(suggestion.expired);
-
-                    idstokupdate = suggestion.idStok;
-                    sisaStokupdate = suggestion.stok ?? 0;
-                    expiredtanggal = suggestion.expired;
-
-                    setState(() {});
-                  },
                 ),
                 TypeAheadFormField<Map<String, dynamic>>(
                   textFieldConfiguration: TextFieldConfiguration(
@@ -350,7 +313,7 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
             onPressed: () async {
               if (formKey.currentState!.validate()) {
                 if (penjualanstmp != null) {
-                  int jumlah = int.tryParse(jumlahCtrl.text) ?? 0;
+                  int jumlah = pilihBarang?.stokAktual ?? 0;
                   if (jumlah != null &&
                       sisaStokupdate != null &&
                       jumlah! > sisaStokupdate!) {
@@ -375,7 +338,6 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
                         kodeBarang: kodebarangCtrl.text,
                         namaBarang: namabarangCtrl.text,
                         idStok: Value(idstokupdate),
-                        expired: Value(expiredtanggal),
                         jualDiscon: Value(int.tryParse(jualdiscCtrl.text)),
                         jumlahJual: Value(int.tryParse(jumlahCtrl.text))),
                   );
@@ -455,19 +417,6 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
           [
             item.jumlahJual ?? 0,
             item.kodeBarang,
-          ],
-        );
-
-        batch.customStatement(
-          '''
-    UPDATE stoks
-    SET stok = stok - ?
-    WHERE id_stok = ? AND stok >= ?
-    ''',
-          [
-            item.jumlahJual!,
-            item.idStok,
-            item.jumlahJual!,
           ],
         );
       }
@@ -761,62 +710,11 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
                       kodebarang = suggestion.kodeBarang;
                       kelompok = suggestion.kelompok;
                       satuan = suggestion.satuan;
+                      sisaStok = suggestion.stokAktual;
                       hargabeli = suggestion.hargaBeli;
                       hargajual = suggestion.hargaJual;
                       selectedBarang = await db.getBarangByKode(kodebarang);
                       // Ambil expired paling tua
-                      final expiredList =
-                          await db.getExpiredListByKodeBarang(kodebarang!);
-                      if (expiredList.isNotEmpty) {
-                        idstok = expiredList.first.idStok;
-                        sisaStok = expiredList.first.stok ?? 0;
-                        tgexpired = expiredList.first.expired;
-                        _expiredController.text =
-                            DateFormat('dd-MM-yyyy').format(tgexpired!);
-                      } else {
-                        tgexpired = null;
-                        _expiredController.clear();
-                      }
-
-                      setState(() {});
-                    },
-                  ),
-                ),
-                SizedBox(width: 15),
-                SizedBox(
-                  height: 35,
-                  width: 150,
-                  child: TypeAheadFormField<Stok>(
-                    textFieldConfiguration: TextFieldConfiguration(
-                      decoration: InputDecoration(
-                        contentPadding: EdgeInsets.all(5),
-                        border: OutlineInputBorder(),
-                        labelText: 'Expired',
-                      ),
-                      controller: _expiredController,
-                    ),
-                    suggestionsCallback: (pattern) async {
-                      if (kodebarang == null || kodebarang!.isEmpty) return [];
-
-                      // Ambil stok berdasarkan kodeBarang dengan expired lebih besar dari sekarang
-                      return await db.getStokListByKodeBarang(kodebarang);
-                    },
-                    itemBuilder: (context, Stok suggestion) {
-                      return ListTile(
-                        title: Text(DateFormat('dd-MM-yyyy')
-                            .format(suggestion.expired)),
-                        subtitle:
-                            Text('Stok tersedia: ${suggestion.stok ?? 0}'),
-                      );
-                    },
-                    onSuggestionSelected: (Stok suggestion) {
-                      _expiredController.text =
-                          DateFormat('dd-MM-yyyy').format(suggestion.expired);
-
-                      // Ambil seluruh data stok
-                      tgexpired = suggestion.expired;
-                      idstok = suggestion.idStok;
-                      sisaStok = suggestion.stok ?? 0;
 
                       setState(() {});
                     },
@@ -927,7 +825,6 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
                       DataColumn(label: Text('Nama')),
                       DataColumn(label: Text('Kelompok')),
                       DataColumn(label: Text('Satuan')),
-                      DataColumn(label: Text('Expired')),
                       DataColumn(label: Text('Harga Jual')),
                       DataColumn(label: Text('Jual Disc')),
                       DataColumn(label: Text('Jumlah')),
@@ -943,9 +840,6 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
                           DataCell(Text(p.namaBarang)),
                           DataCell(Text(p.kelompok)),
                           DataCell(Text(p.satuan)),
-                          DataCell(Text(p.expired != null
-                              ? formatDate(DateTime.parse(p.expired.toString()))
-                              : '')),
                           DataCell(Text(formatCurrency.format(p.hargaJual))),
                           DataCell(Text(formatCurrency.format(p.jualDiscon))),
                           DataCell(Text((p.jumlahJual ?? 0).toString())),

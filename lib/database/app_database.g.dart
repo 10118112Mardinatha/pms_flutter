@@ -1764,8 +1764,8 @@ class $PenjualansTable extends Penjualans
       const VerificationMeta('expired');
   @override
   late final GeneratedColumn<DateTime> expired = GeneratedColumn<DateTime>(
-      'expired', aliasedName, false,
-      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+      'expired', aliasedName, true,
+      type: DriftSqlType.dateTime, requiredDuringInsert: false);
   static const VerificationMeta _kelompokMeta =
       const VerificationMeta('kelompok');
   @override
@@ -1923,8 +1923,6 @@ class $PenjualansTable extends Penjualans
     if (data.containsKey('expired')) {
       context.handle(_expiredMeta,
           expired.isAcceptableOrUnknown(data['expired']!, _expiredMeta));
-    } else if (isInserting) {
-      context.missing(_expiredMeta);
     }
     if (data.containsKey('kelompok')) {
       context.handle(_kelompokMeta,
@@ -2002,7 +2000,7 @@ class $PenjualansTable extends Penjualans
       namaBarang: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}nama_barang'])!,
       expired: attachedDatabase.typeMapping
-          .read(DriftSqlType.dateTime, data['${effectivePrefix}expired'])!,
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}expired']),
       kelompok: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}kelompok'])!,
       satuan: attachedDatabase.typeMapping
@@ -2040,7 +2038,7 @@ class Penjualan extends DataClass implements Insertable<Penjualan> {
   final DateTime tanggalPenjualan;
   final String kodeBarang;
   final String namaBarang;
-  final DateTime expired;
+  final DateTime? expired;
   final String kelompok;
   final String satuan;
   final int hargaBeli;
@@ -2060,7 +2058,7 @@ class Penjualan extends DataClass implements Insertable<Penjualan> {
       required this.tanggalPenjualan,
       required this.kodeBarang,
       required this.namaBarang,
-      required this.expired,
+      this.expired,
       required this.kelompok,
       required this.satuan,
       required this.hargaBeli,
@@ -2082,7 +2080,9 @@ class Penjualan extends DataClass implements Insertable<Penjualan> {
     map['tanggal_penjualan'] = Variable<DateTime>(tanggalPenjualan);
     map['kode_barang'] = Variable<String>(kodeBarang);
     map['nama_barang'] = Variable<String>(namaBarang);
-    map['expired'] = Variable<DateTime>(expired);
+    if (!nullToAbsent || expired != null) {
+      map['expired'] = Variable<DateTime>(expired);
+    }
     map['kelompok'] = Variable<String>(kelompok);
     map['satuan'] = Variable<String>(satuan);
     map['harga_beli'] = Variable<int>(hargaBeli);
@@ -2116,7 +2116,9 @@ class Penjualan extends DataClass implements Insertable<Penjualan> {
       tanggalPenjualan: Value(tanggalPenjualan),
       kodeBarang: Value(kodeBarang),
       namaBarang: Value(namaBarang),
-      expired: Value(expired),
+      expired: expired == null && nullToAbsent
+          ? const Value.absent()
+          : Value(expired),
       kelompok: Value(kelompok),
       satuan: Value(satuan),
       hargaBeli: Value(hargaBeli),
@@ -2152,7 +2154,7 @@ class Penjualan extends DataClass implements Insertable<Penjualan> {
       tanggalPenjualan: serializer.fromJson<DateTime>(json['tanggalPenjualan']),
       kodeBarang: serializer.fromJson<String>(json['kodeBarang']),
       namaBarang: serializer.fromJson<String>(json['namaBarang']),
-      expired: serializer.fromJson<DateTime>(json['expired']),
+      expired: serializer.fromJson<DateTime?>(json['expired']),
       kelompok: serializer.fromJson<String>(json['kelompok']),
       satuan: serializer.fromJson<String>(json['satuan']),
       hargaBeli: serializer.fromJson<int>(json['hargaBeli']),
@@ -2179,7 +2181,7 @@ class Penjualan extends DataClass implements Insertable<Penjualan> {
       'tanggalPenjualan': serializer.toJson<DateTime>(tanggalPenjualan),
       'kodeBarang': serializer.toJson<String>(kodeBarang),
       'namaBarang': serializer.toJson<String>(namaBarang),
-      'expired': serializer.toJson<DateTime>(expired),
+      'expired': serializer.toJson<DateTime?>(expired),
       'kelompok': serializer.toJson<String>(kelompok),
       'satuan': serializer.toJson<String>(satuan),
       'hargaBeli': serializer.toJson<int>(hargaBeli),
@@ -2202,7 +2204,7 @@ class Penjualan extends DataClass implements Insertable<Penjualan> {
           DateTime? tanggalPenjualan,
           String? kodeBarang,
           String? namaBarang,
-          DateTime? expired,
+          Value<DateTime?> expired = const Value.absent(),
           String? kelompok,
           String? satuan,
           int? hargaBeli,
@@ -2222,7 +2224,7 @@ class Penjualan extends DataClass implements Insertable<Penjualan> {
         tanggalPenjualan: tanggalPenjualan ?? this.tanggalPenjualan,
         kodeBarang: kodeBarang ?? this.kodeBarang,
         namaBarang: namaBarang ?? this.namaBarang,
-        expired: expired ?? this.expired,
+        expired: expired.present ? expired.value : this.expired,
         kelompok: kelompok ?? this.kelompok,
         satuan: satuan ?? this.satuan,
         hargaBeli: hargaBeli ?? this.hargaBeli,
@@ -2359,7 +2361,7 @@ class PenjualansCompanion extends UpdateCompanion<Penjualan> {
   final Value<DateTime> tanggalPenjualan;
   final Value<String> kodeBarang;
   final Value<String> namaBarang;
-  final Value<DateTime> expired;
+  final Value<DateTime?> expired;
   final Value<String> kelompok;
   final Value<String> satuan;
   final Value<int> hargaBeli;
@@ -2400,7 +2402,7 @@ class PenjualansCompanion extends UpdateCompanion<Penjualan> {
     required DateTime tanggalPenjualan,
     required String kodeBarang,
     required String namaBarang,
-    required DateTime expired,
+    this.expired = const Value.absent(),
     required String kelompok,
     required String satuan,
     this.hargaBeli = const Value.absent(),
@@ -2418,7 +2420,6 @@ class PenjualansCompanion extends UpdateCompanion<Penjualan> {
         tanggalPenjualan = Value(tanggalPenjualan),
         kodeBarang = Value(kodeBarang),
         namaBarang = Value(namaBarang),
-        expired = Value(expired),
         kelompok = Value(kelompok),
         satuan = Value(satuan);
   static Insertable<Penjualan> custom({
@@ -2477,7 +2478,7 @@ class PenjualansCompanion extends UpdateCompanion<Penjualan> {
       Value<DateTime>? tanggalPenjualan,
       Value<String>? kodeBarang,
       Value<String>? namaBarang,
-      Value<DateTime>? expired,
+      Value<DateTime?>? expired,
       Value<String>? kelompok,
       Value<String>? satuan,
       Value<int>? hargaBeli,
@@ -3363,8 +3364,8 @@ class $PembeliansTable extends Pembelians
       const VerificationMeta('expired');
   @override
   late final GeneratedColumn<DateTime> expired = GeneratedColumn<DateTime>(
-      'expired', aliasedName, false,
-      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+      'expired', aliasedName, true,
+      type: DriftSqlType.dateTime, requiredDuringInsert: false);
   static const VerificationMeta _kelompokMeta =
       const VerificationMeta('kelompok');
   @override
@@ -3517,8 +3518,6 @@ class $PembeliansTable extends Pembelians
     if (data.containsKey('expired')) {
       context.handle(_expiredMeta,
           expired.isAcceptableOrUnknown(data['expired']!, _expiredMeta));
-    } else if (isInserting) {
-      context.missing(_expiredMeta);
     }
     if (data.containsKey('kelompok')) {
       context.handle(_kelompokMeta,
@@ -3596,7 +3595,7 @@ class $PembeliansTable extends Pembelians
       tanggalBeli: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}tanggal_beli'])!,
       expired: attachedDatabase.typeMapping
-          .read(DriftSqlType.dateTime, data['${effectivePrefix}expired'])!,
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}expired']),
       kelompok: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}kelompok'])!,
       satuan: attachedDatabase.typeMapping
@@ -3636,7 +3635,7 @@ class Pembelian extends DataClass implements Insertable<Pembelian> {
   final String kodeBarang;
   final String namaBarang;
   final DateTime tanggalBeli;
-  final DateTime expired;
+  final DateTime? expired;
   final String kelompok;
   final String satuan;
   final int hargaBeli;
@@ -3656,7 +3655,7 @@ class Pembelian extends DataClass implements Insertable<Pembelian> {
       required this.kodeBarang,
       required this.namaBarang,
       required this.tanggalBeli,
-      required this.expired,
+      this.expired,
       required this.kelompok,
       required this.satuan,
       required this.hargaBeli,
@@ -3678,7 +3677,9 @@ class Pembelian extends DataClass implements Insertable<Pembelian> {
     map['kode_barang'] = Variable<String>(kodeBarang);
     map['nama_barang'] = Variable<String>(namaBarang);
     map['tanggal_beli'] = Variable<DateTime>(tanggalBeli);
-    map['expired'] = Variable<DateTime>(expired);
+    if (!nullToAbsent || expired != null) {
+      map['expired'] = Variable<DateTime>(expired);
+    }
     map['kelompok'] = Variable<String>(kelompok);
     map['satuan'] = Variable<String>(satuan);
     map['harga_beli'] = Variable<int>(hargaBeli);
@@ -3716,7 +3717,9 @@ class Pembelian extends DataClass implements Insertable<Pembelian> {
       kodeBarang: Value(kodeBarang),
       namaBarang: Value(namaBarang),
       tanggalBeli: Value(tanggalBeli),
-      expired: Value(expired),
+      expired: expired == null && nullToAbsent
+          ? const Value.absent()
+          : Value(expired),
       kelompok: Value(kelompok),
       satuan: Value(satuan),
       hargaBeli: Value(hargaBeli),
@@ -3754,7 +3757,7 @@ class Pembelian extends DataClass implements Insertable<Pembelian> {
       kodeBarang: serializer.fromJson<String>(json['kodeBarang']),
       namaBarang: serializer.fromJson<String>(json['namaBarang']),
       tanggalBeli: serializer.fromJson<DateTime>(json['tanggalBeli']),
-      expired: serializer.fromJson<DateTime>(json['expired']),
+      expired: serializer.fromJson<DateTime?>(json['expired']),
       kelompok: serializer.fromJson<String>(json['kelompok']),
       satuan: serializer.fromJson<String>(json['satuan']),
       hargaBeli: serializer.fromJson<int>(json['hargaBeli']),
@@ -3779,7 +3782,7 @@ class Pembelian extends DataClass implements Insertable<Pembelian> {
       'kodeBarang': serializer.toJson<String>(kodeBarang),
       'namaBarang': serializer.toJson<String>(namaBarang),
       'tanggalBeli': serializer.toJson<DateTime>(tanggalBeli),
-      'expired': serializer.toJson<DateTime>(expired),
+      'expired': serializer.toJson<DateTime?>(expired),
       'kelompok': serializer.toJson<String>(kelompok),
       'satuan': serializer.toJson<String>(satuan),
       'hargaBeli': serializer.toJson<int>(hargaBeli),
@@ -3802,7 +3805,7 @@ class Pembelian extends DataClass implements Insertable<Pembelian> {
           String? kodeBarang,
           String? namaBarang,
           DateTime? tanggalBeli,
-          DateTime? expired,
+          Value<DateTime?> expired = const Value.absent(),
           String? kelompok,
           String? satuan,
           int? hargaBeli,
@@ -3822,7 +3825,7 @@ class Pembelian extends DataClass implements Insertable<Pembelian> {
         kodeBarang: kodeBarang ?? this.kodeBarang,
         namaBarang: namaBarang ?? this.namaBarang,
         tanggalBeli: tanggalBeli ?? this.tanggalBeli,
-        expired: expired ?? this.expired,
+        expired: expired.present ? expired.value : this.expired,
         kelompok: kelompok ?? this.kelompok,
         satuan: satuan ?? this.satuan,
         hargaBeli: hargaBeli ?? this.hargaBeli,
@@ -3948,7 +3951,7 @@ class PembeliansCompanion extends UpdateCompanion<Pembelian> {
   final Value<String> kodeBarang;
   final Value<String> namaBarang;
   final Value<DateTime> tanggalBeli;
-  final Value<DateTime> expired;
+  final Value<DateTime?> expired;
   final Value<String> kelompok;
   final Value<String> satuan;
   final Value<int> hargaBeli;
@@ -3989,7 +3992,7 @@ class PembeliansCompanion extends UpdateCompanion<Pembelian> {
     required String kodeBarang,
     required String namaBarang,
     required DateTime tanggalBeli,
-    required DateTime expired,
+    this.expired = const Value.absent(),
     required String kelompok,
     required String satuan,
     this.hargaBeli = const Value.absent(),
@@ -4007,7 +4010,6 @@ class PembeliansCompanion extends UpdateCompanion<Pembelian> {
         kodeBarang = Value(kodeBarang),
         namaBarang = Value(namaBarang),
         tanggalBeli = Value(tanggalBeli),
-        expired = Value(expired),
         kelompok = Value(kelompok),
         satuan = Value(satuan);
   static Insertable<Pembelian> custom({
@@ -4062,7 +4064,7 @@ class PembeliansCompanion extends UpdateCompanion<Pembelian> {
       Value<String>? kodeBarang,
       Value<String>? namaBarang,
       Value<DateTime>? tanggalBeli,
-      Value<DateTime>? expired,
+      Value<DateTime?>? expired,
       Value<String>? kelompok,
       Value<String>? satuan,
       Value<int>? hargaBeli,
@@ -4221,8 +4223,8 @@ class $PembelianstmpTable extends Pembelianstmp
       const VerificationMeta('expired');
   @override
   late final GeneratedColumn<DateTime> expired = GeneratedColumn<DateTime>(
-      'expired', aliasedName, false,
-      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+      'expired', aliasedName, true,
+      type: DriftSqlType.dateTime, requiredDuringInsert: false);
   static const VerificationMeta _kelompokMeta =
       const VerificationMeta('kelompok');
   @override
@@ -4341,8 +4343,6 @@ class $PembelianstmpTable extends Pembelianstmp
     if (data.containsKey('expired')) {
       context.handle(_expiredMeta,
           expired.isAcceptableOrUnknown(data['expired']!, _expiredMeta));
-    } else if (isInserting) {
-      context.missing(_expiredMeta);
     }
     if (data.containsKey('kelompok')) {
       context.handle(_kelompokMeta,
@@ -4412,7 +4412,7 @@ class $PembelianstmpTable extends Pembelianstmp
       namaBarang: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}nama_barang'])!,
       expired: attachedDatabase.typeMapping
-          .read(DriftSqlType.dateTime, data['${effectivePrefix}expired'])!,
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}expired']),
       kelompok: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}kelompok'])!,
       satuan: attachedDatabase.typeMapping
@@ -4449,7 +4449,7 @@ class PembelianstmpData extends DataClass
   final int id;
   final String kodeBarang;
   final String namaBarang;
-  final DateTime expired;
+  final DateTime? expired;
   final String kelompok;
   final String satuan;
   final int hargaBeli;
@@ -4465,7 +4465,7 @@ class PembelianstmpData extends DataClass
       {required this.id,
       required this.kodeBarang,
       required this.namaBarang,
-      required this.expired,
+      this.expired,
       required this.kelompok,
       required this.satuan,
       required this.hargaBeli,
@@ -4483,7 +4483,9 @@ class PembelianstmpData extends DataClass
     map['id'] = Variable<int>(id);
     map['kode_barang'] = Variable<String>(kodeBarang);
     map['nama_barang'] = Variable<String>(namaBarang);
-    map['expired'] = Variable<DateTime>(expired);
+    if (!nullToAbsent || expired != null) {
+      map['expired'] = Variable<DateTime>(expired);
+    }
     map['kelompok'] = Variable<String>(kelompok);
     map['satuan'] = Variable<String>(satuan);
     map['harga_beli'] = Variable<int>(hargaBeli);
@@ -4517,7 +4519,9 @@ class PembelianstmpData extends DataClass
       id: Value(id),
       kodeBarang: Value(kodeBarang),
       namaBarang: Value(namaBarang),
-      expired: Value(expired),
+      expired: expired == null && nullToAbsent
+          ? const Value.absent()
+          : Value(expired),
       kelompok: Value(kelompok),
       satuan: Value(satuan),
       hargaBeli: Value(hargaBeli),
@@ -4551,7 +4555,7 @@ class PembelianstmpData extends DataClass
       id: serializer.fromJson<int>(json['id']),
       kodeBarang: serializer.fromJson<String>(json['kodeBarang']),
       namaBarang: serializer.fromJson<String>(json['namaBarang']),
-      expired: serializer.fromJson<DateTime>(json['expired']),
+      expired: serializer.fromJson<DateTime?>(json['expired']),
       kelompok: serializer.fromJson<String>(json['kelompok']),
       satuan: serializer.fromJson<String>(json['satuan']),
       hargaBeli: serializer.fromJson<int>(json['hargaBeli']),
@@ -4572,7 +4576,7 @@ class PembelianstmpData extends DataClass
       'id': serializer.toJson<int>(id),
       'kodeBarang': serializer.toJson<String>(kodeBarang),
       'namaBarang': serializer.toJson<String>(namaBarang),
-      'expired': serializer.toJson<DateTime>(expired),
+      'expired': serializer.toJson<DateTime?>(expired),
       'kelompok': serializer.toJson<String>(kelompok),
       'satuan': serializer.toJson<String>(satuan),
       'hargaBeli': serializer.toJson<int>(hargaBeli),
@@ -4591,7 +4595,7 @@ class PembelianstmpData extends DataClass
           {int? id,
           String? kodeBarang,
           String? namaBarang,
-          DateTime? expired,
+          Value<DateTime?> expired = const Value.absent(),
           String? kelompok,
           String? satuan,
           int? hargaBeli,
@@ -4607,7 +4611,7 @@ class PembelianstmpData extends DataClass
         id: id ?? this.id,
         kodeBarang: kodeBarang ?? this.kodeBarang,
         namaBarang: namaBarang ?? this.namaBarang,
-        expired: expired ?? this.expired,
+        expired: expired.present ? expired.value : this.expired,
         kelompok: kelompok ?? this.kelompok,
         satuan: satuan ?? this.satuan,
         hargaBeli: hargaBeli ?? this.hargaBeli,
@@ -4708,7 +4712,7 @@ class PembelianstmpCompanion extends UpdateCompanion<PembelianstmpData> {
   final Value<int> id;
   final Value<String> kodeBarang;
   final Value<String> namaBarang;
-  final Value<DateTime> expired;
+  final Value<DateTime?> expired;
   final Value<String> kelompok;
   final Value<String> satuan;
   final Value<int> hargaBeli;
@@ -4741,7 +4745,7 @@ class PembelianstmpCompanion extends UpdateCompanion<PembelianstmpData> {
     this.id = const Value.absent(),
     required String kodeBarang,
     required String namaBarang,
-    required DateTime expired,
+    this.expired = const Value.absent(),
     required String kelompok,
     required String satuan,
     this.hargaBeli = const Value.absent(),
@@ -4755,7 +4759,6 @@ class PembelianstmpCompanion extends UpdateCompanion<PembelianstmpData> {
     this.totalHarga = const Value.absent(),
   })  : kodeBarang = Value(kodeBarang),
         namaBarang = Value(namaBarang),
-        expired = Value(expired),
         kelompok = Value(kelompok),
         satuan = Value(satuan);
   static Insertable<PembelianstmpData> custom({
@@ -4798,7 +4801,7 @@ class PembelianstmpCompanion extends UpdateCompanion<PembelianstmpData> {
       {Value<int>? id,
       Value<String>? kodeBarang,
       Value<String>? namaBarang,
-      Value<DateTime>? expired,
+      Value<DateTime?>? expired,
       Value<String>? kelompok,
       Value<String>? satuan,
       Value<int>? hargaBeli,
@@ -7539,559 +7542,6 @@ class RaksCompanion extends UpdateCompanion<Rak> {
   }
 }
 
-class $StoksTable extends Stoks with TableInfo<$StoksTable, Stok> {
-  @override
-  final GeneratedDatabase attachedDatabase;
-  final String? _alias;
-  $StoksTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _idStokMeta = const VerificationMeta('idStok');
-  @override
-  late final GeneratedColumn<int> idStok = GeneratedColumn<int>(
-      'id_stok', aliasedName, false,
-      hasAutoIncrement: true,
-      type: DriftSqlType.int,
-      requiredDuringInsert: false,
-      defaultConstraints:
-          GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'));
-  static const VerificationMeta _noFakturMeta =
-      const VerificationMeta('noFaktur');
-  @override
-  late final GeneratedColumn<String> noFaktur = GeneratedColumn<String>(
-      'no_faktur', aliasedName, false,
-      type: DriftSqlType.string, requiredDuringInsert: true);
-  static const VerificationMeta _kodeSupplierMeta =
-      const VerificationMeta('kodeSupplier');
-  @override
-  late final GeneratedColumn<String> kodeSupplier = GeneratedColumn<String>(
-      'kode_supplier', aliasedName, false,
-      additionalChecks:
-          GeneratedColumn.checkTextLength(minTextLength: 1, maxTextLength: 20),
-      type: DriftSqlType.string,
-      requiredDuringInsert: true);
-  static const VerificationMeta _namaSuppliersMeta =
-      const VerificationMeta('namaSuppliers');
-  @override
-  late final GeneratedColumn<String> namaSuppliers = GeneratedColumn<String>(
-      'nama_suppliers', aliasedName, false,
-      type: DriftSqlType.string, requiredDuringInsert: true);
-  static const VerificationMeta _kodeBarangMeta =
-      const VerificationMeta('kodeBarang');
-  @override
-  late final GeneratedColumn<String> kodeBarang = GeneratedColumn<String>(
-      'kode_barang', aliasedName, false,
-      additionalChecks:
-          GeneratedColumn.checkTextLength(minTextLength: 1, maxTextLength: 20),
-      type: DriftSqlType.string,
-      requiredDuringInsert: true);
-  static const VerificationMeta _namaBarangMeta =
-      const VerificationMeta('namaBarang');
-  @override
-  late final GeneratedColumn<String> namaBarang = GeneratedColumn<String>(
-      'nama_barang', aliasedName, false,
-      type: DriftSqlType.string, requiredDuringInsert: true);
-  static const VerificationMeta _tanggalBeliMeta =
-      const VerificationMeta('tanggalBeli');
-  @override
-  late final GeneratedColumn<DateTime> tanggalBeli = GeneratedColumn<DateTime>(
-      'tanggal_beli', aliasedName, false,
-      type: DriftSqlType.dateTime, requiredDuringInsert: true);
-  static const VerificationMeta _expiredMeta =
-      const VerificationMeta('expired');
-  @override
-  late final GeneratedColumn<DateTime> expired = GeneratedColumn<DateTime>(
-      'expired', aliasedName, false,
-      type: DriftSqlType.dateTime, requiredDuringInsert: true);
-  static const VerificationMeta _kelompokMeta =
-      const VerificationMeta('kelompok');
-  @override
-  late final GeneratedColumn<String> kelompok = GeneratedColumn<String>(
-      'kelompok', aliasedName, false,
-      type: DriftSqlType.string, requiredDuringInsert: true);
-  static const VerificationMeta _satuanMeta = const VerificationMeta('satuan');
-  @override
-  late final GeneratedColumn<String> satuan = GeneratedColumn<String>(
-      'satuan', aliasedName, false,
-      type: DriftSqlType.string, requiredDuringInsert: true);
-  static const VerificationMeta _stokMeta = const VerificationMeta('stok');
-  @override
-  late final GeneratedColumn<int> stok = GeneratedColumn<int>(
-      'stok', aliasedName, true,
-      type: DriftSqlType.int, requiredDuringInsert: false);
-  @override
-  List<GeneratedColumn> get $columns => [
-        idStok,
-        noFaktur,
-        kodeSupplier,
-        namaSuppliers,
-        kodeBarang,
-        namaBarang,
-        tanggalBeli,
-        expired,
-        kelompok,
-        satuan,
-        stok
-      ];
-  @override
-  String get aliasedName => _alias ?? actualTableName;
-  @override
-  String get actualTableName => $name;
-  static const String $name = 'stoks';
-  @override
-  VerificationContext validateIntegrity(Insertable<Stok> instance,
-      {bool isInserting = false}) {
-    final context = VerificationContext();
-    final data = instance.toColumns(true);
-    if (data.containsKey('id_stok')) {
-      context.handle(_idStokMeta,
-          idStok.isAcceptableOrUnknown(data['id_stok']!, _idStokMeta));
-    }
-    if (data.containsKey('no_faktur')) {
-      context.handle(_noFakturMeta,
-          noFaktur.isAcceptableOrUnknown(data['no_faktur']!, _noFakturMeta));
-    } else if (isInserting) {
-      context.missing(_noFakturMeta);
-    }
-    if (data.containsKey('kode_supplier')) {
-      context.handle(
-          _kodeSupplierMeta,
-          kodeSupplier.isAcceptableOrUnknown(
-              data['kode_supplier']!, _kodeSupplierMeta));
-    } else if (isInserting) {
-      context.missing(_kodeSupplierMeta);
-    }
-    if (data.containsKey('nama_suppliers')) {
-      context.handle(
-          _namaSuppliersMeta,
-          namaSuppliers.isAcceptableOrUnknown(
-              data['nama_suppliers']!, _namaSuppliersMeta));
-    } else if (isInserting) {
-      context.missing(_namaSuppliersMeta);
-    }
-    if (data.containsKey('kode_barang')) {
-      context.handle(
-          _kodeBarangMeta,
-          kodeBarang.isAcceptableOrUnknown(
-              data['kode_barang']!, _kodeBarangMeta));
-    } else if (isInserting) {
-      context.missing(_kodeBarangMeta);
-    }
-    if (data.containsKey('nama_barang')) {
-      context.handle(
-          _namaBarangMeta,
-          namaBarang.isAcceptableOrUnknown(
-              data['nama_barang']!, _namaBarangMeta));
-    } else if (isInserting) {
-      context.missing(_namaBarangMeta);
-    }
-    if (data.containsKey('tanggal_beli')) {
-      context.handle(
-          _tanggalBeliMeta,
-          tanggalBeli.isAcceptableOrUnknown(
-              data['tanggal_beli']!, _tanggalBeliMeta));
-    } else if (isInserting) {
-      context.missing(_tanggalBeliMeta);
-    }
-    if (data.containsKey('expired')) {
-      context.handle(_expiredMeta,
-          expired.isAcceptableOrUnknown(data['expired']!, _expiredMeta));
-    } else if (isInserting) {
-      context.missing(_expiredMeta);
-    }
-    if (data.containsKey('kelompok')) {
-      context.handle(_kelompokMeta,
-          kelompok.isAcceptableOrUnknown(data['kelompok']!, _kelompokMeta));
-    } else if (isInserting) {
-      context.missing(_kelompokMeta);
-    }
-    if (data.containsKey('satuan')) {
-      context.handle(_satuanMeta,
-          satuan.isAcceptableOrUnknown(data['satuan']!, _satuanMeta));
-    } else if (isInserting) {
-      context.missing(_satuanMeta);
-    }
-    if (data.containsKey('stok')) {
-      context.handle(
-          _stokMeta, stok.isAcceptableOrUnknown(data['stok']!, _stokMeta));
-    }
-    return context;
-  }
-
-  @override
-  Set<GeneratedColumn> get $primaryKey => {idStok};
-  @override
-  Stok map(Map<String, dynamic> data, {String? tablePrefix}) {
-    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return Stok(
-      idStok: attachedDatabase.typeMapping
-          .read(DriftSqlType.int, data['${effectivePrefix}id_stok'])!,
-      noFaktur: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}no_faktur'])!,
-      kodeSupplier: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}kode_supplier'])!,
-      namaSuppliers: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}nama_suppliers'])!,
-      kodeBarang: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}kode_barang'])!,
-      namaBarang: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}nama_barang'])!,
-      tanggalBeli: attachedDatabase.typeMapping
-          .read(DriftSqlType.dateTime, data['${effectivePrefix}tanggal_beli'])!,
-      expired: attachedDatabase.typeMapping
-          .read(DriftSqlType.dateTime, data['${effectivePrefix}expired'])!,
-      kelompok: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}kelompok'])!,
-      satuan: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}satuan'])!,
-      stok: attachedDatabase.typeMapping
-          .read(DriftSqlType.int, data['${effectivePrefix}stok']),
-    );
-  }
-
-  @override
-  $StoksTable createAlias(String alias) {
-    return $StoksTable(attachedDatabase, alias);
-  }
-}
-
-class Stok extends DataClass implements Insertable<Stok> {
-  final int idStok;
-  final String noFaktur;
-  final String kodeSupplier;
-  final String namaSuppliers;
-  final String kodeBarang;
-  final String namaBarang;
-  final DateTime tanggalBeli;
-  final DateTime expired;
-  final String kelompok;
-  final String satuan;
-  final int? stok;
-  const Stok(
-      {required this.idStok,
-      required this.noFaktur,
-      required this.kodeSupplier,
-      required this.namaSuppliers,
-      required this.kodeBarang,
-      required this.namaBarang,
-      required this.tanggalBeli,
-      required this.expired,
-      required this.kelompok,
-      required this.satuan,
-      this.stok});
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    map['id_stok'] = Variable<int>(idStok);
-    map['no_faktur'] = Variable<String>(noFaktur);
-    map['kode_supplier'] = Variable<String>(kodeSupplier);
-    map['nama_suppliers'] = Variable<String>(namaSuppliers);
-    map['kode_barang'] = Variable<String>(kodeBarang);
-    map['nama_barang'] = Variable<String>(namaBarang);
-    map['tanggal_beli'] = Variable<DateTime>(tanggalBeli);
-    map['expired'] = Variable<DateTime>(expired);
-    map['kelompok'] = Variable<String>(kelompok);
-    map['satuan'] = Variable<String>(satuan);
-    if (!nullToAbsent || stok != null) {
-      map['stok'] = Variable<int>(stok);
-    }
-    return map;
-  }
-
-  StoksCompanion toCompanion(bool nullToAbsent) {
-    return StoksCompanion(
-      idStok: Value(idStok),
-      noFaktur: Value(noFaktur),
-      kodeSupplier: Value(kodeSupplier),
-      namaSuppliers: Value(namaSuppliers),
-      kodeBarang: Value(kodeBarang),
-      namaBarang: Value(namaBarang),
-      tanggalBeli: Value(tanggalBeli),
-      expired: Value(expired),
-      kelompok: Value(kelompok),
-      satuan: Value(satuan),
-      stok: stok == null && nullToAbsent ? const Value.absent() : Value(stok),
-    );
-  }
-
-  factory Stok.fromJson(Map<String, dynamic> json,
-      {ValueSerializer? serializer}) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return Stok(
-      idStok: serializer.fromJson<int>(json['idStok']),
-      noFaktur: serializer.fromJson<String>(json['noFaktur']),
-      kodeSupplier: serializer.fromJson<String>(json['kodeSupplier']),
-      namaSuppliers: serializer.fromJson<String>(json['namaSuppliers']),
-      kodeBarang: serializer.fromJson<String>(json['kodeBarang']),
-      namaBarang: serializer.fromJson<String>(json['namaBarang']),
-      tanggalBeli: serializer.fromJson<DateTime>(json['tanggalBeli']),
-      expired: serializer.fromJson<DateTime>(json['expired']),
-      kelompok: serializer.fromJson<String>(json['kelompok']),
-      satuan: serializer.fromJson<String>(json['satuan']),
-      stok: serializer.fromJson<int?>(json['stok']),
-    );
-  }
-  @override
-  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return <String, dynamic>{
-      'idStok': serializer.toJson<int>(idStok),
-      'noFaktur': serializer.toJson<String>(noFaktur),
-      'kodeSupplier': serializer.toJson<String>(kodeSupplier),
-      'namaSuppliers': serializer.toJson<String>(namaSuppliers),
-      'kodeBarang': serializer.toJson<String>(kodeBarang),
-      'namaBarang': serializer.toJson<String>(namaBarang),
-      'tanggalBeli': serializer.toJson<DateTime>(tanggalBeli),
-      'expired': serializer.toJson<DateTime>(expired),
-      'kelompok': serializer.toJson<String>(kelompok),
-      'satuan': serializer.toJson<String>(satuan),
-      'stok': serializer.toJson<int?>(stok),
-    };
-  }
-
-  Stok copyWith(
-          {int? idStok,
-          String? noFaktur,
-          String? kodeSupplier,
-          String? namaSuppliers,
-          String? kodeBarang,
-          String? namaBarang,
-          DateTime? tanggalBeli,
-          DateTime? expired,
-          String? kelompok,
-          String? satuan,
-          Value<int?> stok = const Value.absent()}) =>
-      Stok(
-        idStok: idStok ?? this.idStok,
-        noFaktur: noFaktur ?? this.noFaktur,
-        kodeSupplier: kodeSupplier ?? this.kodeSupplier,
-        namaSuppliers: namaSuppliers ?? this.namaSuppliers,
-        kodeBarang: kodeBarang ?? this.kodeBarang,
-        namaBarang: namaBarang ?? this.namaBarang,
-        tanggalBeli: tanggalBeli ?? this.tanggalBeli,
-        expired: expired ?? this.expired,
-        kelompok: kelompok ?? this.kelompok,
-        satuan: satuan ?? this.satuan,
-        stok: stok.present ? stok.value : this.stok,
-      );
-  Stok copyWithCompanion(StoksCompanion data) {
-    return Stok(
-      idStok: data.idStok.present ? data.idStok.value : this.idStok,
-      noFaktur: data.noFaktur.present ? data.noFaktur.value : this.noFaktur,
-      kodeSupplier: data.kodeSupplier.present
-          ? data.kodeSupplier.value
-          : this.kodeSupplier,
-      namaSuppliers: data.namaSuppliers.present
-          ? data.namaSuppliers.value
-          : this.namaSuppliers,
-      kodeBarang:
-          data.kodeBarang.present ? data.kodeBarang.value : this.kodeBarang,
-      namaBarang:
-          data.namaBarang.present ? data.namaBarang.value : this.namaBarang,
-      tanggalBeli:
-          data.tanggalBeli.present ? data.tanggalBeli.value : this.tanggalBeli,
-      expired: data.expired.present ? data.expired.value : this.expired,
-      kelompok: data.kelompok.present ? data.kelompok.value : this.kelompok,
-      satuan: data.satuan.present ? data.satuan.value : this.satuan,
-      stok: data.stok.present ? data.stok.value : this.stok,
-    );
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('Stok(')
-          ..write('idStok: $idStok, ')
-          ..write('noFaktur: $noFaktur, ')
-          ..write('kodeSupplier: $kodeSupplier, ')
-          ..write('namaSuppliers: $namaSuppliers, ')
-          ..write('kodeBarang: $kodeBarang, ')
-          ..write('namaBarang: $namaBarang, ')
-          ..write('tanggalBeli: $tanggalBeli, ')
-          ..write('expired: $expired, ')
-          ..write('kelompok: $kelompok, ')
-          ..write('satuan: $satuan, ')
-          ..write('stok: $stok')
-          ..write(')'))
-        .toString();
-  }
-
-  @override
-  int get hashCode => Object.hash(idStok, noFaktur, kodeSupplier, namaSuppliers,
-      kodeBarang, namaBarang, tanggalBeli, expired, kelompok, satuan, stok);
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      (other is Stok &&
-          other.idStok == this.idStok &&
-          other.noFaktur == this.noFaktur &&
-          other.kodeSupplier == this.kodeSupplier &&
-          other.namaSuppliers == this.namaSuppliers &&
-          other.kodeBarang == this.kodeBarang &&
-          other.namaBarang == this.namaBarang &&
-          other.tanggalBeli == this.tanggalBeli &&
-          other.expired == this.expired &&
-          other.kelompok == this.kelompok &&
-          other.satuan == this.satuan &&
-          other.stok == this.stok);
-}
-
-class StoksCompanion extends UpdateCompanion<Stok> {
-  final Value<int> idStok;
-  final Value<String> noFaktur;
-  final Value<String> kodeSupplier;
-  final Value<String> namaSuppliers;
-  final Value<String> kodeBarang;
-  final Value<String> namaBarang;
-  final Value<DateTime> tanggalBeli;
-  final Value<DateTime> expired;
-  final Value<String> kelompok;
-  final Value<String> satuan;
-  final Value<int?> stok;
-  const StoksCompanion({
-    this.idStok = const Value.absent(),
-    this.noFaktur = const Value.absent(),
-    this.kodeSupplier = const Value.absent(),
-    this.namaSuppliers = const Value.absent(),
-    this.kodeBarang = const Value.absent(),
-    this.namaBarang = const Value.absent(),
-    this.tanggalBeli = const Value.absent(),
-    this.expired = const Value.absent(),
-    this.kelompok = const Value.absent(),
-    this.satuan = const Value.absent(),
-    this.stok = const Value.absent(),
-  });
-  StoksCompanion.insert({
-    this.idStok = const Value.absent(),
-    required String noFaktur,
-    required String kodeSupplier,
-    required String namaSuppliers,
-    required String kodeBarang,
-    required String namaBarang,
-    required DateTime tanggalBeli,
-    required DateTime expired,
-    required String kelompok,
-    required String satuan,
-    this.stok = const Value.absent(),
-  })  : noFaktur = Value(noFaktur),
-        kodeSupplier = Value(kodeSupplier),
-        namaSuppliers = Value(namaSuppliers),
-        kodeBarang = Value(kodeBarang),
-        namaBarang = Value(namaBarang),
-        tanggalBeli = Value(tanggalBeli),
-        expired = Value(expired),
-        kelompok = Value(kelompok),
-        satuan = Value(satuan);
-  static Insertable<Stok> custom({
-    Expression<int>? idStok,
-    Expression<String>? noFaktur,
-    Expression<String>? kodeSupplier,
-    Expression<String>? namaSuppliers,
-    Expression<String>? kodeBarang,
-    Expression<String>? namaBarang,
-    Expression<DateTime>? tanggalBeli,
-    Expression<DateTime>? expired,
-    Expression<String>? kelompok,
-    Expression<String>? satuan,
-    Expression<int>? stok,
-  }) {
-    return RawValuesInsertable({
-      if (idStok != null) 'id_stok': idStok,
-      if (noFaktur != null) 'no_faktur': noFaktur,
-      if (kodeSupplier != null) 'kode_supplier': kodeSupplier,
-      if (namaSuppliers != null) 'nama_suppliers': namaSuppliers,
-      if (kodeBarang != null) 'kode_barang': kodeBarang,
-      if (namaBarang != null) 'nama_barang': namaBarang,
-      if (tanggalBeli != null) 'tanggal_beli': tanggalBeli,
-      if (expired != null) 'expired': expired,
-      if (kelompok != null) 'kelompok': kelompok,
-      if (satuan != null) 'satuan': satuan,
-      if (stok != null) 'stok': stok,
-    });
-  }
-
-  StoksCompanion copyWith(
-      {Value<int>? idStok,
-      Value<String>? noFaktur,
-      Value<String>? kodeSupplier,
-      Value<String>? namaSuppliers,
-      Value<String>? kodeBarang,
-      Value<String>? namaBarang,
-      Value<DateTime>? tanggalBeli,
-      Value<DateTime>? expired,
-      Value<String>? kelompok,
-      Value<String>? satuan,
-      Value<int?>? stok}) {
-    return StoksCompanion(
-      idStok: idStok ?? this.idStok,
-      noFaktur: noFaktur ?? this.noFaktur,
-      kodeSupplier: kodeSupplier ?? this.kodeSupplier,
-      namaSuppliers: namaSuppliers ?? this.namaSuppliers,
-      kodeBarang: kodeBarang ?? this.kodeBarang,
-      namaBarang: namaBarang ?? this.namaBarang,
-      tanggalBeli: tanggalBeli ?? this.tanggalBeli,
-      expired: expired ?? this.expired,
-      kelompok: kelompok ?? this.kelompok,
-      satuan: satuan ?? this.satuan,
-      stok: stok ?? this.stok,
-    );
-  }
-
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    if (idStok.present) {
-      map['id_stok'] = Variable<int>(idStok.value);
-    }
-    if (noFaktur.present) {
-      map['no_faktur'] = Variable<String>(noFaktur.value);
-    }
-    if (kodeSupplier.present) {
-      map['kode_supplier'] = Variable<String>(kodeSupplier.value);
-    }
-    if (namaSuppliers.present) {
-      map['nama_suppliers'] = Variable<String>(namaSuppliers.value);
-    }
-    if (kodeBarang.present) {
-      map['kode_barang'] = Variable<String>(kodeBarang.value);
-    }
-    if (namaBarang.present) {
-      map['nama_barang'] = Variable<String>(namaBarang.value);
-    }
-    if (tanggalBeli.present) {
-      map['tanggal_beli'] = Variable<DateTime>(tanggalBeli.value);
-    }
-    if (expired.present) {
-      map['expired'] = Variable<DateTime>(expired.value);
-    }
-    if (kelompok.present) {
-      map['kelompok'] = Variable<String>(kelompok.value);
-    }
-    if (satuan.present) {
-      map['satuan'] = Variable<String>(satuan.value);
-    }
-    if (stok.present) {
-      map['stok'] = Variable<int>(stok.value);
-    }
-    return map;
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('StoksCompanion(')
-          ..write('idStok: $idStok, ')
-          ..write('noFaktur: $noFaktur, ')
-          ..write('kodeSupplier: $kodeSupplier, ')
-          ..write('namaSuppliers: $namaSuppliers, ')
-          ..write('kodeBarang: $kodeBarang, ')
-          ..write('namaBarang: $namaBarang, ')
-          ..write('tanggalBeli: $tanggalBeli, ')
-          ..write('expired: $expired, ')
-          ..write('kelompok: $kelompok, ')
-          ..write('satuan: $satuan, ')
-          ..write('stok: $stok')
-          ..write(')'))
-        .toString();
-  }
-}
-
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -8107,7 +7557,6 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $ResepsTable reseps = $ResepsTable(this);
   late final $ResepstmpTable resepstmp = $ResepstmpTable(this);
   late final $RaksTable raks = $RaksTable(this);
-  late final $StoksTable stoks = $StoksTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -8124,8 +7573,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         pelanggans,
         reseps,
         resepstmp,
-        raks,
-        stoks
+        raks
       ];
 }
 
@@ -8943,7 +8391,7 @@ typedef $$PenjualansTableCreateCompanionBuilder = PenjualansCompanion Function({
   required DateTime tanggalPenjualan,
   required String kodeBarang,
   required String namaBarang,
-  required DateTime expired,
+  Value<DateTime?> expired,
   required String kelompok,
   required String satuan,
   Value<int> hargaBeli,
@@ -8964,7 +8412,7 @@ typedef $$PenjualansTableUpdateCompanionBuilder = PenjualansCompanion Function({
   Value<DateTime> tanggalPenjualan,
   Value<String> kodeBarang,
   Value<String> namaBarang,
-  Value<DateTime> expired,
+  Value<DateTime?> expired,
   Value<String> kelompok,
   Value<String> satuan,
   Value<int> hargaBeli,
@@ -9217,7 +8665,7 @@ class $$PenjualansTableTableManager extends RootTableManager<
             Value<DateTime> tanggalPenjualan = const Value.absent(),
             Value<String> kodeBarang = const Value.absent(),
             Value<String> namaBarang = const Value.absent(),
-            Value<DateTime> expired = const Value.absent(),
+            Value<DateTime?> expired = const Value.absent(),
             Value<String> kelompok = const Value.absent(),
             Value<String> satuan = const Value.absent(),
             Value<int> hargaBeli = const Value.absent(),
@@ -9259,7 +8707,7 @@ class $$PenjualansTableTableManager extends RootTableManager<
             required DateTime tanggalPenjualan,
             required String kodeBarang,
             required String namaBarang,
-            required DateTime expired,
+            Value<DateTime?> expired = const Value.absent(),
             required String kelompok,
             required String satuan,
             Value<int> hargaBeli = const Value.absent(),
@@ -9624,7 +9072,7 @@ typedef $$PembeliansTableCreateCompanionBuilder = PembeliansCompanion Function({
   required String kodeBarang,
   required String namaBarang,
   required DateTime tanggalBeli,
-  required DateTime expired,
+  Value<DateTime?> expired,
   required String kelompok,
   required String satuan,
   Value<int> hargaBeli,
@@ -9645,7 +9093,7 @@ typedef $$PembeliansTableUpdateCompanionBuilder = PembeliansCompanion Function({
   Value<String> kodeBarang,
   Value<String> namaBarang,
   Value<DateTime> tanggalBeli,
-  Value<DateTime> expired,
+  Value<DateTime?> expired,
   Value<String> kelompok,
   Value<String> satuan,
   Value<int> hargaBeli,
@@ -9892,7 +9340,7 @@ class $$PembeliansTableTableManager extends RootTableManager<
             Value<String> kodeBarang = const Value.absent(),
             Value<String> namaBarang = const Value.absent(),
             Value<DateTime> tanggalBeli = const Value.absent(),
-            Value<DateTime> expired = const Value.absent(),
+            Value<DateTime?> expired = const Value.absent(),
             Value<String> kelompok = const Value.absent(),
             Value<String> satuan = const Value.absent(),
             Value<int> hargaBeli = const Value.absent(),
@@ -9934,7 +9382,7 @@ class $$PembeliansTableTableManager extends RootTableManager<
             required String kodeBarang,
             required String namaBarang,
             required DateTime tanggalBeli,
-            required DateTime expired,
+            Value<DateTime?> expired = const Value.absent(),
             required String kelompok,
             required String satuan,
             Value<int> hargaBeli = const Value.absent(),
@@ -9992,7 +9440,7 @@ typedef $$PembelianstmpTableCreateCompanionBuilder = PembelianstmpCompanion
   Value<int> id,
   required String kodeBarang,
   required String namaBarang,
-  required DateTime expired,
+  Value<DateTime?> expired,
   required String kelompok,
   required String satuan,
   Value<int> hargaBeli,
@@ -10010,7 +9458,7 @@ typedef $$PembelianstmpTableUpdateCompanionBuilder = PembelianstmpCompanion
   Value<int> id,
   Value<String> kodeBarang,
   Value<String> namaBarang,
-  Value<DateTime> expired,
+  Value<DateTime?> expired,
   Value<String> kelompok,
   Value<String> satuan,
   Value<int> hargaBeli,
@@ -10218,7 +9666,7 @@ class $$PembelianstmpTableTableManager extends RootTableManager<
             Value<int> id = const Value.absent(),
             Value<String> kodeBarang = const Value.absent(),
             Value<String> namaBarang = const Value.absent(),
-            Value<DateTime> expired = const Value.absent(),
+            Value<DateTime?> expired = const Value.absent(),
             Value<String> kelompok = const Value.absent(),
             Value<String> satuan = const Value.absent(),
             Value<int> hargaBeli = const Value.absent(),
@@ -10252,7 +9700,7 @@ class $$PembelianstmpTableTableManager extends RootTableManager<
             Value<int> id = const Value.absent(),
             required String kodeBarang,
             required String namaBarang,
-            required DateTime expired,
+            Value<DateTime?> expired = const Value.absent(),
             required String kelompok,
             required String satuan,
             Value<int> hargaBeli = const Value.absent(),
@@ -11442,256 +10890,6 @@ typedef $$RaksTableProcessedTableManager = ProcessedTableManager<
     (Rak, BaseReferences<_$AppDatabase, $RaksTable, Rak>),
     Rak,
     PrefetchHooks Function()>;
-typedef $$StoksTableCreateCompanionBuilder = StoksCompanion Function({
-  Value<int> idStok,
-  required String noFaktur,
-  required String kodeSupplier,
-  required String namaSuppliers,
-  required String kodeBarang,
-  required String namaBarang,
-  required DateTime tanggalBeli,
-  required DateTime expired,
-  required String kelompok,
-  required String satuan,
-  Value<int?> stok,
-});
-typedef $$StoksTableUpdateCompanionBuilder = StoksCompanion Function({
-  Value<int> idStok,
-  Value<String> noFaktur,
-  Value<String> kodeSupplier,
-  Value<String> namaSuppliers,
-  Value<String> kodeBarang,
-  Value<String> namaBarang,
-  Value<DateTime> tanggalBeli,
-  Value<DateTime> expired,
-  Value<String> kelompok,
-  Value<String> satuan,
-  Value<int?> stok,
-});
-
-class $$StoksTableFilterComposer extends Composer<_$AppDatabase, $StoksTable> {
-  $$StoksTableFilterComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnFilters<int> get idStok => $composableBuilder(
-      column: $table.idStok, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<String> get noFaktur => $composableBuilder(
-      column: $table.noFaktur, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<String> get kodeSupplier => $composableBuilder(
-      column: $table.kodeSupplier, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<String> get namaSuppliers => $composableBuilder(
-      column: $table.namaSuppliers, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<String> get kodeBarang => $composableBuilder(
-      column: $table.kodeBarang, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<String> get namaBarang => $composableBuilder(
-      column: $table.namaBarang, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<DateTime> get tanggalBeli => $composableBuilder(
-      column: $table.tanggalBeli, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<DateTime> get expired => $composableBuilder(
-      column: $table.expired, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<String> get kelompok => $composableBuilder(
-      column: $table.kelompok, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<String> get satuan => $composableBuilder(
-      column: $table.satuan, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<int> get stok => $composableBuilder(
-      column: $table.stok, builder: (column) => ColumnFilters(column));
-}
-
-class $$StoksTableOrderingComposer
-    extends Composer<_$AppDatabase, $StoksTable> {
-  $$StoksTableOrderingComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnOrderings<int> get idStok => $composableBuilder(
-      column: $table.idStok, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<String> get noFaktur => $composableBuilder(
-      column: $table.noFaktur, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<String> get kodeSupplier => $composableBuilder(
-      column: $table.kodeSupplier,
-      builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<String> get namaSuppliers => $composableBuilder(
-      column: $table.namaSuppliers,
-      builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<String> get kodeBarang => $composableBuilder(
-      column: $table.kodeBarang, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<String> get namaBarang => $composableBuilder(
-      column: $table.namaBarang, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<DateTime> get tanggalBeli => $composableBuilder(
-      column: $table.tanggalBeli, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<DateTime> get expired => $composableBuilder(
-      column: $table.expired, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<String> get kelompok => $composableBuilder(
-      column: $table.kelompok, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<String> get satuan => $composableBuilder(
-      column: $table.satuan, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<int> get stok => $composableBuilder(
-      column: $table.stok, builder: (column) => ColumnOrderings(column));
-}
-
-class $$StoksTableAnnotationComposer
-    extends Composer<_$AppDatabase, $StoksTable> {
-  $$StoksTableAnnotationComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  GeneratedColumn<int> get idStok =>
-      $composableBuilder(column: $table.idStok, builder: (column) => column);
-
-  GeneratedColumn<String> get noFaktur =>
-      $composableBuilder(column: $table.noFaktur, builder: (column) => column);
-
-  GeneratedColumn<String> get kodeSupplier => $composableBuilder(
-      column: $table.kodeSupplier, builder: (column) => column);
-
-  GeneratedColumn<String> get namaSuppliers => $composableBuilder(
-      column: $table.namaSuppliers, builder: (column) => column);
-
-  GeneratedColumn<String> get kodeBarang => $composableBuilder(
-      column: $table.kodeBarang, builder: (column) => column);
-
-  GeneratedColumn<String> get namaBarang => $composableBuilder(
-      column: $table.namaBarang, builder: (column) => column);
-
-  GeneratedColumn<DateTime> get tanggalBeli => $composableBuilder(
-      column: $table.tanggalBeli, builder: (column) => column);
-
-  GeneratedColumn<DateTime> get expired =>
-      $composableBuilder(column: $table.expired, builder: (column) => column);
-
-  GeneratedColumn<String> get kelompok =>
-      $composableBuilder(column: $table.kelompok, builder: (column) => column);
-
-  GeneratedColumn<String> get satuan =>
-      $composableBuilder(column: $table.satuan, builder: (column) => column);
-
-  GeneratedColumn<int> get stok =>
-      $composableBuilder(column: $table.stok, builder: (column) => column);
-}
-
-class $$StoksTableTableManager extends RootTableManager<
-    _$AppDatabase,
-    $StoksTable,
-    Stok,
-    $$StoksTableFilterComposer,
-    $$StoksTableOrderingComposer,
-    $$StoksTableAnnotationComposer,
-    $$StoksTableCreateCompanionBuilder,
-    $$StoksTableUpdateCompanionBuilder,
-    (Stok, BaseReferences<_$AppDatabase, $StoksTable, Stok>),
-    Stok,
-    PrefetchHooks Function()> {
-  $$StoksTableTableManager(_$AppDatabase db, $StoksTable table)
-      : super(TableManagerState(
-          db: db,
-          table: table,
-          createFilteringComposer: () =>
-              $$StoksTableFilterComposer($db: db, $table: table),
-          createOrderingComposer: () =>
-              $$StoksTableOrderingComposer($db: db, $table: table),
-          createComputedFieldComposer: () =>
-              $$StoksTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback: ({
-            Value<int> idStok = const Value.absent(),
-            Value<String> noFaktur = const Value.absent(),
-            Value<String> kodeSupplier = const Value.absent(),
-            Value<String> namaSuppliers = const Value.absent(),
-            Value<String> kodeBarang = const Value.absent(),
-            Value<String> namaBarang = const Value.absent(),
-            Value<DateTime> tanggalBeli = const Value.absent(),
-            Value<DateTime> expired = const Value.absent(),
-            Value<String> kelompok = const Value.absent(),
-            Value<String> satuan = const Value.absent(),
-            Value<int?> stok = const Value.absent(),
-          }) =>
-              StoksCompanion(
-            idStok: idStok,
-            noFaktur: noFaktur,
-            kodeSupplier: kodeSupplier,
-            namaSuppliers: namaSuppliers,
-            kodeBarang: kodeBarang,
-            namaBarang: namaBarang,
-            tanggalBeli: tanggalBeli,
-            expired: expired,
-            kelompok: kelompok,
-            satuan: satuan,
-            stok: stok,
-          ),
-          createCompanionCallback: ({
-            Value<int> idStok = const Value.absent(),
-            required String noFaktur,
-            required String kodeSupplier,
-            required String namaSuppliers,
-            required String kodeBarang,
-            required String namaBarang,
-            required DateTime tanggalBeli,
-            required DateTime expired,
-            required String kelompok,
-            required String satuan,
-            Value<int?> stok = const Value.absent(),
-          }) =>
-              StoksCompanion.insert(
-            idStok: idStok,
-            noFaktur: noFaktur,
-            kodeSupplier: kodeSupplier,
-            namaSuppliers: namaSuppliers,
-            kodeBarang: kodeBarang,
-            namaBarang: namaBarang,
-            tanggalBeli: tanggalBeli,
-            expired: expired,
-            kelompok: kelompok,
-            satuan: satuan,
-            stok: stok,
-          ),
-          withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
-              .toList(),
-          prefetchHooksCallback: null,
-        ));
-}
-
-typedef $$StoksTableProcessedTableManager = ProcessedTableManager<
-    _$AppDatabase,
-    $StoksTable,
-    Stok,
-    $$StoksTableFilterComposer,
-    $$StoksTableOrderingComposer,
-    $$StoksTableAnnotationComposer,
-    $$StoksTableCreateCompanionBuilder,
-    $$StoksTableUpdateCompanionBuilder,
-    (Stok, BaseReferences<_$AppDatabase, $StoksTable, Stok>),
-    Stok,
-    PrefetchHooks Function()>;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -11719,6 +10917,4 @@ class $AppDatabaseManager {
   $$ResepstmpTableTableManager get resepstmp =>
       $$ResepstmpTableTableManager(_db, _db.resepstmp);
   $$RaksTableTableManager get raks => $$RaksTableTableManager(_db, _db.raks);
-  $$StoksTableTableManager get stoks =>
-      $$StoksTableTableManager(_db, _db.stoks);
 }

@@ -134,7 +134,7 @@ class _LaporanPembelianScreenState extends State<LaporanPembelianScreen> {
         p.kodeBarang,
         p.namaBarang,
         DateFormat('dd-MM-yyyy').format(p.tanggalBeli),
-        DateFormat('dd-MM-yyyy').format(p.expired),
+        DateFormat('dd-MM-yyyy').format(p.expired!),
         p.kelompok,
         p.satuan,
         p.hargaBeli,
@@ -317,8 +317,12 @@ class _LaporanPembelianScreenState extends State<LaporanPembelianScreen> {
                                           DataCell(Text(p.namaBarang)),
                                           DataCell(Text(DateFormat('dd-MM-yyyy')
                                               .format(p.tanggalBeli))),
-                                          DataCell(Text(DateFormat('dd-MM-yyyy')
-                                              .format(p.expired))),
+                                          DataCell(Text(
+                                            p.expired == null
+                                                ? ''
+                                                : DateFormat('dd-MM-yyyy')
+                                                    .format(p.expired!),
+                                          )),
                                           DataCell(Text(p.kelompok)),
                                           DataCell(Text(p.satuan)),
                                           DataCell(Text(NumberFormat.currency(

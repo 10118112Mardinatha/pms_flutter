@@ -6,10 +6,7 @@ import 'package:drift/drift.dart' as drift;
 import 'package:excel/excel.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
-import 'package:printing/printing.dart';
 import '../database/app_database.dart';
-import 'dart:typed_data';
-import 'package:pdf/widgets.dart' as pw;
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 
@@ -40,9 +37,6 @@ class _PembelianScreenState extends State<PembelianScreen> {
   String totalpembelian = '';
   bool _supplierValid = false;
   Supplier? selectedSupplier;
-  DateTime? _selectedDate;
-  int _rowsPerPage = 10;
-  final List<int> _rowsPerPageOptions = [10, 20, 30];
   final formatter =
       NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
 
@@ -158,7 +152,9 @@ class _PembelianScreenState extends State<PembelianScreen> {
                   kodeBarang: Value(item.kodeBarang),
                   namaBarang: Value(item.namaBarang),
                   tanggalBeli: Value(tanggal),
-                  expired: Value(item.expired),
+                  expired: item.expired != null
+                      ? Value(item.expired!)
+                      : const Value.absent(),
                   kelompok: Value(item.kelompok),
                   satuan: Value(item.satuan),
                   hargaBeli: Value(item.hargaBeli),
@@ -174,22 +170,6 @@ class _PembelianScreenState extends State<PembelianScreen> {
             .toList(),
       );
 
-      batch.insertAll(
-        db.stoks,
-        items
-            .map((item) => StoksCompanion(
-                noFaktur: Value(noFaktur),
-                kodeSupplier: Value(kodeSupplier),
-                namaSuppliers: Value(namaSupplier),
-                kodeBarang: Value(item.kodeBarang),
-                namaBarang: Value(item.namaBarang),
-                tanggalBeli: Value(tanggal),
-                expired: Value(item.expired),
-                kelompok: Value(item.kelompok),
-                satuan: Value(item.satuan),
-                stok: Value(item.jumlahBeli)))
-            .toList(),
-      );
       for (final item in items) {
         batch.customStatement(
           '''
@@ -326,7 +306,8 @@ class _PembelianScreenState extends State<PembelianScreen> {
 
     final kodeBarangCtrl = TextEditingController(text: data?.kodeBarang ?? '');
     final namaBarangCtrl = TextEditingController(text: data?.namaBarang ?? '');
-    final expiredCtrl = TextEditingController();
+    final expiredCtrl = TextEditingController(
+        text: data?.expired?.toIso8601String().split('T').first ?? '');
     final kelompokCtrl = TextEditingController(text: data?.kelompok ?? '');
     final satuanCtrl = TextEditingController(text: data?.satuan ?? '');
     final hargaBeliCtrl =
@@ -349,7 +330,7 @@ class _PembelianScreenState extends State<PembelianScreen> {
     final TextEditingController _barangController = TextEditingController();
     final formatCurrency =
         NumberFormat.currency(locale: 'id', symbol: 'Rp ', decimalDigits: 0);
-    DateTime? expired;
+    var expired = data?.expired ?? null;
     Barang? selectedBarang;
 
     void hitungTotalHarga() {
@@ -718,8 +699,6 @@ class _PembelianScreenState extends State<PembelianScreen> {
           ElevatedButton(
             onPressed: () async {
               if (formKey.currentState!.validate()) {
-                final expiredDate = DateTime.tryParse(expiredCtrl.text);
-                if (expiredDate == null) return;
                 if (data == null) {
                   final existingBarang = await db.getBarangByKodeDanNama(
                       kodeBarangCtrl.text, _barangController.text);
@@ -785,7 +764,7 @@ class _PembelianScreenState extends State<PembelianScreen> {
                   await db.insertPembelianTmp(PembelianstmpCompanion(
                     kodeBarang: Value(kodeBarangCtrl.text),
                     namaBarang: Value(_barangController.text),
-                    expired: Value(expiredDate),
+                    expired: Value(expired),
                     kelompok: Value(kelompokCtrl.text),
                     satuan: Value(satuanCtrl.text),
                     hargaBeli: Value(int.tryParse(hargaBeliCtrl.text
@@ -817,7 +796,7 @@ class _PembelianScreenState extends State<PembelianScreen> {
                     data.copyWith(
                       kodeBarang: kodeBarangCtrl.text,
                       namaBarang: namaBarangCtrl.text,
-                      expired: expiredDate,
+                      expired: Value(expired),
                       kelompok: kelompokCtrl.text,
                       satuan: satuanCtrl.text,
                       hargaBeli: int.tryParse(hargaBeliCtrl.text
@@ -1182,8 +1161,12 @@ class _PembelianScreenState extends State<PembelianScreen> {
                             message: 'Nama Barang',
                             child: Text(p.namaBarang),
                           )),
-                          DataCell(Text(formatDate(
-                              DateTime.parse(p.expired.toString())))),
+                          DataCell(Text(
+                            p.expired != null
+                                ? formatDate(
+                                    DateTime.parse(p.expired.toString()))
+                                : '',
+                          )),
                           DataCell(Tooltip(
                             message: 'Kelompok',
                             child: Text(p.kelompok),

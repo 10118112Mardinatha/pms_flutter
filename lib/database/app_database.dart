@@ -60,7 +60,7 @@ class Pembelians extends Table {
       text().withLength(min: 1, max: 20)(); // 🔗 relasi
   TextColumn get namaBarang => text()();
   DateTimeColumn get tanggalBeli => dateTime()();
-  DateTimeColumn get expired => dateTime()();
+  DateTimeColumn get expired => dateTime().nullable()();
   TextColumn get kelompok => text()();
   TextColumn get satuan => text()();
   IntColumn get hargaBeli => integer().withDefault(const Constant(0))();
@@ -79,7 +79,7 @@ class Pembelianstmp extends Table {
   TextColumn get kodeBarang =>
       text().withLength(min: 1, max: 20)(); // 🔗 relasi
   TextColumn get namaBarang => text()();
-  DateTimeColumn get expired => dateTime()();
+  DateTimeColumn get expired => dateTime().nullable()();
   TextColumn get kelompok => text()();
   TextColumn get satuan => text()();
   IntColumn get hargaBeli => integer().withDefault(const Constant(0))();
@@ -104,7 +104,7 @@ class Penjualans extends Table {
   TextColumn get kodeBarang =>
       text().withLength(min: 1, max: 20)(); // 🔗 relasi
   TextColumn get namaBarang => text()();
-  DateTimeColumn get expired => dateTime()();
+  DateTimeColumn get expired => dateTime().nullable()();
   TextColumn get kelompok => text()();
   TextColumn get satuan => text()();
   IntColumn get hargaBeli => integer().withDefault(const Constant(0))();
@@ -197,21 +197,6 @@ class Raks extends Table {
   TextColumn get keterangan => text().nullable()();
 }
 
-class Stoks extends Table {
-  IntColumn get idStok => integer().autoIncrement()();
-  TextColumn get noFaktur => text()();
-  TextColumn get kodeSupplier => text().withLength(min: 1, max: 20)();
-  TextColumn get namaSuppliers => text()();
-  TextColumn get kodeBarang =>
-      text().withLength(min: 1, max: 20)(); // 🔗 relasi
-  TextColumn get namaBarang => text()();
-  DateTimeColumn get tanggalBeli => dateTime()();
-  DateTimeColumn get expired => dateTime()();
-  TextColumn get kelompok => text()();
-  TextColumn get satuan => text()();
-  IntColumn get stok => integer().nullable()();
-}
-
 // Kelas utama database
 @DriftDatabase(tables: [
   Users,
@@ -225,8 +210,7 @@ class Stoks extends Table {
   Pelanggans,
   Reseps,
   Resepstmp,
-  Raks,
-  Stoks
+  Raks
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase._internal() : super(_openConnection());
@@ -593,49 +577,6 @@ class AppDatabase extends _$AppDatabase {
     return (select(raks)
           ..where((tbl) => tbl.kodeRak.like('%$query%'))
           ..limit(10))
-        .get();
-  }
-
-  //Stok
-
-  Future<List<Stok>> getAllStok() {
-    return select(stoks).get();
-  }
-
-  Future<int> insertStok(StoksCompanion entry) {
-    return into(stoks).insert(entry);
-  }
-
-  Future<bool> updateStok(Stok entry) {
-    return update(stoks).replace(entry);
-  }
-
-  Future<int> deleteStok(int id) {
-    return (delete(stoks)..where((tbl) => tbl.idStok.equals(id))).go();
-  }
-
-  Future<List<Stok>> getExpiredListByKodeBarang(String kodeBarang) {
-    final now = DateTime.now();
-
-    return (select(stoks)
-          ..where((tbl) =>
-              tbl.kodeBarang.equals(kodeBarang) &
-              tbl.expired.isBiggerThanValue(now) &
-              tbl.stok.isBiggerOrEqualValue(1))
-          ..orderBy([
-            (tbl) =>
-                OrderingTerm(expression: tbl.expired, mode: OrderingMode.asc)
-          ]))
-        .get();
-  }
-
-  Future<List<Stok>> getStokListByKodeBarang(String kodeBarang) {
-    final today = DateTime.now();
-    return (select(stoks)
-          ..where((tbl) =>
-              tbl.kodeBarang.equals(kodeBarang) &
-              tbl.expired.isBiggerThanValue(today) &
-              tbl.stok.isBiggerOrEqualValue(1)))
         .get();
   }
 }

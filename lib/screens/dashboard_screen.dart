@@ -7,8 +7,6 @@ import 'package:pms_flutter/screens/penjualan_lap_screen.dart';
 import 'package:pms_flutter/screens/penjualan_screen.dart';
 import 'package:pms_flutter/screens/resep_lap_screen.dart';
 import 'package:pms_flutter/screens/resep_screen.dart';
-import 'package:pms_flutter/screens/test_laporan.dart';
-import 'package:pms_flutter/screens/test_stok.dart';
 import '../models/user_model.dart'; // Ganti sesuai path model user kamu
 import '../components/sidebar.dart';
 import '../components/topbar.dart';
@@ -65,7 +63,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         return TambahUserScreen(
             database: db, currentUserId: int.parse(widget.user.id));
       case 'Obat Expired':
-        return StokScreen(database: db);
+        return BarangScreen(database: db);
       default:
         return _buildDashboardContent();
     }
