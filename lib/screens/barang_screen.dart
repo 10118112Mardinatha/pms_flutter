@@ -47,6 +47,22 @@ class _BarangScreenState extends State<BarangScreen> {
     _loadBarangs();
   }
 
+  int _currentPage = 0;
+
+  int get _totalPages => (filteredBarangs.length / _rowsPerPage)
+      .ceil()
+      .clamp(1, double.infinity)
+      .toInt();
+
+  List<Barang> get _paginatedBarang {
+    final startIndex = _currentPage * _rowsPerPage;
+    final endIndex = (_currentPage + 1) * _rowsPerPage;
+    return filteredBarangs.sublist(
+      startIndex,
+      endIndex > filteredBarangs.length ? filteredBarangs.length : endIndex,
+    );
+  }
+
   Future<void> _loadBarangs() async {
     final data = await db.getAllBarangs();
     setState(() {
@@ -96,6 +112,7 @@ class _BarangScreenState extends State<BarangScreen> {
                 kodeBarang: drift.Value(kodeBarang),
                 namaBarang: drift.Value(namaBarang),
                 kelompok: drift.Value(kelompok),
+                noRak: drift.Value('0'),
                 satuan: drift.Value(satuan),
                 stokAktual: drift.Value(int.tryParse(stokAktual ?? '0') ?? 0),
                 hargaBeli: drift.Value(int.tryParse(hargaBeli ?? '0') ?? 0),
@@ -149,6 +166,14 @@ class _BarangScreenState extends State<BarangScreen> {
         TextEditingController(text: barang?.jualDisc3.toString() ?? '');
     final dic4Ctrl =
         TextEditingController(text: barang?.jualDisc4.toString() ?? '');
+
+    final hargaJual = int.tryParse(hargaJCtrl.text) ?? 0;
+
+    final disc1 = int.tryParse(dic1Ctrl.text) ?? hargaJual;
+    final disc2 = int.tryParse(dic2Ctrl.text) ?? hargaJual;
+    final disc3 = int.tryParse(dic3Ctrl.text) ?? hargaJual;
+    final disc4 = int.tryParse(dic4Ctrl.text) ?? hargaJual;
+
     final formatCurrency =
         NumberFormat.currency(locale: 'id', symbol: 'Rp ', decimalDigits: 0);
     showDialog(
@@ -235,7 +260,10 @@ class _BarangScreenState extends State<BarangScreen> {
                     decoration: InputDecoration(labelText: 'Harga Beli'),
                     onChanged: (value) {
                       if (value.isEmpty) return;
-                      final number = int.parse(value.replaceAll('.', ''));
+                      final number = int.tryParse(
+                              value.replaceAll(RegExp(r'[^0-9]'), '')) ??
+                          0;
+
                       final newText =
                           formatCurrency.format(number).replaceAll(',00', '');
                       hargaBCtrl.value = TextEditingValue(
@@ -255,7 +283,10 @@ class _BarangScreenState extends State<BarangScreen> {
                     decoration: InputDecoration(labelText: 'Harga Jual'),
                     onChanged: (value) {
                       if (value.isEmpty) return;
-                      final number = int.parse(value.replaceAll('.', ''));
+                      final number = int.tryParse(
+                              value.replaceAll(RegExp(r'[^0-9]'), '')) ??
+                          0;
+
                       final newText =
                           formatCurrency.format(number).replaceAll(',00', '');
                       hargaJCtrl.value = TextEditingValue(
@@ -273,7 +304,7 @@ class _BarangScreenState extends State<BarangScreen> {
                   if (barang != null) ...[
                     TextFormField(
                       controller: dic1Ctrl,
-                      decoration: InputDecoration(labelText: 'Disc 3'),
+                      decoration: InputDecoration(labelText: 'Disc 1'),
                       keyboardType: TextInputType.number,
                       validator: (value) {
                         if (value == null || value.isEmpty)
@@ -298,7 +329,7 @@ class _BarangScreenState extends State<BarangScreen> {
                     ),
                     TextFormField(
                       controller: dic2Ctrl,
-                      decoration: InputDecoration(labelText: 'Disc 3'),
+                      decoration: InputDecoration(labelText: 'Disc 2'),
                       keyboardType: TextInputType.number,
                       validator: (value) {
                         if (value == null || value.isEmpty)
@@ -348,7 +379,7 @@ class _BarangScreenState extends State<BarangScreen> {
                     ),
                     TextFormField(
                       controller: dic4Ctrl,
-                      decoration: InputDecoration(labelText: 'Disc 3'),
+                      decoration: InputDecoration(labelText: 'Disc 4'),
                       keyboardType: TextInputType.number,
                       validator: (value) {
                         if (value == null || value.isEmpty)
@@ -427,10 +458,10 @@ class _BarangScreenState extends State<BarangScreen> {
                       hargaJual: Value(int.tryParse(hargaJCtrl.text
                               .replaceAll(RegExp(r'[^0-9]'), '')) ??
                           0),
-                      jualDisc1: const Value(0),
-                      jualDisc2: const Value(0),
-                      jualDisc3: const Value(0),
-                      jualDisc4: const Value(0),
+                      jualDisc1: Value(disc1),
+                      jualDisc2: Value(disc2),
+                      jualDisc3: Value(disc3),
+                      jualDisc4: Value(disc4),
                     ));
                   }
                 } else {
@@ -901,6 +932,29 @@ class _BarangScreenState extends State<BarangScreen> {
                   ),
                 ),
               ),
+            ),
+            const SizedBox(height: 10),
+
+            // === PAGINATION ===
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                Text('Halaman ${_currentPage + 1} dari $_totalPages'),
+                const SizedBox(width: 20),
+                ElevatedButton(
+                  onPressed: _currentPage > 0
+                      ? () => setState(() => _currentPage--)
+                      : null,
+                  child: const Text('⬅ Prev'),
+                ),
+                const SizedBox(width: 8),
+                ElevatedButton(
+                  onPressed: (_currentPage + 1) < _totalPages
+                      ? () => setState(() => _currentPage++)
+                      : null,
+                  child: const Text('Next ➡'),
+                ),
+              ],
             ),
           ],
         ),

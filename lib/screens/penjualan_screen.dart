@@ -35,7 +35,8 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
   final TextEditingController _discController = TextEditingController();
   TextEditingController _expiredController = TextEditingController();
   final TextEditingController _doctorController = TextEditingController();
-
+  final formatCurrency =
+      NumberFormat.currency(locale: 'id', symbol: 'Rp ', decimalDigits: 0);
   DateTime? tgexpired;
   String kodeDoctor = ' ';
   Barang? selectedBarang;
@@ -751,7 +752,8 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
                     itemBuilder: (context, Barang suggestion) {
                       return ListTile(
                         title: Text(suggestion.namaBarang),
-                        subtitle: Text('Kode: ${suggestion.kodeBarang}'),
+                        subtitle: Text(
+                            'Kode: ${suggestion.kodeBarang}|| Rak : ${suggestion.noRak}'),
                       );
                     },
                     onSuggestionSelected: (Barang suggestion) async {
@@ -944,14 +946,14 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
                           DataCell(Text(p.expired != null
                               ? formatDate(DateTime.parse(p.expired.toString()))
                               : '')),
-                          DataCell(Text(p.hargaJual.toString())),
-                          DataCell(Text((p.jualDiscon ?? 0).toString())),
+                          DataCell(Text(formatCurrency.format(p.hargaJual))),
+                          DataCell(Text(formatCurrency.format(p.jualDiscon))),
                           DataCell(Text((p.jumlahJual ?? 0).toString())),
-                          DataCell(
-                              Text((p.totalHargaSebelumDisc ?? 0).toString())),
-                          DataCell(
-                              Text((p.totalHargaSetelahDisc ?? 0).toString())),
-                          DataCell(Text((p.totalDisc ?? 0).toString())),
+                          DataCell(Text(
+                              formatCurrency.format(p.totalHargaSebelumDisc))),
+                          DataCell(Text(formatCurrency
+                              .format(p.totalHargaSetelahDisc ?? 0))),
+                          DataCell(Text(formatCurrency.format(p.totalDisc))),
                           DataCell(Row(
                             children: [
                               IconButton(

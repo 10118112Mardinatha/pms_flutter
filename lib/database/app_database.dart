@@ -138,7 +138,7 @@ class Pelanggans extends Table {
   TextColumn get kodPelanggan => text().withLength(min: 1, max: 20).unique()();
   TextColumn get namaPelanggan => text().withLength(min: 1, max: 50)();
   IntColumn get usia => integer().nullable()();
-  IntColumn get telepon => integer().nullable()();
+  TextColumn get telepon => text().nullable()();
   TextColumn get alamat => text().nullable()();
   TextColumn get kelompok => text().nullable()();
   IntColumn get limitpiutang => integer().nullable()();

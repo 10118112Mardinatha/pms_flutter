@@ -20,17 +20,11 @@ class _SidebarState extends State<Sidebar> {
   final FocusNode _logoFocusNode = FocusNode();
   bool _isLaporanExpanded = false;
   bool _isBarangExpanded = false;
-  String? _role; // <-- Tambahkan ini
+  String get _role => widget.role ?? '';
+// <-- Tambahkan ini
   @override
   void initState() {
     super.initState();
-    widget.database.getLoggedInUser().then((user) {
-      if (mounted) {
-        setState(() {
-          _role = user?.role;
-        });
-      }
-    });
 
     _logoFocusNode.addListener(() {
       if (_logoFocusNode.hasFocus) {
@@ -106,44 +100,6 @@ class _SidebarState extends State<Sidebar> {
                       child: _menuItem(Icons.inventory_outlined, 'Rak'),
                     ),
                     Tooltip(
-                      message: _isCollapsed ? 'Laporan' : '',
-                      child: _expansionMenuItem(
-                        Icons.bar_chart,
-                        'Laporan',
-                        _isLaporanExpanded,
-                        () {
-                          setState(() {
-                            _isLaporanExpanded = !_isLaporanExpanded;
-                            if (_isLaporanExpanded)
-                              _isBarangExpanded =
-                                  false; // Close 'Barang' if 'Laporan' is expanded
-                          });
-                        },
-                        [
-                          Tooltip(
-                            message: _isCollapsed ? 'Laporan Pembelian' : '',
-                            child: _submenuItem(
-                                Icons.show_chart, 'Laporan Pembelian'),
-                          ),
-                          Tooltip(
-                            message: _isCollapsed ? 'Laporan Penjualan' : '',
-                            child: _submenuItem(
-                                Icons.show_chart, 'Laporan Penjualan'),
-                          ),
-                          Tooltip(
-                            message: _isCollapsed ? 'Laporan Resep' : '',
-                            child:
-                                _submenuItem(Icons.assessment, 'Laporan Resep'),
-                          ),
-                          Tooltip(
-                            message: _isCollapsed ? 'Laporan User' : '',
-                            child: _submenuItem(
-                                Icons.my_library_add_rounded, 'Laporan User'),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Tooltip(
                       message: _isCollapsed ? 'Barang' : '',
                       child: _expansionMenuItem(
                         Icons.inventory,
@@ -170,11 +126,50 @@ class _SidebarState extends State<Sidebar> {
                         ],
                       ),
                     ),
+                    if (_role == 'admin')
+                      Tooltip(
+                        message: _isCollapsed ? 'Laporan' : '',
+                        child: _expansionMenuItem(
+                          Icons.bar_chart,
+                          'Laporan',
+                          _isLaporanExpanded,
+                          () {
+                            setState(() {
+                              _isLaporanExpanded = !_isLaporanExpanded;
+                              if (_isLaporanExpanded)
+                                _isBarangExpanded =
+                                    false; // Close 'Barang' if 'Laporan' is expanded
+                            });
+                          },
+                          [
+                            Tooltip(
+                              message: _isCollapsed ? 'Laporan Pembelian' : '',
+                              child: _submenuItem(
+                                  Icons.show_chart, 'Laporan Pembelian'),
+                            ),
+                            Tooltip(
+                              message: _isCollapsed ? 'Laporan Penjualan' : '',
+                              child: _submenuItem(
+                                  Icons.show_chart, 'Laporan Penjualan'),
+                            ),
+                            Tooltip(
+                              message: _isCollapsed ? 'Laporan Resep' : '',
+                              child: _submenuItem(
+                                  Icons.assessment, 'Laporan Resep'),
+                            ),
+                            Tooltip(
+                              message: _isCollapsed ? 'Laporan User' : '',
+                              child: _submenuItem(
+                                  Icons.my_library_add_rounded, 'Laporan User'),
+                            ),
+                          ],
+                        ),
+                      ),
                     _divider(),
                     if (_role == 'admin')
                       Tooltip(
-                        message: _isCollapsed ? 'Tambah User' : '',
-                        child: _menuItem(Icons.person_add_alt_1, 'User'),
+                        message: _isCollapsed ? 'User' : '',
+                        child: _menuItem(Icons.supervisor_account, 'User'),
                       ),
                   ],
                 ),
@@ -204,6 +199,12 @@ class _SidebarState extends State<Sidebar> {
               const Icon(Icons.menu, size: 28, color: Colors.blue),
               if (!_isCollapsed) ...[
                 const SizedBox(width: 5),
+                Text(
+                  'Pharmacy PMS',
+                  style: Theme.of(context).textTheme.titleMedium!.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
               ],
             ],
           ),

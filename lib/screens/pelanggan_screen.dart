@@ -38,6 +38,22 @@ class _PelangganScreenState extends State<PelangganScreen> {
     _loadPelanggan();
   }
 
+  int _currentPage = 0;
+
+  int get _totalPages => (filteredPelanggan.length / _rowsPerPage)
+      .ceil()
+      .clamp(1, double.infinity)
+      .toInt();
+
+  List<Pelanggan> get _paginatedPelanggan {
+    final startIndex = _currentPage * _rowsPerPage;
+    final endIndex = (_currentPage + 1) * _rowsPerPage;
+    return filteredPelanggan.sublist(
+      startIndex,
+      endIndex > filteredPelanggan.length ? filteredPelanggan.length : endIndex,
+    );
+  }
+
   Future<void> _loadPelanggan() async {
     final data = await db.getAllPelanggans();
     setState(() {
@@ -63,8 +79,7 @@ class _PelangganScreenState extends State<PelangganScreen> {
         final usia = row[2]?.value.toString();
         final telepon = row[3]?.value.toString();
         final alamat = row[4]?.value.toString();
-
-        final kelompok = row[5]?.value;
+        final kelompok = row[5]?.value.toString();
 
         if (kodePelanggan.isEmpty || namaPelanggan.isEmpty) continue;
 
@@ -82,8 +97,8 @@ class _PelangganScreenState extends State<PelangganScreen> {
               PelanggansCompanion(
                 kodPelanggan: drift.Value(kodePelanggan),
                 namaPelanggan: drift.Value(namaPelanggan),
-                usia: drift.Value(int.tryParse(usia!)),
-                telepon: drift.Value(int.tryParse(telepon!)),
+                usia: drift.Value(int.tryParse(usia.toString())),
+                telepon: drift.Value(telepon),
                 alamat: drift.Value(alamat),
                 kelompok: drift.Value(kelompok),
               ),
@@ -206,6 +221,8 @@ class _PelangganScreenState extends State<PelangganScreen> {
                   await db.insertPelanggans(PelanggansCompanion(
                     kodPelanggan: Value(kodeCtrl.text),
                     namaPelanggan: Value(namaCtrl.text),
+                    usia: Value(int.tryParse(usiaCtrl.text)),
+                    telepon: Value(teleponCtrl.text),
                     alamat: Value(
                         alamatCtrl.text.isNotEmpty ? alamatCtrl.text : null),
                     kelompok: Value(kelompokCtrl.text.isNotEmpty
@@ -217,6 +234,8 @@ class _PelangganScreenState extends State<PelangganScreen> {
                     Pelanggan.copyWith(
                       kodPelanggan: kodeCtrl.text,
                       namaPelanggan: namaCtrl.text,
+                      usia: Value(int.tryParse(usiaCtrl.text)),
+                      telepon: Value(teleponCtrl.text),
                       alamat: Value(
                           alamatCtrl.text.isNotEmpty ? alamatCtrl.text : null),
                       kelompok: Value(kelompokCtrl.text.isNotEmpty
@@ -557,7 +576,7 @@ class _PelangganScreenState extends State<PelangganScreen> {
                         DataCell(
                           Tooltip(
                             message: 'Telepon',
-                            child: Text(s.telepon.toString()),
+                            child: Text(s.telepon ?? '0'),
                           ),
                         ),
                         DataCell(
@@ -592,6 +611,29 @@ class _PelangganScreenState extends State<PelangganScreen> {
                   ),
                 ),
               ),
+            ),
+            const SizedBox(height: 10),
+
+            // === PAGINATION ===
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                Text('Halaman ${_currentPage + 1} dari $_totalPages'),
+                const SizedBox(width: 20),
+                ElevatedButton(
+                  onPressed: _currentPage > 0
+                      ? () => setState(() => _currentPage--)
+                      : null,
+                  child: const Text('⬅ Prev'),
+                ),
+                const SizedBox(width: 8),
+                ElevatedButton(
+                  onPressed: (_currentPage + 1) < _totalPages
+                      ? () => setState(() => _currentPage++)
+                      : null,
+                  child: const Text('Next ➡'),
+                ),
+              ],
             ),
           ],
         ),

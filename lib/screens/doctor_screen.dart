@@ -42,6 +42,22 @@ class _DoctorScreenState extends State<DoctorScreen> {
     _loadDoctors();
   }
 
+  int _currentPage = 0;
+
+  int get _totalPages => (filteredDoctors.length / _rowsPerPage)
+      .ceil()
+      .clamp(1, double.infinity)
+      .toInt();
+
+  List<Doctor> get _paginatedDoctors {
+    final startIndex = _currentPage * _rowsPerPage;
+    final endIndex = (_currentPage + 1) * _rowsPerPage;
+    return filteredDoctors.sublist(
+      startIndex,
+      endIndex > filteredDoctors.length ? filteredDoctors.length : endIndex,
+    );
+  }
+
   Future<void> _loadDoctors() async {
     final data = await db.getAllDoctors();
     setState(() {
@@ -66,7 +82,7 @@ class _DoctorScreenState extends State<DoctorScreen> {
         final namaDoctor = row[1]?.value.toString() ?? '';
         final alamat = row[2]?.value.toString();
         final telepon = row[3]?.value.toString();
-        final nilaipenjualan = row[4]?.value;
+        final nilaipenjualan = row[4]?.value.toString();
 
         if (kodeDoctor.isEmpty || namaDoctor.isEmpty) continue;
 
@@ -86,7 +102,8 @@ class _DoctorScreenState extends State<DoctorScreen> {
                 namaDoctor: drift.Value(namaDoctor),
                 alamat: drift.Value(alamat),
                 telepon: drift.Value(telepon),
-                nilaipenjualan: drift.Value(nilaipenjualan),
+                nilaipenjualan:
+                    drift.Value(int.tryParse(nilaipenjualan ?? '0') ?? 0),
               ),
             );
       }
@@ -339,6 +356,7 @@ class _DoctorScreenState extends State<DoctorScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // === HEADER ATAS ===
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -365,7 +383,6 @@ class _DoctorScreenState extends State<DoctorScreen> {
                       );
                       if (result != null && result.files.single.path != null) {
                         final file = File(result.files.single.path!);
-
                         final confirm = await showDialog<bool>(
                           context: context,
                           builder: (context) => AlertDialog(
@@ -384,7 +401,6 @@ class _DoctorScreenState extends State<DoctorScreen> {
                             ],
                           ),
                         );
-
                         if (confirm == true) {
                           await importDoctorsFromExcel(
                               file: file, db: db, onFinished: _loadDoctors);
@@ -417,6 +433,7 @@ class _DoctorScreenState extends State<DoctorScreen> {
               ],
             ),
             const SizedBox(height: 15),
+
             // === FILTER PENCARIAN ===
             Text(
               'Cari berdasarkan:',
@@ -433,6 +450,7 @@ class _DoctorScreenState extends State<DoctorScreen> {
                   onChanged: (value) {
                     setState(() {
                       searchField = value!;
+                      _currentPage = 0; // Reset halaman saat filter berubah
                       _applySearch();
                     });
                   },
@@ -454,6 +472,7 @@ class _DoctorScreenState extends State<DoctorScreen> {
                               onPressed: () {
                                 _searchController.clear();
                                 searchText = '';
+                                _currentPage = 0;
                                 _applySearch();
                               },
                             )
@@ -461,17 +480,17 @@ class _DoctorScreenState extends State<DoctorScreen> {
                     ),
                     onChanged: (value) {
                       searchText = value;
+                      _currentPage = 0;
                       _applySearch();
                     },
                   ),
                 ),
               ],
             ),
-
             const SizedBox(height: 15),
             const Divider(thickness: 1),
 
-            // === HEADER DAFTAR SUPPLIER DAN DROPDOWN BARIS ===
+            // === HEADER TABEL & DROPDOWN JUMLAH BARIS ===
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -496,6 +515,7 @@ class _DoctorScreenState extends State<DoctorScreen> {
                       onChanged: (value) {
                         setState(() {
                           _rowsPerPage = value!;
+                          _currentPage = 0; // Reset saat jumlah baris diganti
                         });
                       },
                     ),
@@ -503,9 +523,9 @@ class _DoctorScreenState extends State<DoctorScreen> {
                 ),
               ],
             ),
-
             const SizedBox(height: 12),
 
+            // === TABEL DOKTER ===
             Expanded(
               child: SingleChildScrollView(
                 child: Container(
@@ -519,53 +539,25 @@ class _DoctorScreenState extends State<DoctorScreen> {
                     columnSpacing: 20,
                     dataTextStyle: const TextStyle(fontSize: 13),
                     columns: const [
-                      DataColumn(label: Text('No')), // Kolom Nomor Urut
+                      DataColumn(label: Text('No')),
                       DataColumn(label: Text('Kode')),
                       DataColumn(label: Text('Nama')),
                       DataColumn(label: Text('Alamat')),
                       DataColumn(label: Text('Telepon')),
                       DataColumn(label: Text('Penjualan')),
-                      DataColumn(label: Text('Aksi')), // Aksi
+                      DataColumn(label: Text('Aksi')),
                     ],
-                    rows: filteredDoctors
-                        .take(_rowsPerPage)
-                        .toList()
-                        .asMap()
-                        .entries
-                        .map((entry) {
+                    rows: _paginatedDoctors.asMap().entries.map((entry) {
                       final index = entry.key;
                       final s = entry.value;
                       return DataRow(cells: [
-                        DataCell(Text('${index + 1}')), // No
                         DataCell(
-                          Tooltip(
-                            message: 'Kode Dokter',
-                            child: Text(s.kodeDoctor),
-                          ),
-                        ),
-                        DataCell(
-                          Tooltip(
-                            message: 'Nama',
-                            child: Text(s.namaDoctor),
-                          ),
-                        ),
-                        DataCell(
-                          Tooltip(
-                            message: 'Alamat',
-                            child: Text(s.alamat ?? '-'),
-                          ),
-                        ),
-                        DataCell(
-                          Tooltip(
-                            message: 'Telepon',
-                            child: Text(s.telepon ?? '-'),
-                          ),
-                        ),
-                        DataCell(
-                          Tooltip(
-                              message: 'Nilai Penjualan',
-                              child: Text(formatter.format(s.nilaipenjualan))),
-                        ),
+                            Text('${_currentPage * _rowsPerPage + index + 1}')),
+                        DataCell(Text(s.kodeDoctor)),
+                        DataCell(Text(s.namaDoctor)),
+                        DataCell(Text(s.alamat ?? '-')),
+                        DataCell(Text(s.telepon ?? '-')),
+                        DataCell(Text(formatter.format(s.nilaipenjualan))),
                         DataCell(Row(
                           children: [
                             IconButton(
@@ -585,6 +577,30 @@ class _DoctorScreenState extends State<DoctorScreen> {
                   ),
                 ),
               ),
+            ),
+
+            const SizedBox(height: 10),
+
+            // === PAGINATION ===
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                Text('Halaman ${_currentPage + 1} dari $_totalPages'),
+                const SizedBox(width: 20),
+                ElevatedButton(
+                  onPressed: _currentPage > 0
+                      ? () => setState(() => _currentPage--)
+                      : null,
+                  child: const Text('⬅ Prev'),
+                ),
+                const SizedBox(width: 8),
+                ElevatedButton(
+                  onPressed: (_currentPage + 1) < _totalPages
+                      ? () => setState(() => _currentPage++)
+                      : null,
+                  child: const Text('Next ➡'),
+                ),
+              ],
             ),
           ],
         ),

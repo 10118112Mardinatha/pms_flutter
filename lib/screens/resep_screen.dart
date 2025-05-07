@@ -40,7 +40,8 @@ class _ResepScreenState extends State<ResepScreen> {
   final TextEditingController _kelompokController = TextEditingController();
   final TextEditingController _discController = TextEditingController();
   Barang? selectedBarang;
-
+  final formatter =
+      NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
 //formutama
   String kodedokter = '';
   String kodePelanggan = '';
@@ -637,15 +638,19 @@ class _ResepScreenState extends State<ResepScreen> {
                           DataCell(Text(p.namaBarang)),
                           DataCell(Text(p.kelompok)),
                           DataCell(Text(p.satuan)),
-                          DataCell(Text(p.hargaBeli.toString())),
-                          DataCell(Text(p.hargaJual.toString())),
-                          DataCell(Text((p.jualDiscon ?? 0).toString())),
+                          DataCell(Text(formatter.format(p.hargaBeli))),
+                          DataCell(Text(formatter.format(p.hargaJual))),
+                          DataCell(Text(
+                              formatter.format(p.jualDiscon ?? 0).toString())),
                           DataCell(Text((p.jumlahJual ?? 0).toString())),
-                          DataCell(
-                              Text((p.totalHargaSebelumDisc ?? 0).toString())),
-                          DataCell(
-                              Text((p.totalHargaSetelahDisc ?? 0).toString())),
-                          DataCell(Text((p.totalDisc ?? 0).toString())),
+                          DataCell(Text(formatter
+                              .format(p.totalHargaSebelumDisc ?? 0)
+                              .toString())),
+                          DataCell(Text(formatter
+                              .format(p.totalHargaSetelahDisc ?? 0)
+                              .toString())),
+                          DataCell(Text(
+                              formatter.format(p.totalDisc ?? 0).toString())),
                           DataCell(Row(
                             children: [
                               IconButton(

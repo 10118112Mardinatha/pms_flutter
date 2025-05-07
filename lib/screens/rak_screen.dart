@@ -45,6 +45,22 @@ class _RakScreenState extends State<RakScreen> {
     });
   }
 
+  int _currentPage = 0;
+
+  int get _totalPages => (filteredRaks.length / _rowsPerPage)
+      .ceil()
+      .clamp(1, double.infinity)
+      .toInt();
+
+  List<Rak> get _paginatedRaks {
+    final startIndex = _currentPage * _rowsPerPage;
+    final endIndex = (_currentPage + 1) * _rowsPerPage;
+    return filteredRaks.sublist(
+      startIndex,
+      endIndex > filteredRaks.length ? filteredRaks.length : endIndex,
+    );
+  }
+
   Future<void> importRaksFromExcel({
     required File file,
     required AppDatabase db,
@@ -528,6 +544,27 @@ class _RakScreenState extends State<RakScreen> {
                   ),
                 ),
               ),
+            ),
+            // === PAGINATION ===
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                Text('Halaman ${_currentPage + 1} dari $_totalPages'),
+                const SizedBox(width: 20),
+                ElevatedButton(
+                  onPressed: _currentPage > 0
+                      ? () => setState(() => _currentPage--)
+                      : null,
+                  child: const Text('⬅ Prev'),
+                ),
+                const SizedBox(width: 8),
+                ElevatedButton(
+                  onPressed: (_currentPage + 1) < _totalPages
+                      ? () => setState(() => _currentPage++)
+                      : null,
+                  child: const Text('Next ➡'),
+                ),
+              ],
             ),
           ],
         ),

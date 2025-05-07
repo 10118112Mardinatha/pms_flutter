@@ -394,7 +394,8 @@ class _PembelianScreenState extends State<PembelianScreen> {
                     itemBuilder: (context, Barang suggestion) {
                       return ListTile(
                         title: Text(suggestion.namaBarang),
-                        subtitle: Text('Kode: ${suggestion.kodeBarang}'),
+                        subtitle: Text(
+                            'Kode: ${suggestion.kodeBarang}|| Rak : ${suggestion.noRak}'),
                       );
                     },
                     onSuggestionSelected: (Barang suggestion) {
@@ -1234,7 +1235,7 @@ class _PembelianScreenState extends State<PembelianScreen> {
                           DataCell(
                             Tooltip(
                               message: 'Jumlah Beli',
-                              child: Text(formatter.format(p.jumlahBeli ?? 0)),
+                              child: Text(p.jumlahBeli.toString()),
                             ),
                           ),
                           DataCell(

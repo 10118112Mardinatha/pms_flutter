@@ -38,6 +38,22 @@ class _SupplierScreenState extends State<SupplierScreen> {
     _loadSuppliers();
   }
 
+  int _currentPage = 0;
+
+  int get _totalPages => (filteredSuppliers.length / _rowsPerPage)
+      .ceil()
+      .clamp(1, double.infinity)
+      .toInt();
+
+  List<Supplier> get _paginatedSupplier {
+    final startIndex = _currentPage * _rowsPerPage;
+    final endIndex = (_currentPage + 1) * _rowsPerPage;
+    return filteredSuppliers.sublist(
+      startIndex,
+      endIndex > filteredSuppliers.length ? filteredSuppliers.length : endIndex,
+    );
+  }
+
   Future<void> _loadSuppliers() async {
     final data = await db.getAllSuppliers();
     setState(() {
@@ -566,6 +582,27 @@ class _SupplierScreenState extends State<SupplierScreen> {
                   ),
                 ),
               ),
+            ),
+            // === PAGINATION ===
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                Text('Halaman ${_currentPage + 1} dari $_totalPages'),
+                const SizedBox(width: 20),
+                ElevatedButton(
+                  onPressed: _currentPage > 0
+                      ? () => setState(() => _currentPage--)
+                      : null,
+                  child: const Text('⬅ Prev'),
+                ),
+                const SizedBox(width: 8),
+                ElevatedButton(
+                  onPressed: (_currentPage + 1) < _totalPages
+                      ? () => setState(() => _currentPage++)
+                      : null,
+                  child: const Text('Next ➡'),
+                ),
+              ],
             ),
           ],
         ),

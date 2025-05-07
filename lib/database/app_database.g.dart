@@ -4945,9 +4945,9 @@ class $PelanggansTable extends Pelanggans
   static const VerificationMeta _teleponMeta =
       const VerificationMeta('telepon');
   @override
-  late final GeneratedColumn<int> telepon = GeneratedColumn<int>(
+  late final GeneratedColumn<String> telepon = GeneratedColumn<String>(
       'telepon', aliasedName, true,
-      type: DriftSqlType.int, requiredDuringInsert: false);
+      type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _alamatMeta = const VerificationMeta('alamat');
   @override
   late final GeneratedColumn<String> alamat = GeneratedColumn<String>(
@@ -5097,7 +5097,7 @@ class $PelanggansTable extends Pelanggans
       usia: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}usia']),
       telepon: attachedDatabase.typeMapping
-          .read(DriftSqlType.int, data['${effectivePrefix}telepon']),
+          .read(DriftSqlType.string, data['${effectivePrefix}telepon']),
       alamat: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}alamat']),
       kelompok: attachedDatabase.typeMapping
@@ -5126,7 +5126,7 @@ class Pelanggan extends DataClass implements Insertable<Pelanggan> {
   final String kodPelanggan;
   final String namaPelanggan;
   final int? usia;
-  final int? telepon;
+  final String? telepon;
   final String? alamat;
   final String? kelompok;
   final int? limitpiutang;
@@ -5157,7 +5157,7 @@ class Pelanggan extends DataClass implements Insertable<Pelanggan> {
       map['usia'] = Variable<int>(usia);
     }
     if (!nullToAbsent || telepon != null) {
-      map['telepon'] = Variable<int>(telepon);
+      map['telepon'] = Variable<String>(telepon);
     }
     if (!nullToAbsent || alamat != null) {
       map['alamat'] = Variable<String>(alamat);
@@ -5223,7 +5223,7 @@ class Pelanggan extends DataClass implements Insertable<Pelanggan> {
       kodPelanggan: serializer.fromJson<String>(json['kodPelanggan']),
       namaPelanggan: serializer.fromJson<String>(json['namaPelanggan']),
       usia: serializer.fromJson<int?>(json['usia']),
-      telepon: serializer.fromJson<int?>(json['telepon']),
+      telepon: serializer.fromJson<String?>(json['telepon']),
       alamat: serializer.fromJson<String?>(json['alamat']),
       kelompok: serializer.fromJson<String?>(json['kelompok']),
       limitpiutang: serializer.fromJson<int?>(json['limitpiutang']),
@@ -5242,7 +5242,7 @@ class Pelanggan extends DataClass implements Insertable<Pelanggan> {
       'kodPelanggan': serializer.toJson<String>(kodPelanggan),
       'namaPelanggan': serializer.toJson<String>(namaPelanggan),
       'usia': serializer.toJson<int?>(usia),
-      'telepon': serializer.toJson<int?>(telepon),
+      'telepon': serializer.toJson<String?>(telepon),
       'alamat': serializer.toJson<String?>(alamat),
       'kelompok': serializer.toJson<String?>(kelompok),
       'limitpiutang': serializer.toJson<int?>(limitpiutang),
@@ -5258,7 +5258,7 @@ class Pelanggan extends DataClass implements Insertable<Pelanggan> {
           String? kodPelanggan,
           String? namaPelanggan,
           Value<int?> usia = const Value.absent(),
-          Value<int?> telepon = const Value.absent(),
+          Value<String?> telepon = const Value.absent(),
           Value<String?> alamat = const Value.absent(),
           Value<String?> kelompok = const Value.absent(),
           Value<int?> limitpiutang = const Value.absent(),
@@ -5369,7 +5369,7 @@ class PelanggansCompanion extends UpdateCompanion<Pelanggan> {
   final Value<String> kodPelanggan;
   final Value<String> namaPelanggan;
   final Value<int?> usia;
-  final Value<int?> telepon;
+  final Value<String?> telepon;
   final Value<String?> alamat;
   final Value<String?> kelompok;
   final Value<int?> limitpiutang;
@@ -5411,7 +5411,7 @@ class PelanggansCompanion extends UpdateCompanion<Pelanggan> {
     Expression<String>? kodPelanggan,
     Expression<String>? namaPelanggan,
     Expression<int>? usia,
-    Expression<int>? telepon,
+    Expression<String>? telepon,
     Expression<String>? alamat,
     Expression<String>? kelompok,
     Expression<int>? limitpiutang,
@@ -5442,7 +5442,7 @@ class PelanggansCompanion extends UpdateCompanion<Pelanggan> {
       Value<String>? kodPelanggan,
       Value<String>? namaPelanggan,
       Value<int?>? usia,
-      Value<int?>? telepon,
+      Value<String?>? telepon,
       Value<String?>? alamat,
       Value<String?>? kelompok,
       Value<int?>? limitpiutang,
@@ -5483,7 +5483,7 @@ class PelanggansCompanion extends UpdateCompanion<Pelanggan> {
       map['usia'] = Variable<int>(usia.value);
     }
     if (telepon.present) {
-      map['telepon'] = Variable<int>(telepon.value);
+      map['telepon'] = Variable<String>(telepon.value);
     }
     if (alamat.present) {
       map['alamat'] = Variable<String>(alamat.value);
@@ -10309,7 +10309,7 @@ typedef $$PelanggansTableCreateCompanionBuilder = PelanggansCompanion Function({
   required String kodPelanggan,
   required String namaPelanggan,
   Value<int?> usia,
-  Value<int?> telepon,
+  Value<String?> telepon,
   Value<String?> alamat,
   Value<String?> kelompok,
   Value<int?> limitpiutang,
@@ -10323,7 +10323,7 @@ typedef $$PelanggansTableUpdateCompanionBuilder = PelanggansCompanion Function({
   Value<String> kodPelanggan,
   Value<String> namaPelanggan,
   Value<int?> usia,
-  Value<int?> telepon,
+  Value<String?> telepon,
   Value<String?> alamat,
   Value<String?> kelompok,
   Value<int?> limitpiutang,
@@ -10354,7 +10354,7 @@ class $$PelanggansTableFilterComposer
   ColumnFilters<int> get usia => $composableBuilder(
       column: $table.usia, builder: (column) => ColumnFilters(column));
 
-  ColumnFilters<int> get telepon => $composableBuilder(
+  ColumnFilters<String> get telepon => $composableBuilder(
       column: $table.telepon, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get alamat => $composableBuilder(
@@ -10403,7 +10403,7 @@ class $$PelanggansTableOrderingComposer
   ColumnOrderings<int> get usia => $composableBuilder(
       column: $table.usia, builder: (column) => ColumnOrderings(column));
 
-  ColumnOrderings<int> get telepon => $composableBuilder(
+  ColumnOrderings<String> get telepon => $composableBuilder(
       column: $table.telepon, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<String> get alamat => $composableBuilder(
@@ -10452,7 +10452,7 @@ class $$PelanggansTableAnnotationComposer
   GeneratedColumn<int> get usia =>
       $composableBuilder(column: $table.usia, builder: (column) => column);
 
-  GeneratedColumn<int> get telepon =>
+  GeneratedColumn<String> get telepon =>
       $composableBuilder(column: $table.telepon, builder: (column) => column);
 
   GeneratedColumn<String> get alamat =>
@@ -10504,7 +10504,7 @@ class $$PelanggansTableTableManager extends RootTableManager<
             Value<String> kodPelanggan = const Value.absent(),
             Value<String> namaPelanggan = const Value.absent(),
             Value<int?> usia = const Value.absent(),
-            Value<int?> telepon = const Value.absent(),
+            Value<String?> telepon = const Value.absent(),
             Value<String?> alamat = const Value.absent(),
             Value<String?> kelompok = const Value.absent(),
             Value<int?> limitpiutang = const Value.absent(),
@@ -10532,7 +10532,7 @@ class $$PelanggansTableTableManager extends RootTableManager<
             required String kodPelanggan,
             required String namaPelanggan,
             Value<int?> usia = const Value.absent(),
-            Value<int?> telepon = const Value.absent(),
+            Value<String?> telepon = const Value.absent(),
             Value<String?> alamat = const Value.absent(),
             Value<String?> kelompok = const Value.absent(),
             Value<int?> limitpiutang = const Value.absent(),
