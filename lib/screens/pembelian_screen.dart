@@ -77,6 +77,22 @@ class _PembelianScreenState extends State<PembelianScreen> {
     return 'BRG${nextNumber.toString().padLeft(4, '0')}';
   }
 
+  Future<String> generateKodeBarangBaru() async {
+    final lastKode = await (db.select(db.barangs)
+          ..orderBy([(tbl) => OrderingTerm.desc(tbl.kodeBarang)]))
+        .getSingleOrNull();
+
+    if (lastKode == null) {
+      return 'BRG0001';
+    }
+
+    final lastNumber =
+        int.tryParse(lastKode.kodeBarang.replaceAll(RegExp(r'[^0-9]'), '')) ??
+            0;
+    final newNumber = lastNumber + 1;
+    return 'BRG${newNumber.toString().padLeft(4, '0')}';
+  }
+
   Future<void> generateNoFakturPembelian(
       AppDatabase db, TextEditingController noFakturController) async {
     int counter = 1;
@@ -130,7 +146,6 @@ class _PembelianScreenState extends State<PembelianScreen> {
       );
       return;
     }
-
     final items = await db.getAllPembeliansTmp();
 
     if (items.isEmpty) {
@@ -140,39 +155,37 @@ class _PembelianScreenState extends State<PembelianScreen> {
       return;
     }
 
-    // Gunakan batch untuk insert semua data ke tabel pembelians
-    await db.batch((batch) {
-      batch.insertAll(
-        db.pembelians,
-        items
-            .map((item) => PembeliansCompanion(
-                  noFaktur: Value(noFaktur),
-                  kodeSupplier: Value(kodeSupplier),
-                  namaSuppliers: Value(namaSupplier),
-                  kodeBarang: Value(item.kodeBarang),
+    await db.transaction(() async {
+      for (final item in items) {
+        // Cek apakah kodeBarang kosong
+        String kodeBarangFinal = item.kodeBarang.trim();
+        bool isNewBarang = false;
+
+        if (kodeBarangFinal.isEmpty) {
+          kodeBarangFinal = await generateKodeBarangBaru();
+          isNewBarang = true;
+
+          // Masukkan barang baru ke tabel barangs
+          await db.into(db.barangs).insert(
+                BarangsCompanion(
+                  kodeBarang: Value(kodeBarangFinal),
                   namaBarang: Value(item.namaBarang),
-                  tanggalBeli: Value(tanggal),
-                  expired: item.expired != null
-                      ? Value(item.expired!)
-                      : const Value.absent(),
                   kelompok: Value(item.kelompok),
                   satuan: Value(item.satuan),
+                  noRak: const Value(''), // Set default jika tidak ada input
+                  stokAktual: Value(item.jumlahBeli ?? 0),
                   hargaBeli: Value(item.hargaBeli),
                   hargaJual: Value(item.hargaJual),
                   jualDisc1: Value(item.jualDisc1),
                   jualDisc2: Value(item.jualDisc2),
                   jualDisc3: Value(item.jualDisc3),
                   jualDisc4: Value(item.jualDisc4),
-                  ppn: Value(item.ppn),
-                  jumlahBeli: Value(item.jumlahBeli),
-                  totalHarga: Value(item.totalHarga),
-                ))
-            .toList(),
-      );
-
-      for (final item in items) {
-        batch.customStatement(
-          '''
+                ),
+              );
+        } else {
+          // Jika barang sudah ada, update stok
+          await db.customStatement(
+            '''
         UPDATE barangs
         SET 
           stok_aktual = stok_aktual + ?,
@@ -184,17 +197,44 @@ class _PembelianScreenState extends State<PembelianScreen> {
           jual_disc4 = ?
         WHERE kode_barang = ?
         ''',
-          [
-            item.jumlahBeli ?? 0,
-            item.hargaBeli,
-            item.hargaJual,
-            item.jualDisc1,
-            item.jualDisc2,
-            item.jualDisc3,
-            item.jualDisc4,
-            item.kodeBarang
-          ],
-        );
+            [
+              item.jumlahBeli ?? 0,
+              item.hargaBeli,
+              item.hargaJual,
+              item.jualDisc1,
+              item.jualDisc2,
+              item.jualDisc3,
+              item.jualDisc4,
+              kodeBarangFinal,
+            ],
+          );
+        }
+
+        // Insert ke pembelians
+        await db.into(db.pembelians).insert(
+              PembeliansCompanion(
+                noFaktur: Value(noFaktur),
+                kodeSupplier: Value(kodeSupplier),
+                namaSuppliers: Value(namaSupplier),
+                kodeBarang: Value(kodeBarangFinal),
+                namaBarang: Value(item.namaBarang),
+                tanggalBeli: Value(tanggal),
+                expired: item.expired != null
+                    ? Value(item.expired!)
+                    : const Value.absent(),
+                kelompok: Value(item.kelompok),
+                satuan: Value(item.satuan),
+                hargaBeli: Value(item.hargaBeli),
+                hargaJual: Value(item.hargaJual),
+                jualDisc1: Value(item.jualDisc1),
+                jualDisc2: Value(item.jualDisc2),
+                jualDisc3: Value(item.jualDisc3),
+                jualDisc4: Value(item.jualDisc4),
+                ppn: Value(item.ppn),
+                jumlahBeli: Value(item.jumlahBeli),
+                totalHarga: Value(item.totalHarga),
+              ),
+            );
       }
     });
 
