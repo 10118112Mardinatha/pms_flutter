@@ -77,22 +77,6 @@ class _PembelianScreenState extends State<PembelianScreen> {
     return 'BRG${nextNumber.toString().padLeft(4, '0')}';
   }
 
-  Future<String> generateKodeBarangBaru() async {
-    final lastKode = await (db.select(db.barangs)
-          ..orderBy([(tbl) => OrderingTerm.desc(tbl.kodeBarang)]))
-        .getSingleOrNull();
-
-    if (lastKode == null) {
-      return 'BRG0001';
-    }
-
-    final lastNumber =
-        int.tryParse(lastKode.kodeBarang.replaceAll(RegExp(r'[^0-9]'), '')) ??
-            0;
-    final newNumber = lastNumber + 1;
-    return 'BRG${newNumber.toString().padLeft(4, '0')}';
-  }
-
   Future<void> generateNoFakturPembelian(
       AppDatabase db, TextEditingController noFakturController) async {
     int counter = 1;
@@ -162,7 +146,7 @@ class _PembelianScreenState extends State<PembelianScreen> {
         bool isNewBarang = false;
 
         if (kodeBarangFinal.isEmpty) {
-          kodeBarangFinal = await generateKodeBarangBaru();
+          kodeBarangFinal = await generateKodeBarang();
           isNewBarang = true;
 
           // Masukkan barang baru ke tabel barangs
@@ -284,7 +268,7 @@ class _PembelianScreenState extends State<PembelianScreen> {
       if (sheet == null) return;
 
       for (var row in sheet.rows.skip(1)) {
-        final kodeBarang = row[0]?.value.toString() ?? '';
+        final kodeBarang = row[0]?.value.toString() ?? ' ';
         final namaBarang = row[1]?.value.toString() ?? '';
         final expired = row[2]?.value.toString() ?? '';
         final kelompok = row[3]?.value.toString() ?? '';
@@ -315,7 +299,8 @@ class _PembelianScreenState extends State<PembelianScreen> {
               PembelianstmpCompanion(
                 kodeBarang: drift.Value(kodeBarang),
                 namaBarang: drift.Value(namaBarang),
-                expired: drift.Value(expired as DateTime),
+                expired: drift.Value(
+                    DateTime.tryParse(expired) ?? DateTime(2000, 1, 1)),
                 kelompok: drift.Value(kelompok),
                 satuan: drift.Value(satuan),
                 hargaBeli: drift.Value(int.tryParse(hargaBeli ?? '0') ?? 0),

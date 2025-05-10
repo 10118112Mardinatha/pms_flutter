@@ -426,6 +426,11 @@ class AppDatabase extends _$AppDatabase {
     return result.data['total'] as int? ?? 0;
   }
 
+  Future<List<Penjualan>> getLastPenjualanByNoFaktur(String noFaktur) {
+    return (select(penjualans)..where((tbl) => tbl.noFaktur.equals(noFaktur)))
+        .get();
+  }
+
   //penjualanstmp
   Future<List<PenjualanstmpData>> getAllPenjualansTmp() =>
       select(penjualanstmp).get();

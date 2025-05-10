@@ -19,7 +19,7 @@ class _SidebarState extends State<Sidebar> {
   bool _isCollapsed = false;
   final FocusNode _logoFocusNode = FocusNode();
   bool _isLaporanExpanded = false;
-  bool _isBarangExpanded = false;
+
   String get _role => widget.role ?? '';
 // <-- Tambahkan ini
   @override
@@ -32,7 +32,6 @@ class _SidebarState extends State<Sidebar> {
           _isCollapsed = !_isCollapsed;
           if (_isCollapsed) {
             _isLaporanExpanded = false;
-            _isBarangExpanded = false;
           }
         });
       }
@@ -53,7 +52,7 @@ class _SidebarState extends State<Sidebar> {
               ? 70
               : isTablet
                   ? 250
-                  : 180,
+                  : 190,
           decoration: const BoxDecoration(
             color: Color(0xFFe3f2fd),
             boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)],
@@ -100,31 +99,8 @@ class _SidebarState extends State<Sidebar> {
                       child: _menuItem(Icons.inventory_outlined, 'Rak'),
                     ),
                     Tooltip(
-                      message: _isCollapsed ? 'Barang' : '',
-                      child: _expansionMenuItem(
-                        Icons.inventory,
-                        'Barang',
-                        _isBarangExpanded,
-                        () {
-                          setState(() {
-                            _isBarangExpanded = !_isBarangExpanded;
-                            if (_isBarangExpanded)
-                              _isLaporanExpanded =
-                                  false; // Close 'Laporan' if 'Barang' is expanded
-                          });
-                        },
-                        [
-                          Tooltip(
-                            message: _isCollapsed ? 'Obat / Jasa' : '',
-                            child: _submenuItem(
-                                Icons.medical_services, 'Obat / Jasa'),
-                          ),
-                          Tooltip(
-                            message: _isCollapsed ? 'Obat Expired' : '',
-                            child: _submenuItem(Icons.warning, 'Obat Expired'),
-                          ),
-                        ],
-                      ),
+                      message: _isCollapsed ? 'Obat' : '',
+                      child: _menuItem(Icons.medical_services, 'Obat'),
                     ),
                     if (_role == 'admin')
                       Tooltip(
@@ -137,8 +113,7 @@ class _SidebarState extends State<Sidebar> {
                             setState(() {
                               _isLaporanExpanded = !_isLaporanExpanded;
                               if (_isLaporanExpanded)
-                                _isBarangExpanded =
-                                    false; // Close 'Barang' if 'Laporan' is expanded
+                                ; // Close 'Barang' if 'Laporan' is expanded
                             });
                           },
                           [
@@ -189,7 +164,6 @@ class _SidebarState extends State<Sidebar> {
           _isCollapsed = !_isCollapsed;
           if (_isCollapsed) {
             _isLaporanExpanded = false;
-            _isBarangExpanded = false;
           }
         }),
         child: Focus(
@@ -200,7 +174,7 @@ class _SidebarState extends State<Sidebar> {
               if (!_isCollapsed) ...[
                 const SizedBox(width: 5),
                 Text(
-                  'Pharmacy PMS',
+                  'Apotek Segar 2',
                   style: Theme.of(context).textTheme.titleMedium!.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
@@ -221,7 +195,6 @@ class _SidebarState extends State<Sidebar> {
         widget.onMenuTap(title);
         setState(() {
           _isLaporanExpanded = false;
-          _isBarangExpanded = false;
         });
       },
       dense: true,
@@ -242,7 +215,6 @@ class _SidebarState extends State<Sidebar> {
           widget.onMenuTap(title);
           setState(() {
             _isLaporanExpanded = false;
-            _isBarangExpanded = false;
           });
         },
       ),

@@ -47,7 +47,7 @@ class _TopBarState extends State<TopBar> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 60,
+      height: 45,
       padding: const EdgeInsets.symmetric(horizontal: 24),
       color: Colors.white,
       child: Row(
@@ -55,7 +55,7 @@ class _TopBarState extends State<TopBar> {
           const Icon(Icons.local_pharmacy, color: Colors.blue, size: 26),
           const SizedBox(width: 8),
           const Text(
-            'Pharmacy PMS',
+            'Pharmacy Management System',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,

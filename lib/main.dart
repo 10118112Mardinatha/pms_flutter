@@ -11,7 +11,8 @@ void main() async {
   WindowOptions windowOptions = const WindowOptions(
     size: Size(1350, 700),
     center: true,
-    title: "Aplikasi dengan Title Bar",
+    title:
+        "Jl. Temanggung Tilung No.XII, Menteng, Kec. Jekan Raya Kota Palangka Raya Kalimantan Tengah",
     backgroundColor: Colors.white,
   );
 
@@ -44,7 +45,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'PMS Login',
+      title: 'Login',
       home: LoginScreen(db: db),
     );
   }

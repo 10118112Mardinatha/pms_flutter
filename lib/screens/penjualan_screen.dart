@@ -10,6 +10,9 @@ import '../database/app_database.dart';
 import 'dart:typed_data';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:file_picker/file_picker.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 
 class PenjualanScreen extends StatefulWidget {
   final AppDatabase database;
@@ -442,6 +445,201 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
     );
   }
 
+  void _handleSimpanPenjualan() async {
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Simpan Penjualan'),
+        content: Text('Apakah Anda ingin mencetak struk setelah menyimpan?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, 'batal'),
+            child: Text('Batal'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, 'simpan'),
+            child: Text('Simpan Saja'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, 'simpan_cetak'),
+            child: Text('Simpan dan Cetak'),
+          ),
+        ],
+      ),
+    );
+
+    if (result == 'batal') return;
+
+    // Simpan data ke database
+    await prosesSimpan(); // Pastikan proses ini menyimpan transaksi & detailnya
+
+    // Ambil data penjualan terakhir berdasarkan no faktur
+    final items = await db.getLastPenjualanByNoFaktur(_nofakturController.text);
+
+    if (result == 'simpan_cetak') {
+      _showStrukPreview(items);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Penjualan berhasil disimpan.')),
+      );
+    }
+  }
+
+  void _showStrukPreview(List<Penjualan> items) {
+    final totalSebelum = items.fold<double>(
+        0, (sum, item) => sum + (item.totalHargaSebelumDisc ?? 0));
+    final totalDiskon =
+        items.fold<int>(0, (sum, item) => sum + (item.jualDiscon ?? 0));
+    final totalBayar = items.fold<double>(
+        0, (sum, item) => sum + (item.totalHargaSetelahDisc ?? 0));
+
+    final now = DateTime.now();
+    final formattedDateTime = DateFormat('dd-MM-yyyy HH:mm:ss').format(now);
+
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Preview Struk'),
+        content: SizedBox(
+          width: 400,
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Column(
+                    children: const [
+                      Text('Apotek Segar 2',
+                          style: TextStyle(fontWeight: FontWeight.bold)),
+                      Text('Jl. Temanggung Tilung No.XII, Menteng,'),
+                      Text('Kec. Jekan Raya Kota Palangka Raya'),
+                      Text('Kalimantan Tengah'),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text('No Faktur : ${_nofakturController.text}'),
+                Text('Tanggal   : $formattedDateTime'),
+                const Divider(),
+                ...items.asMap().entries.map((entry) {
+                  final i = entry.key + 1;
+                  final item = entry.value;
+                  return Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(child: Text('$i. ${item.namaBarang}')),
+                      Text('${item.satuan}    |   x${item.jumlahJual}'),
+                    ],
+                  );
+                }),
+                const Divider(),
+                Text(
+                    'Total Harga          : Rp ${totalSebelum.toStringAsFixed(0)}'),
+                Text('Total Diskon         : Rp $totalDiskon'),
+                Text(
+                    'Total Dibayar        : Rp ${totalBayar.toStringAsFixed(0)}'),
+                const SizedBox(height: 10),
+                const Divider(),
+                const Center(
+                  child: Text(
+                    'Terima kasih atas kunjungannya',
+                    style: TextStyle(fontStyle: FontStyle.italic),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Tutup'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              await _printStruk(items);
+            },
+            child: const Text('Cetak'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _printStruk(List<Penjualan> items) async {
+    final doc = pw.Document();
+
+    final totalSebelum = items.fold<double>(
+        0, (sum, item) => sum + (item.totalHargaSebelumDisc ?? 0));
+    final totalDiskon =
+        items.fold<int>(0, (sum, item) => sum + (item.jualDiscon ?? 0));
+    final totalBayar = items.fold<double>(
+        0, (sum, item) => sum + (item.totalHargaSetelahDisc ?? 0));
+
+    final now = DateTime.now();
+    final formattedDateTime = DateFormat('dd-MM-yyyy HH:mm:ss').format(now);
+
+    doc.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat.roll80,
+        build: (pw.Context context) {
+          return pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Center(
+                child: pw.Column(
+                  children: [
+                    pw.Text('Apotek Segar 2',
+                        style: pw.TextStyle(
+                            fontSize: 12, fontWeight: pw.FontWeight.bold)),
+                    pw.Text('Jl. Temanggung Tilung No.XII, Menteng,'),
+                    pw.Text('Kec. Jekan Raya Kota Palangka Raya'),
+                    pw.Text('Kalimantan Tengah'),
+                  ],
+                ),
+              ),
+              pw.SizedBox(height: 10),
+              pw.Text('No Faktur : ${_nofakturController.text}'),
+              pw.Text('Tanggal   : $formattedDateTime'),
+              pw.Divider(),
+              ...items.asMap().entries.map((entry) {
+                final i = entry.key + 1;
+                final item = entry.value;
+                return pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                  children: [
+                    pw.Expanded(child: pw.Text('$i. ${item.namaBarang}')),
+                    pw.Text('${item.satuan}    |   x${item.jumlahJual}'),
+                  ],
+                );
+              }),
+              pw.Divider(),
+              pw.Text(
+                  'Total Harga          : Rp ${totalSebelum.toStringAsFixed(0)}'),
+              pw.Text('Total Diskon         : Rp $totalDiskon'),
+              pw.Text(
+                  'Total Dibayar         : Rp ${totalBayar.toStringAsFixed(0)}'),
+              pw.SizedBox(height: 10),
+              pw.Divider(),
+              pw.Center(
+                child: pw.Text(
+                  'Terima kasih atas kunjungannya',
+                  style: pw.TextStyle(
+                      fontSize: 10, fontStyle: pw.FontStyle.italic),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    await Printing.layoutPdf(
+      onLayout: (PdfPageFormat format) async => doc.save(),
+      name: 'Struk Penjualan',
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -474,7 +672,7 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
                     width: 15,
                   ),
                   ElevatedButton.icon(
-                    onPressed: prosesSimpan,
+                    onPressed: _handleSimpanPenjualan,
                     icon: const Icon(Icons.save),
                     label: const Text('Simpan/Bayar'),
                   ),

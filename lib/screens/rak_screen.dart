@@ -300,99 +300,25 @@ class _RakScreenState extends State<RakScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(12),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Judul Halaman
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: const [
                 Text(
-                  'Manajemen Rak',
-                  style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.grey[800]),
+                  '🗄️ Manajemen Rak',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
-                Row(children: [
-                  IconButton(
-                    tooltip: 'Print Tabel',
-                    icon: const Icon(Icons.print),
-                    onPressed: _printTable,
-                  ),
-                  IconButton(
-                    tooltip: 'Import Excel',
-                    icon: const Icon(Icons.upload_file),
-                    onPressed: () async {
-                      final result = await FilePicker.platform.pickFiles(
-                        type: FileType.custom,
-                        allowedExtensions: ['xlsx'],
-                      );
-                      if (result != null && result.files.single.path != null) {
-                        final file = File(result.files.single.path!);
-
-                        final confirm = await showDialog<bool>(
-                          context: context,
-                          builder: (context) => AlertDialog(
-                            title: const Text('Konfirmasi Import'),
-                            content: const Text(
-                                'Apakah Anda yakin ingin mengupload file ini?'),
-                            actions: [
-                              TextButton(
-                                child: const Text('Batal'),
-                                onPressed: () => Navigator.pop(context, false),
-                              ),
-                              ElevatedButton(
-                                child: const Text('Ya, Upload'),
-                                onPressed: () => Navigator.pop(context, true),
-                              ),
-                            ],
-                          ),
-                        );
-
-                        if (confirm == true) {
-                          await importRaksFromExcel(
-                              file: file, db: db, onFinished: _loadRaks);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Import berhasil!')),
-                          );
-                        }
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                              content: Text('Tidak ada file dipilih')),
-                        );
-                      }
-                    },
-                  ),
-                  IconButton(
-                    tooltip: 'Export Excel',
-                    icon: const Icon(Icons.download),
-                    onPressed: _exportToExcel,
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: ElevatedButton.icon(
-                      onPressed: () => _showForm(),
-                      icon: const Icon(Icons.add),
-                      label: const Text('Tambah Rak'),
-                    ),
-                  ),
-                ])
               ],
             ),
-            const SizedBox(height: 15),
-            // === FILTER PENCARIAN ===
-            Text(
-              'Cari berdasarkan:',
-              style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.grey[800]),
-            ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
+
             Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
+                // Dropdown Search Options
                 DropdownButton<String>(
                   value: searchField,
                   onChanged: (value) {
@@ -402,20 +328,39 @@ class _RakScreenState extends State<RakScreen> {
                     });
                   },
                   items: searchOptions.map((option) {
-                    return DropdownMenuItem(value: option, child: Text(option));
+                    return DropdownMenuItem(
+                      value: option,
+                      child: Text(option, style: const TextStyle(fontSize: 14)),
+                    );
                   }).toList(),
+                  style: const TextStyle(color: Colors.black, fontSize: 14),
+                  underline: Container(
+                    height: 1,
+                    color: Colors.grey.shade400,
+                  ),
+                  borderRadius: BorderRadius.circular(6),
+                  dropdownColor: Colors.white,
                 ),
-                const SizedBox(width: 16),
-                Expanded(
+
+                const SizedBox(width: 12),
+
+                // Fixed Width Search Field
+                SizedBox(
+                  width: 250,
+                  height: 38,
                   child: TextField(
                     controller: _searchController,
+                    style: const TextStyle(fontSize: 14),
                     decoration: InputDecoration(
-                      labelText: 'Cari...',
-                      border: const OutlineInputBorder(),
-                      prefixIcon: const Icon(Icons.search),
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 10),
+                      hintText: 'Cari...',
+                      hintStyle: const TextStyle(fontSize: 13),
+                      prefixIcon: const Icon(Icons.search, size: 20),
                       suffixIcon: _searchController.text.isNotEmpty
                           ? IconButton(
-                              icon: const Icon(Icons.clear),
+                              icon: const Icon(Icons.clear, size: 18),
                               onPressed: () {
                                 _searchController.clear();
                                 searchText = '';
@@ -423,6 +368,10 @@ class _RakScreenState extends State<RakScreen> {
                               },
                             )
                           : null,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(6),
+                        borderSide: BorderSide(color: Colors.grey.shade400),
+                      ),
                     ),
                     onChanged: (value) {
                       searchText = value;
@@ -430,39 +379,87 @@ class _RakScreenState extends State<RakScreen> {
                     },
                   ),
                 ),
-              ],
-            ),
 
-            const SizedBox(height: 15),
-            const Divider(thickness: 1),
+                const SizedBox(width: 12),
 
-            // === HEADER DAFTAR SUPPLIER DAN DROPDOWN BARIS ===
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  '📋 Daftar Dokter',
-                  style: Theme.of(context).textTheme.titleLarge!.copyWith(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15,
-                        color: Colors.blueGrey[900],
-                      ),
-                ),
+                // Spacer untuk dorong tombol ke kanan
+                const Spacer(),
+
+                // Group tombol kanan
                 Row(
                   children: [
-                    const Text("Tampilkan baris: "),
-                    const SizedBox(width: 8),
-                    DropdownButton<int>(
-                      value: _rowsPerPage,
-                      items: _rowsPerPageOptions.map((count) {
-                        return DropdownMenuItem(
-                            value: count, child: Text('$count'));
-                      }).toList(),
-                      onChanged: (value) {
-                        setState(() {
-                          _rowsPerPage = value!;
-                        });
+                    IconButton(
+                      tooltip: 'Import Excel',
+                      icon: const Icon(Icons.upload_file),
+                      onPressed: () async {
+                        final result = await FilePicker.platform.pickFiles(
+                          type: FileType.custom,
+                          allowedExtensions: ['xlsx'],
+                        );
+                        if (result != null &&
+                            result.files.single.path != null) {
+                          final file = File(result.files.single.path!);
+
+                          final confirm = await showDialog<bool>(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: const Text('Konfirmasi Import'),
+                              content: const Text(
+                                  'Apakah Anda yakin ingin mengupload file ini?'),
+                              actions: [
+                                TextButton(
+                                  child: const Text('Batal'),
+                                  onPressed: () =>
+                                      Navigator.pop(context, false),
+                                ),
+                                ElevatedButton(
+                                  child: const Text('Ya, Upload'),
+                                  onPressed: () => Navigator.pop(context, true),
+                                ),
+                              ],
+                            ),
+                          );
+
+                          if (confirm == true) {
+                            await importRaksFromExcel(
+                                file: file, db: db, onFinished: _loadRaks);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Import berhasil!')),
+                            );
+                          }
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content: Text('Tidak ada file dipilih')),
+                          );
+                        }
                       },
+                    ),
+                    IconButton(
+                      tooltip: 'Export',
+                      icon: const Icon(Icons.download),
+                      onPressed: _exportToExcel,
+                    ),
+                    IconButton(
+                      tooltip: 'Print',
+                      icon: const Icon(Icons.print),
+                      onPressed: _printTable,
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton.icon(
+                      onPressed: () => _showForm(),
+                      icon: const Icon(Icons.add),
+                      label: const Text('Tambah Rak'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue.shade600,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 10),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        elevation: 2,
+                      ),
                     ),
                   ],
                 ),
@@ -471,100 +468,148 @@ class _RakScreenState extends State<RakScreen> {
 
             const SizedBox(height: 12),
 
+            // Tabel + pagination
             Expanded(
-              child: SingleChildScrollView(
-                child: Container(
-                  width: double.infinity,
-                  child: DataTable(
-                    headingRowColor:
-                        MaterialStateProperty.all(Colors.blue.shade100),
-                    dataRowColor: MaterialStateProperty.all(Colors.white),
-                    border: TableBorder.all(color: Colors.grey.shade300),
-                    headingRowHeight: 50,
-                    columnSpacing: 20,
-                    dataTextStyle: const TextStyle(fontSize: 13),
-                    columns: const [
-                      DataColumn(label: Text('No')), // Kolom Nomor Urut
-                      DataColumn(label: Text('Kode')),
-                      DataColumn(label: Text('Nama')),
-                      DataColumn(label: Text('Lokasi')),
-                      DataColumn(label: Text('Keterangan')),
-                      DataColumn(label: Text('Aksi')), // Aksi
-                    ],
-                    rows: filteredRaks
-                        .take(_rowsPerPage)
-                        .toList()
-                        .asMap()
-                        .entries
-                        .map((entry) {
-                      final index = entry.key;
-                      final s = entry.value;
-                      return DataRow(cells: [
-                        DataCell(Text('${index + 1}')), // No
-                        DataCell(
-                          Tooltip(
-                            message: 'Kode Rak',
-                            child: Text(s.kodeRak),
-                          ),
-                        ),
-                        DataCell(
-                          Tooltip(
-                            message: 'Nama',
-                            child: Text(s.namaRak),
-                          ),
-                        ),
-                        DataCell(
-                          Tooltip(
-                            message: 'Lokasi',
-                            child: Text(s.lokasi ?? '-'),
-                          ),
-                        ),
-                        DataCell(
-                          Tooltip(
-                            message: 'Keterangan',
-                            child: Text(s.keterangan ?? '-'),
-                          ),
-                        ),
-                        DataCell(Row(
-                          children: [
-                            IconButton(
-                              tooltip: 'Edit Data',
-                              icon: const Icon(Icons.edit, color: Colors.blue),
-                              onPressed: () => _showForm(Rak: s),
+              child: Column(
+                children: [
+                  Expanded(
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(minWidth: 1300),
+                        child: SingleChildScrollView(
+                          child: DataTable(
+                            headingRowColor:
+                                MaterialStateProperty.all(Colors.blue[100]),
+                            dataRowColor:
+                                MaterialStateProperty.all(Colors.white),
+                            border:
+                                TableBorder.all(color: Colors.grey.shade300),
+                            headingTextStyle: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
                             ),
-                            IconButton(
-                              tooltip: 'Hapus Data',
-                              icon: const Icon(Icons.delete, color: Colors.red),
-                              onPressed: () => _deleteRak(s.id),
-                            ),
-                          ],
-                        )),
-                      ]);
-                    }).toList(),
+                            dataTextStyle: const TextStyle(fontSize: 13),
+                            columnSpacing: 16,
+                            columns: const [
+                              DataColumn(label: Text('No')), // Kolom Nomor Urut
+                              DataColumn(label: Text('Kode')),
+                              DataColumn(label: Text('Nama')),
+                              DataColumn(label: Text('Lokasi')),
+                              DataColumn(label: Text('Keterangan')),
+                              DataColumn(label: Text('Aksi')),
+                            ],
+                            rows: _paginatedRaks.asMap().entries.map((entry) {
+                              final index = entry.key;
+                              final s = entry.value;
+                              return DataRow(cells: [
+                                DataCell(Text('${index + 1}')), // No
+                                DataCell(
+                                  Tooltip(
+                                    message: 'Kode Rak',
+                                    child: Text(s.kodeRak),
+                                  ),
+                                ),
+                                DataCell(
+                                  Tooltip(
+                                    message: 'Nama',
+                                    child: Text(s.namaRak),
+                                  ),
+                                ),
+                                DataCell(
+                                  Tooltip(
+                                    message: 'Lokasi',
+                                    child: Text(s.lokasi ?? '-'),
+                                  ),
+                                ),
+                                DataCell(
+                                  Tooltip(
+                                    message: 'Keterangan',
+                                    child: Text(s.keterangan ?? '-'),
+                                  ),
+                                ),
+                                DataCell(Row(
+                                  children: [
+                                    IconButton(
+                                      tooltip: 'Edit Data',
+                                      icon: const Icon(Icons.edit,
+                                          color: Colors.blue),
+                                      onPressed: () => _showForm(Rak: s),
+                                    ),
+                                    IconButton(
+                                      tooltip: 'Hapus Data',
+                                      icon: const Icon(Icons.delete,
+                                          color: Colors.red),
+                                      onPressed: () => _deleteRak(s.id),
+                                    ),
+                                  ],
+                                )),
+                              ]);
+                            }).toList(),
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
-                ),
+
+                  // Pagination controls
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // Jumlah baris per halaman
+                      Row(
+                        children: [
+                          const Text('Baris per halaman:'),
+                          const SizedBox(width: 8),
+                          DropdownButton<int>(
+                            value: _rowsPerPage,
+                            onChanged: (value) {
+                              setState(() {
+                                _rowsPerPage = value!;
+                                _currentPage = 0;
+                              });
+                            },
+                            items: _rowsPerPageOptions
+                                .map((e) => DropdownMenuItem(
+                                      value: e,
+                                      child: Text('$e'),
+                                    ))
+                                .toList(),
+                          ),
+                        ],
+                      ),
+
+                      // Info halaman + tombol prev/next
+                      Row(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.chevron_left),
+                            onPressed: _currentPage > 0
+                                ? () {
+                                    setState(() {
+                                      _currentPage--;
+                                    });
+                                  }
+                                : null,
+                          ),
+                          Text('Halaman ${_currentPage + 1} dari $_totalPages'),
+                          IconButton(
+                            icon: const Icon(Icons.chevron_right),
+                            onPressed: _currentPage < _totalPages - 1
+                                ? () {
+                                    setState(() {
+                                      _currentPage++;
+                                    });
+                                  }
+                                : null,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
               ),
-            ),
-            // === PAGINATION ===
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                Text('Halaman ${_currentPage + 1} dari $_totalPages'),
-                const SizedBox(width: 20),
-                ElevatedButton(
-                  onPressed: _currentPage > 0
-                      ? () => setState(() => _currentPage--)
-                      : null,
-                  child: const Text('⬅ Prev'),
-                ),
-                const SizedBox(width: 8),
-                ElevatedButton(
-                  onPressed: (_currentPage + 1) < _totalPages
-                      ? () => setState(() => _currentPage++)
-                      : null,
-                  child: const Text('Next ➡'),
-                ),
-              ],
             ),
           ],
         ),
