@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -5,6 +6,9 @@ import 'package:drift/drift.dart' show Value;
 import 'package:drift/drift.dart' as drift;
 import 'package:excel/excel.dart';
 import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
+import 'package:pms_flutter/models/pelanggan_model.dart';
+import 'package:pms_flutter/services/api_service.dart';
 import 'package:printing/printing.dart';
 import '../database/app_database.dart';
 import 'dart:typed_data';
@@ -22,8 +26,8 @@ class PelangganScreen extends StatefulWidget {
 
 class _PelangganScreenState extends State<PelangganScreen> {
   late AppDatabase db;
-  List<Pelanggan> allPelanggan = [];
-  List<Pelanggan> filteredPelanggan = [];
+  List<PelangganModel> allPelanggan = [];
+  List<PelangganModel> filteredPelanggan = [];
   String searchField = 'Nama';
   String searchText = '';
   final TextEditingController _searchController = TextEditingController();
@@ -40,73 +44,34 @@ class _PelangganScreenState extends State<PelangganScreen> {
 
   int _currentPage = 0;
 
-  int get _totalPages => (filteredPelanggan.length / _rowsPerPage)
-      .ceil()
-      .clamp(1, double.infinity)
-      .toInt();
+  int get _totalPages => (filteredPelanggan.length / _rowsPerPage).ceil();
 
-  List<Pelanggan> get _paginatedPelanggan {
+  List<PelangganModel> get _paginatedpelanggan {
     final startIndex = _currentPage * _rowsPerPage;
     final endIndex = (_currentPage + 1) * _rowsPerPage;
-    return filteredPelanggan.sublist(
-      startIndex,
-      endIndex > filteredPelanggan.length ? filteredPelanggan.length : endIndex,
-    );
+    final cappedEndIndex = endIndex > filteredPelanggan.length
+        ? filteredPelanggan.length
+        : endIndex;
+
+    return filteredPelanggan.sublist(startIndex, cappedEndIndex);
   }
 
   Future<void> _loadPelanggan() async {
-    final data = await db.getAllPelanggans();
-    setState(() {
-      allPelanggan = data;
-      _applySearch();
-    });
-  }
+    final response = await ApiService.fetchAllPelanggan();
+    if (response.statusCode == 200) {
+      final List<dynamic> jsonList = jsonDecode(response.body);
+      print(jsonList);
+      setState(() {
+        allPelanggan =
+            jsonList.map((json) => PelangganModel.fromJson(json)).toList();
 
-  Future<void> importPelangganScreensFromExcel({
-    required File file,
-    required AppDatabase db,
-    required VoidCallback onFinished,
-  }) async {
-    try {
-      final bytes = file.readAsBytesSync();
-      final excel = Excel.decodeBytes(bytes);
-      final sheet = excel.tables[excel.tables.keys.first];
-      if (sheet == null) return;
-
-      for (var row in sheet.rows.skip(1)) {
-        final kodePelanggan = row[0]?.value.toString() ?? '';
-        final namaPelanggan = row[1]?.value.toString() ?? '';
-        final usia = row[2]?.value.toString();
-        final telepon = row[3]?.value.toString();
-        final alamat = row[4]?.value.toString();
-        final kelompok = row[5]?.value.toString();
-
-        if (kodePelanggan.isEmpty || namaPelanggan.isEmpty) continue;
-
-        // Cek apakah kodeSupplier sudah ada
-        final exists = await (db.select(db.pelanggans)
-              ..where((tbl) => tbl.kodPelanggan.equals(kodePelanggan)))
-            .getSingleOrNull();
-
-        if (exists != null) {
-          debugPrint('Kode $kodePelanggan sudah ada, dilewati.');
-          continue;
-        }
-
-        await db.into(db.pelanggans).insert(
-              PelanggansCompanion(
-                kodPelanggan: drift.Value(kodePelanggan),
-                namaPelanggan: drift.Value(namaPelanggan),
-                usia: drift.Value(int.tryParse(usia.toString())),
-                telepon: drift.Value(telepon),
-                alamat: drift.Value(alamat),
-                kelompok: drift.Value(kelompok),
-              ),
-            );
-      }
-      onFinished();
-    } catch (e) {
-      debugPrint('Gagal import file Excel: $e');
+        // Awalnya filteredSuppliers sama dengan semua supplier
+        filteredPelanggan = List.from(allPelanggan);
+        _currentPage = 0; // Reset ke halaman pertama
+      });
+    } else {
+      // Tangani error jika perlu
+      print('Gagal memuat data supplier: ${response.statusCode}');
     }
   }
 
@@ -114,7 +79,7 @@ class _PelangganScreenState extends State<PelangganScreen> {
     setState(() {
       filteredPelanggan = allPelanggan.where((s) {
         final value = switch (searchField) {
-          'Kode' => s.kodPelanggan,
+          'Kode' => s.kodePelanggan,
           'Nama' => s.namaPelanggan,
           'Telepon' => s.telepon?.toString() ?? '',
           'Alamat' => s.alamat ?? '',
@@ -127,16 +92,16 @@ class _PelangganScreenState extends State<PelangganScreen> {
   }
 
 //
-  void _showForm({Pelanggan? Pelanggan}) {
+  void _showForm({PelangganModel? Pelanggan}) {
     final formKey = GlobalKey<FormState>();
-    final kodeCtrl = TextEditingController(text: Pelanggan?.kodPelanggan ?? '');
+    final kodeCtrl =
+        TextEditingController(text: Pelanggan?.kodePelanggan ?? '');
     final namaCtrl =
         TextEditingController(text: Pelanggan?.namaPelanggan ?? '');
     final usiaCtrl =
         TextEditingController(text: Pelanggan?.usia?.toString() ?? '');
 
-    final teleponCtrl =
-        TextEditingController(text: Pelanggan?.telepon?.toString() ?? '');
+    final teleponCtrl = TextEditingController(text: Pelanggan?.telepon ?? '');
 
     final alamatCtrl = TextEditingController(text: Pelanggan?.alamat ?? '');
     final kelompokCtrl = TextEditingController(text: Pelanggan?.kelompok ?? '');
@@ -160,7 +125,7 @@ class _PelangganScreenState extends State<PelangganScreen> {
                     if (value == null || value.isEmpty)
                       return 'Wajib diisi tidak boleh kosong';
                     final exists = allPelanggan.any((s) =>
-                        s.kodPelanggan == value &&
+                        s.kodePelanggan == value &&
                         (Pelanggan == null || s.id != Pelanggan.id));
                     if (exists) return 'Kode sudah digunakan';
                     return null;
@@ -217,35 +182,36 @@ class _PelangganScreenState extends State<PelangganScreen> {
           ElevatedButton(
             onPressed: () async {
               if (formKey.currentState!.validate()) {
+                final data = {
+                  'kodePelanggan': kodeCtrl.text,
+                  'namaPelanggan': namaCtrl.text,
+                  'telepon': teleponCtrl.text,
+                  'usia': int.tryParse(usiaCtrl.text) ?? 0,
+                  'alamat': alamatCtrl.text,
+                  'kelompok': kelompokCtrl.text
+                };
+                print(jsonEncode(data));
+                late http.Response response;
+
                 if (Pelanggan == null) {
-                  await db.insertPelanggans(PelanggansCompanion(
-                    kodPelanggan: Value(kodeCtrl.text),
-                    namaPelanggan: Value(namaCtrl.text),
-                    usia: Value(int.tryParse(usiaCtrl.text)),
-                    telepon: Value(teleponCtrl.text),
-                    alamat: Value(
-                        alamatCtrl.text.isNotEmpty ? alamatCtrl.text : null),
-                    kelompok: Value(kelompokCtrl.text.isNotEmpty
-                        ? kelompokCtrl.text
-                        : null),
-                  ));
+                  // TAMBAH SUPPLIER
+                  response = await ApiService.postPelanggan(data);
                 } else {
-                  await db.updatePelanggans(
-                    Pelanggan.copyWith(
-                      kodPelanggan: kodeCtrl.text,
-                      namaPelanggan: namaCtrl.text,
-                      usia: Value(int.tryParse(usiaCtrl.text)),
-                      telepon: Value(teleponCtrl.text),
-                      alamat: Value(
-                          alamatCtrl.text.isNotEmpty ? alamatCtrl.text : null),
-                      kelompok: Value(kelompokCtrl.text.isNotEmpty
-                          ? kelompokCtrl.text
-                          : null),
-                    ),
+                  // EDIT SUPPLIER
+                  response = await ApiService.updatePelanggan(
+                    Pelanggan.kodePelanggan, // Ganti dari supplier.id
+                    data,
                   );
                 }
-                if (context.mounted) Navigator.pop(context);
-                await _loadPelanggan();
+
+                if (response.statusCode == 200 || response.statusCode == 201) {
+                  if (context.mounted) Navigator.pop(context);
+                  await _loadPelanggan(); // refresh table
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Gagal menyimpan data')),
+                  );
+                }
               }
             },
             child: const Text('Simpan'),
@@ -255,11 +221,11 @@ class _PelangganScreenState extends State<PelangganScreen> {
     );
   }
 
-  void _deletePelangganScreen(int id) async {
+  void _deletePelanggan(String kode) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Hapus Supplier'),
+        title: const Text('Hapus Dokter'),
         content: const Text('Yakin ingin menghapus supplier ini?'),
         actions: [
           TextButton(
@@ -273,8 +239,18 @@ class _PelangganScreenState extends State<PelangganScreen> {
     );
 
     if (confirm == true) {
-      await db.deletePelanggan(id);
-      await _loadPelanggan(); // <-- refresh data di layar
+      final response = await ApiService.deletePelanggan(kode); // <--- ganti ini
+
+      if (response.statusCode == 200) {
+        await _loadPelanggan(); // refresh data dari server
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Supplier berhasil dihapus')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Gagal menghapus supplier')),
+        );
+      }
     }
   }
 
@@ -293,7 +269,7 @@ class _PelangganScreenState extends State<PelangganScreen> {
     for (int i = 0; i < filteredPelanggan.length; i++) {
       var s = filteredPelanggan[i];
       sheet.appendRow([
-        s.kodPelanggan,
+        s.kodePelanggan,
         s.namaPelanggan,
         s.usia ?? 0,
         s.telepon ?? 0,
@@ -326,7 +302,7 @@ class _PelangganScreenState extends State<PelangganScreen> {
             headers: ['Kode', 'Nama', 'Usia', 'Telepon', 'Alamat', 'Kelompok'],
             data: filteredPelanggan.map((s) {
               return [
-                s.kodPelanggan,
+                s.kodePelanggan,
                 s.namaPelanggan,
                 s.usia?.toString() ?? '',
                 s.telepon?.toString() ?? '',
@@ -447,41 +423,58 @@ class _PelangganScreenState extends State<PelangganScreen> {
                           type: FileType.custom,
                           allowedExtensions: ['xlsx'],
                         );
-                        if (result != null &&
-                            result.files.single.path != null) {
-                          final file = File(result.files.single.path!);
 
-                          final confirm = await showDialog<bool>(
-                            context: context,
-                            builder: (context) => AlertDialog(
-                              title: const Text('Konfirmasi Import'),
-                              content: const Text(
-                                  'Apakah Anda yakin ingin mengupload file ini?'),
-                              actions: [
-                                TextButton(
-                                  child: const Text('Batal'),
-                                  onPressed: () =>
-                                      Navigator.pop(context, false),
-                                ),
-                                ElevatedButton(
-                                  child: const Text('Ya, Upload'),
-                                  onPressed: () => Navigator.pop(context, true),
-                                ),
-                              ],
-                            ),
-                          );
-
-                          if (confirm == true) {
-                            await importPelangganScreensFromExcel(
-                                file: file, db: db, onFinished: _loadPelanggan);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Import berhasil!')),
-                            );
-                          }
-                        } else {
+                        if (result == null ||
+                            result.files.single.path == null) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
                                 content: Text('Tidak ada file dipilih')),
+                          );
+                          return;
+                        }
+
+                        final file = File(result.files.single.path!);
+
+                        final confirm = await showDialog<bool>(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: const Text('Konfirmasi Import'),
+                            content: const Text(
+                                'Apakah Anda yakin ingin mengupload file ini?'),
+                            actions: [
+                              TextButton(
+                                child: const Text('Batal'),
+                                onPressed: () => Navigator.pop(context, false),
+                              ),
+                              ElevatedButton(
+                                child: const Text('Ya, Upload'),
+                                onPressed: () => Navigator.pop(context, true),
+                              ),
+                            ],
+                          ),
+                        );
+
+                        if (confirm != true) return;
+
+                        try {
+                          final response =
+                              await ApiService.importPelangganFromExcel(file);
+
+                          if (response.statusCode == 200) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Import berhasil!')),
+                            );
+                            await _loadPelanggan(); // Refresh tabel
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                  content:
+                                      Text('Gagal import: ${response.body}')),
+                            );
+                          }
+                        } catch (e) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Terjadi kesalahan: $e')),
                           );
                         }
                       },
@@ -552,7 +545,7 @@ class _PelangganScreenState extends State<PelangganScreen> {
                               DataColumn(label: Text('Kelompok')),
                               DataColumn(label: Text('Aksi')), // Aksi
                             ],
-                            rows: _paginatedPelanggan
+                            rows: _paginatedpelanggan
                                 .asMap()
                                 .entries
                                 .map((entry) {
@@ -563,7 +556,7 @@ class _PelangganScreenState extends State<PelangganScreen> {
                                 DataCell(
                                   Tooltip(
                                     message: 'Kode Pelanggan',
-                                    child: Text(s.kodPelanggan),
+                                    child: Text(s.kodePelanggan),
                                   ),
                                 ),
                                 DataCell(
@@ -611,7 +604,7 @@ class _PelangganScreenState extends State<PelangganScreen> {
                                       icon: const Icon(Icons.delete,
                                           color: Colors.red),
                                       onPressed: () =>
-                                          _deletePelangganScreen(s.id),
+                                          _deletePelanggan(s.kodePelanggan),
                                     ),
                                   ],
                                 )),

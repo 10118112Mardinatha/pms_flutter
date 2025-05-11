@@ -1,11 +1,14 @@
 import 'dart:io';
-
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:drift/drift.dart' as drift;
 import 'package:excel/excel.dart';
 import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
+import 'package:pms_flutter/models/doctor_model.dart';
+import 'package:pms_flutter/services/api_service.dart';
 import 'package:printing/printing.dart';
 import '../database/app_database.dart';
 import 'dart:typed_data';
@@ -23,8 +26,8 @@ class DoctorScreen extends StatefulWidget {
 
 class _DoctorScreenState extends State<DoctorScreen> {
   late AppDatabase db;
-  List<Doctor> allDoctors = [];
-  List<Doctor> filteredDoctors = [];
+  List<DoctorModel> doctors = [];
+  List<DoctorModel> filteredDoctor = [];
   String searchField = 'Nama';
   String searchText = '';
   final TextEditingController _searchController = TextEditingController();
@@ -44,78 +47,38 @@ class _DoctorScreenState extends State<DoctorScreen> {
 
   int _currentPage = 0;
 
-  int get _totalPages => (filteredDoctors.length / _rowsPerPage)
-      .ceil()
-      .clamp(1, double.infinity)
-      .toInt();
+  int get _totalPages => (filteredDoctor.length / _rowsPerPage).ceil();
 
-  List<Doctor> get _paginatedDoctors {
+  List<DoctorModel> get _paginatedDoctor {
     final startIndex = _currentPage * _rowsPerPage;
     final endIndex = (_currentPage + 1) * _rowsPerPage;
-    return filteredDoctors.sublist(
-      startIndex,
-      endIndex > filteredDoctors.length ? filteredDoctors.length : endIndex,
-    );
+    final cappedEndIndex =
+        endIndex > filteredDoctor.length ? filteredDoctor.length : endIndex;
+
+    return filteredDoctor.sublist(startIndex, cappedEndIndex);
   }
 
   Future<void> _loadDoctors() async {
-    final data = await db.getAllDoctors();
-    setState(() {
-      allDoctors = data;
-      _applySearch();
-    });
-  }
+    final response = await ApiService.fetchAllDokter();
+    if (response.statusCode == 200) {
+      final List<dynamic> jsonList = jsonDecode(response.body);
+      print(jsonList);
+      setState(() {
+        doctors = jsonList.map((json) => DoctorModel.fromJson(json)).toList();
 
-  Future<void> importDoctorsFromExcel({
-    required File file,
-    required AppDatabase db,
-    required VoidCallback onFinished,
-  }) async {
-    try {
-      final bytes = file.readAsBytesSync();
-      final excel = Excel.decodeBytes(bytes);
-      final sheet = excel.tables[excel.tables.keys.first];
-      if (sheet == null) return;
-
-      for (var row in sheet.rows.skip(1)) {
-        final kodeDoctor = row[0]?.value.toString() ?? '';
-        final namaDoctor = row[1]?.value.toString() ?? '';
-        final alamat = row[2]?.value.toString();
-        final telepon = row[3]?.value.toString();
-        final nilaipenjualan = row[4]?.value.toString();
-
-        if (kodeDoctor.isEmpty || namaDoctor.isEmpty) continue;
-
-        // Cek apakah kodeSupplier sudah ada
-        final exists = await (db.select(db.doctors)
-              ..where((tbl) => tbl.kodeDoctor.equals(kodeDoctor)))
-            .getSingleOrNull();
-
-        if (exists != null) {
-          debugPrint('Kode $kodeDoctor sudah ada, dilewati.');
-          continue;
-        }
-
-        await db.into(db.doctors).insert(
-              DoctorsCompanion(
-                kodeDoctor: drift.Value(kodeDoctor),
-                namaDoctor: drift.Value(namaDoctor),
-                alamat: drift.Value(alamat),
-                telepon: drift.Value(telepon),
-                nilaipenjualan:
-                    drift.Value(int.tryParse(nilaipenjualan ?? '0') ?? 0),
-              ),
-            );
-      }
-      onFinished();
-    } catch (e) {
-      debugPrint('Gagal import file Excel: $e');
+        // Awalnya filteredSuppliers sama dengan semua supplier
+        filteredDoctor = List.from(doctors);
+        _currentPage = 0; // Reset ke halaman pertama
+      });
+    } else {
+      // Tangani error jika perlu
+      print('Gagal memuat data supplier: ${response.statusCode}');
     }
   }
 
   void _applySearch() {
     setState(() {
-      filteredDoctors = allDoctors.where((s) {
+      filteredDoctor = doctors.where((s) {
         final value = switch (searchField) {
           'Kode' => s.kodeDoctor,
           'Nama' => s.namaDoctor,
@@ -130,7 +93,7 @@ class _DoctorScreenState extends State<DoctorScreen> {
   }
 
 //
-  void _showForm({Doctor? doctor}) {
+  void _showForm({DoctorModel? doctor}) {
     final formKey = GlobalKey<FormState>();
     final kodeCtrl = TextEditingController(text: doctor?.kodeDoctor ?? '');
     final namaCtrl = TextEditingController(text: doctor?.namaDoctor ?? '');
@@ -158,7 +121,7 @@ class _DoctorScreenState extends State<DoctorScreen> {
                   validator: (value) {
                     if (value == null || value.isEmpty)
                       return 'Wajib diisi tidak boleh kosong';
-                    final exists = allDoctors.any((s) =>
+                    final exists = doctors.any((s) =>
                         s.kodeDoctor == value &&
                         (doctor == null || s.id != doctor.id));
                     if (exists) return 'Kode sudah digunakan';
@@ -220,36 +183,37 @@ class _DoctorScreenState extends State<DoctorScreen> {
           ElevatedButton(
             onPressed: () async {
               if (formKey.currentState!.validate()) {
+                final data = {
+                  'kodeDoctor': kodeCtrl.text,
+                  'namaDoctor': namaCtrl.text,
+                  'alamat': alamatCtrl.text,
+                  'telepon': teleponCtrl.text,
+                  'nilaiPenjualan': int.tryParse(nilaipenjualanCtrl.text
+                          .replaceAll(RegExp(r'[^0-9]'), '')) ??
+                      0,
+                };
+                print(jsonEncode(data));
+                late http.Response response;
+
                 if (doctor == null) {
-                  await db.insertDoctors(DoctorsCompanion(
-                    kodeDoctor: Value(kodeCtrl.text),
-                    namaDoctor: Value(namaCtrl.text),
-                    alamat: Value(
-                        alamatCtrl.text.isNotEmpty ? alamatCtrl.text : null),
-                    telepon: Value(
-                        teleponCtrl.text.isNotEmpty ? teleponCtrl.text : null),
-                    nilaipenjualan: Value(int.tryParse(nilaipenjualanCtrl.text
-                            .replaceAll(RegExp(r'[^0-9]'), '')) ??
-                        0),
-                  ));
+                  // TAMBAH SUPPLIER
+                  response = await ApiService.postDokter(data);
                 } else {
-                  await db.updateDoctors(
-                    doctor.copyWith(
-                      kodeDoctor: kodeCtrl.text,
-                      namaDoctor: namaCtrl.text,
-                      alamat: Value(
-                          alamatCtrl.text.isNotEmpty ? alamatCtrl.text : null),
-                      telepon: Value(teleponCtrl.text.isNotEmpty
-                          ? teleponCtrl.text
-                          : null),
-                      nilaipenjualan: Value(int.tryParse(nilaipenjualanCtrl.text
-                              .replaceAll(RegExp(r'[^0-9]'), '')) ??
-                          0),
-                    ),
+                  // EDIT SUPPLIER
+                  response = await ApiService.updateDokter(
+                    doctor.kodeDoctor, // Ganti dari supplier.id
+                    data,
                   );
                 }
-                if (context.mounted) Navigator.pop(context);
-                await _loadDoctors();
+
+                if (response.statusCode == 200 || response.statusCode == 201) {
+                  if (context.mounted) Navigator.pop(context);
+                  await _loadDoctors(); // refresh table
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Gagal menyimpan data')),
+                  );
+                }
               }
             },
             child: const Text('Simpan'),
@@ -259,12 +223,12 @@ class _DoctorScreenState extends State<DoctorScreen> {
     );
   }
 
-  void _deleteDoctor(int id) async {
+  void _deleteDokter(String kode) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('Hapus Dokter'),
-        content: const Text('Yakin ingin menghapus data dokter ini?'),
+        content: const Text('Yakin ingin menghapus supplier ini?'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context, false),
@@ -277,8 +241,18 @@ class _DoctorScreenState extends State<DoctorScreen> {
     );
 
     if (confirm == true) {
-      await db.deleteDoctor(id);
-      await _loadDoctors(); // <-- refresh data di layar
+      final response = await ApiService.deleteDokter(kode); // <--- ganti ini
+
+      if (response.statusCode == 200) {
+        await _loadDoctors(); // refresh data dari server
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Supplier berhasil dihapus')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Gagal menghapus supplier')),
+        );
+      }
     }
   }
 
@@ -293,8 +267,8 @@ class _DoctorScreenState extends State<DoctorScreen> {
     sheet.appendRow(['No', 'Kode', 'Nama', 'Alamat', 'Telepon', 'Penjualan']);
 
     // Isi data baris
-    for (int i = 0; i < filteredDoctors.length; i++) {
-      var s = filteredDoctors[i];
+    for (int i = 0; i < filteredDoctor.length; i++) {
+      var s = filteredDoctor[i];
       sheet.appendRow([
         s.kodeDoctor,
         s.namaDoctor,
@@ -326,7 +300,7 @@ class _DoctorScreenState extends State<DoctorScreen> {
         build: (context) {
           return pw.Table.fromTextArray(
             headers: ['Kode', 'Nama', 'Alamat', 'Telepon', 'Penjualan'],
-            data: filteredDoctors.map((s) {
+            data: filteredDoctor.map((s) {
               return [
                 s.kodeDoctor,
                 s.namaDoctor,
@@ -448,41 +422,58 @@ class _DoctorScreenState extends State<DoctorScreen> {
                           type: FileType.custom,
                           allowedExtensions: ['xlsx'],
                         );
-                        if (result != null &&
-                            result.files.single.path != null) {
-                          final file = File(result.files.single.path!);
 
-                          final confirm = await showDialog<bool>(
-                            context: context,
-                            builder: (context) => AlertDialog(
-                              title: const Text('Konfirmasi Import'),
-                              content: const Text(
-                                  'Apakah Anda yakin ingin mengupload file ini?'),
-                              actions: [
-                                TextButton(
-                                  child: const Text('Batal'),
-                                  onPressed: () =>
-                                      Navigator.pop(context, false),
-                                ),
-                                ElevatedButton(
-                                  child: const Text('Ya, Upload'),
-                                  onPressed: () => Navigator.pop(context, true),
-                                ),
-                              ],
-                            ),
-                          );
-
-                          if (confirm == true) {
-                            await importDoctorsFromExcel(
-                                file: file, db: db, onFinished: _loadDoctors);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Import berhasil!')),
-                            );
-                          }
-                        } else {
+                        if (result == null ||
+                            result.files.single.path == null) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
                                 content: Text('Tidak ada file dipilih')),
+                          );
+                          return;
+                        }
+
+                        final file = File(result.files.single.path!);
+
+                        final confirm = await showDialog<bool>(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: const Text('Konfirmasi Import'),
+                            content: const Text(
+                                'Apakah Anda yakin ingin mengupload file ini?'),
+                            actions: [
+                              TextButton(
+                                child: const Text('Batal'),
+                                onPressed: () => Navigator.pop(context, false),
+                              ),
+                              ElevatedButton(
+                                child: const Text('Ya, Upload'),
+                                onPressed: () => Navigator.pop(context, true),
+                              ),
+                            ],
+                          ),
+                        );
+
+                        if (confirm != true) return;
+
+                        try {
+                          final response =
+                              await ApiService.importDoctorFromExcel(file);
+
+                          if (response.statusCode == 200) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Import berhasil!')),
+                            );
+                            await _loadDoctors(); // Refresh tabel
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                  content:
+                                      Text('Gagal import: ${response.body}')),
+                            );
+                          }
+                        } catch (e) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Terjadi kesalahan: $e')),
                           );
                         }
                       },
@@ -552,8 +543,7 @@ class _DoctorScreenState extends State<DoctorScreen> {
                               DataColumn(label: Text('Penjualan')),
                               DataColumn(label: Text('Aksi')),
                             ],
-                            rows:
-                                _paginatedDoctors.asMap().entries.map((entry) {
+                            rows: _paginatedDoctor.asMap().entries.map((entry) {
                               final index = entry.key;
                               final s = entry.value;
                               return DataRow(cells: [
@@ -598,7 +588,8 @@ class _DoctorScreenState extends State<DoctorScreen> {
                                       child: IconButton(
                                         icon: const Icon(Icons.delete,
                                             color: Colors.red),
-                                        onPressed: () => _deleteDoctor(s.id),
+                                        onPressed: () =>
+                                            _deleteDokter(s.kodeDoctor),
                                       ),
                                     ),
                                   ],

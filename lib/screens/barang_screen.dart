@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:drift/drift.dart' show Value;
@@ -5,7 +6,11 @@ import 'package:drift/drift.dart' as drift;
 import 'package:excel/excel.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
+import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
+import 'package:pms_flutter/models/barang_model.dart';
+import 'package:pms_flutter/models/pelanggan_model.dart';
+import 'package:pms_flutter/services/api_service.dart';
 import 'package:printing/printing.dart';
 import 'package:collection/collection.dart';
 import '../database/app_database.dart';
@@ -24,8 +29,8 @@ class BarangScreen extends StatefulWidget {
 
 class _BarangScreenState extends State<BarangScreen> {
   late AppDatabase db;
-  List<Barang> allBarangs = [];
-  List<Barang> filteredBarangs = [];
+  List<BarangModel> barangs = [];
+  List<BarangModel> filteredBarangs = [];
   String searchField = 'Nama Barang';
   String searchText = '';
   final TextEditingController _searchController = TextEditingController();
@@ -49,93 +54,41 @@ class _BarangScreenState extends State<BarangScreen> {
 
   int _currentPage = 0;
 
-  int get _totalPages => (filteredBarangs.length / _rowsPerPage)
-      .ceil()
-      .clamp(1, double.infinity)
-      .toInt();
+  int get _totalPages => (filteredBarangs.length / _rowsPerPage).ceil();
 
-  List<Barang> get _paginatedBarang {
+  List<BarangModel> get _paginatedBarangs {
     final startIndex = _currentPage * _rowsPerPage;
     final endIndex = (_currentPage + 1) * _rowsPerPage;
-    return filteredBarangs.sublist(
-      startIndex,
-      endIndex > filteredBarangs.length ? filteredBarangs.length : endIndex,
-    );
+    final cappedEndIndex =
+        endIndex > filteredBarangs.length ? filteredBarangs.length : endIndex;
+
+    return filteredBarangs.sublist(startIndex, cappedEndIndex);
   }
 
   Future<void> _loadBarangs() async {
-    final data = await db.getAllBarangs();
-    setState(() {
-      allBarangs = data;
-      _applySearch();
-    });
-  }
+    final response = await ApiService.fetchAllBarang();
+    if (response.statusCode == 200) {
+      final List<dynamic> jsonList = jsonDecode(response.body);
+      print(jsonList);
+      setState(() {
+        barangs = jsonList.map((json) => BarangModel.fromJson(json)).toList();
 
-  Future<void> importBarangsFromExcel({
-    required File file,
-    required AppDatabase db,
-    required VoidCallback onFinished,
-  }) async {
-    try {
-      final bytes = file.readAsBytesSync();
-      final excel = Excel.decodeBytes(bytes);
-      final sheet = excel.tables[excel.tables.keys.first];
-      if (sheet == null) return;
-
-      for (var row in sheet.rows.skip(1)) {
-        final kodeBarang = row[0]?.value.toString() ?? '';
-        final namaBarang = row[1]?.value.toString() ?? '';
-        final kelompok = row[2]?.value.toString() ?? '';
-        final satuan = row[3]?.value.toString() ?? '';
-        final stokAktual = row[4]?.value.toString();
-        final hargaBeli = row[5]?.value.toString();
-        final hargaJual = row[6]?.value.toString();
-        final jualDisc1 = row[7]?.value.toString();
-        final jualDisc2 = row[8]?.value.toString();
-        final jualDisc3 = row[9]?.value.toString();
-        final jualDisc4 = row[10]?.value.toString();
-
-        if (kodeBarang.isEmpty || namaBarang.isEmpty) continue;
-
-        // Cek apakah Kode Barang sudah ada
-        final exists = await (db.select(db.barangs)
-              ..where((tbl) => tbl.kodeBarang.equals(kodeBarang)))
-            .getSingleOrNull();
-
-        if (exists != null) {
-          debugPrint('Kode $kodeBarang sudah ada, dilewati.');
-          continue;
-        }
-
-        await db.into(db.barangs).insert(
-              BarangsCompanion(
-                kodeBarang: drift.Value(kodeBarang),
-                namaBarang: drift.Value(namaBarang),
-                kelompok: drift.Value(kelompok),
-                noRak: drift.Value('0'),
-                satuan: drift.Value(satuan),
-                stokAktual: drift.Value(int.tryParse(stokAktual ?? '0') ?? 0),
-                hargaBeli: drift.Value(int.tryParse(hargaBeli ?? '0') ?? 0),
-                hargaJual: drift.Value(int.tryParse(hargaJual ?? '0') ?? 0),
-                jualDisc1: drift.Value(int.tryParse(jualDisc1 ?? '0') ?? 0),
-                jualDisc2: drift.Value(int.tryParse(jualDisc2 ?? '0') ?? 0),
-                jualDisc3: drift.Value(int.tryParse(jualDisc3 ?? '0') ?? 0),
-                jualDisc4: drift.Value(int.tryParse(jualDisc4 ?? '0') ?? 0),
-              ),
-            );
-      }
-      onFinished();
-    } catch (e) {
-      debugPrint('Gagal import file Excel: $e');
+        // Awalnya filteredSuppliers sama dengan semua supplier
+        filteredBarangs = List.from(barangs);
+        _currentPage = 0; // Reset ke halaman pertama
+      });
+    } else {
+      // Tangani error jika perlu
+      print('Gagal memuat data supplier: ${response.statusCode}');
     }
   }
 
   void _applySearch() {
     setState(() {
-      filteredBarangs = allBarangs.where((s) {
+      filteredBarangs = barangs.where((s) {
         final value = switch (searchField) {
           'Kode Baramg' => s.kodeBarang,
-          'Nama Barang' => s.namaBarang,
+          'Nama Barang' => s.namaBarang!,
           'Kelompok' => s.kelompok ?? '',
           'Satuan' => s.satuan ?? '',
           _ => '',
@@ -145,7 +98,7 @@ class _BarangScreenState extends State<BarangScreen> {
     });
   }
 
-  void _showForm({Barang? barang}) {
+  void _showForm({BarangModel? barang}) {
     final formKey = GlobalKey<FormState>();
     final kodeCtrl = TextEditingController(text: barang?.kodeBarang ?? '');
     final namaBrgCtrl = TextEditingController(text: barang?.namaBarang ?? '');
@@ -166,13 +119,6 @@ class _BarangScreenState extends State<BarangScreen> {
         TextEditingController(text: barang?.jualDisc3.toString() ?? '');
     final dic4Ctrl =
         TextEditingController(text: barang?.jualDisc4.toString() ?? '');
-
-    final hargaJual = int.tryParse(hargaJCtrl.text) ?? 0;
-
-    final disc1 = int.tryParse(dic1Ctrl.text) ?? hargaJual;
-    final disc2 = int.tryParse(dic2Ctrl.text) ?? hargaJual;
-    final disc3 = int.tryParse(dic3Ctrl.text) ?? hargaJual;
-    final disc4 = int.tryParse(dic4Ctrl.text) ?? hargaJual;
 
     final formatCurrency =
         NumberFormat.currency(locale: 'id', symbol: 'Rp ', decimalDigits: 0);
@@ -195,7 +141,7 @@ class _BarangScreenState extends State<BarangScreen> {
                     validator: (value) {
                       if (value == null || value.isEmpty)
                         return 'Wajib diisi tidak boleh kosong';
-                      final exists = allBarangs.any((s) =>
+                      final exists = barangs.any((s) =>
                           s.kodeBarang == value &&
                           (barang == null || s.id != barang.id));
                       if (exists) return 'Kode sudah digunakan';
@@ -211,25 +157,33 @@ class _BarangScreenState extends State<BarangScreen> {
                   ),
                   TypeAheadField<Rak>(
                     textFieldConfiguration: TextFieldConfiguration(
-                        decoration: InputDecoration(
-                          contentPadding: EdgeInsets.all(5),
-                          labelText: 'No Rak',
-                        ),
-                        controller: noRakCtrl),
+                      decoration: InputDecoration(
+                        contentPadding: EdgeInsets.all(5),
+                        labelText: 'No Rak',
+                      ),
+                      controller: noRakCtrl,
+                    ),
                     suggestionsCallback: (pattern) async {
-                      return await db
-                          .searcRak(pattern); // db adalah instance AppDatabase
+                      try {
+                        final response = await ApiService.searchRak(pattern);
+                        return response
+                            .map<Rak>((json) => Rak.fromJson(json))
+                            .toList();
+                      } catch (e) {
+                        return [];
+                      }
                     },
                     itemBuilder: (context, Rak suggestion) {
                       return ListTile(
                         title: Text(suggestion.kodeRak),
-                        subtitle: Text('Kode: ${suggestion.namaRak}'),
+                        subtitle: Text('Nama: ${suggestion.namaRak}'),
                       );
                     },
                     onSuggestionSelected: (Rak suggestion) {
                       noRakCtrl.text = suggestion.kodeRak;
                     },
                   ),
+
                   TextFormField(
                     controller: kelompoktCtrl,
                     decoration: const InputDecoration(labelText: 'Kelompok'),
@@ -416,80 +370,90 @@ class _BarangScreenState extends State<BarangScreen> {
           ElevatedButton(
             onPressed: () async {
               if (formKey.currentState!.validate()) {
+                final kode = kodeCtrl.text;
+                final nama = namaBrgCtrl.text;
+                final hargaJualInt = int.tryParse(
+                        hargaJCtrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
+                    0;
+                final disc1 = dic1Ctrl.text.isEmpty
+                    ? hargaJualInt
+                    : int.tryParse(
+                            dic1Ctrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
+                        hargaJualInt;
+
+                final disc2 = dic2Ctrl.text.isEmpty
+                    ? hargaJualInt
+                    : int.tryParse(
+                            dic2Ctrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
+                        hargaJualInt;
+
+                final disc3 = dic3Ctrl.text.isEmpty
+                    ? hargaJualInt
+                    : int.tryParse(
+                            dic3Ctrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
+                        hargaJualInt;
+
+                final disc4 = dic4Ctrl.text.isEmpty
+                    ? hargaJualInt
+                    : int.tryParse(
+                            dic4Ctrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
+                        hargaJualInt;
+                final data = {
+                  'kodeBarang': kode,
+                  'namaBarang': nama,
+                  'noRak': noRakCtrl.text,
+                  'kelompok': kelompoktCtrl.text,
+                  'satuan': satuanCtrl.text,
+                  'stokAktual': int.tryParse(stokCtrl.text) ?? 0,
+                  'hargaBeli': int.tryParse(
+                          hargaBCtrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
+                      0,
+                  'hargaJual': int.tryParse(
+                          hargaJCtrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
+                      0,
+                  'jualDisc1': disc1,
+                  'jualDisc2': disc2,
+                  'jualDisc3': disc3,
+                  'jualDisc4': disc4,
+                };
+
+                print(jsonEncode(data));
+                late http.Response response;
+
                 if (barang == null) {
-                  // Cek apakah barang dengan kode & nama sama sudah ada
-                  final existing = allBarangs.firstWhereOrNull(
+                  // Cek apakah barang dengan kode & nama sama sudah ada secara lokal
+                  final existing = barangs.firstWhereOrNull(
                     (b) =>
-                        b.kodeBarang == kodeCtrl.text &&
-                        b.namaBarang.toLowerCase() ==
-                            namaBrgCtrl.text.toLowerCase(),
+                        b.kodeBarang == kode &&
+                        b.namaBarang!.toLowerCase() == nama.toLowerCase(),
                   );
 
                   if (existing != null) {
-                    // Jika barang sudah ada, update stok dan field lain
-                    final updatedStok = existing.stokAktual +
-                        (int.tryParse(stokCtrl.text) ?? 0);
-                    await db.updateBarangs(
-                      existing.copyWith(
-                        noRak: noRakCtrl.text,
-                        kelompok: kelompoktCtrl.text,
-                        satuan: satuanCtrl.text,
-                        stokAktual: updatedStok,
-                        hargaBeli: int.tryParse(hargaBCtrl.text
-                                .replaceAll(RegExp(r'[^0-9]'), '')) ??
-                            0,
-                        hargaJual: int.tryParse(hargaJCtrl.text
-                                .replaceAll(RegExp(r'[^0-9]'), '')) ??
-                            0,
-                      ),
-                    );
+                    // Update stok & kirim ke API (PUT)
+                    final updatedStok =
+                        existing.stokAktual + (data['stokAktual'] as int);
+                    data['stokAktual'] = updatedStok;
+
+                    response = await ApiService.updateBarang(
+                        existing.kodeBarang, data);
                   } else {
-                    // Tambah Barang Baru
-                    await db.insertBarangs(BarangsCompanion(
-                      kodeBarang: Value(kodeCtrl.text),
-                      namaBarang: Value(namaBrgCtrl.text),
-                      noRak: Value(noRakCtrl.text),
-                      kelompok: Value(kelompoktCtrl.text),
-                      satuan: Value(satuanCtrl.text),
-                      stokAktual: Value(int.tryParse(stokCtrl.text) ?? 0),
-                      hargaBeli: Value(int.tryParse(hargaBCtrl.text
-                              .replaceAll(RegExp(r'[^0-9]'), '')) ??
-                          0),
-                      hargaJual: Value(int.tryParse(hargaJCtrl.text
-                              .replaceAll(RegExp(r'[^0-9]'), '')) ??
-                          0),
-                      jualDisc1: Value(disc1),
-                      jualDisc2: Value(disc2),
-                      jualDisc3: Value(disc3),
-                      jualDisc4: Value(disc4),
-                    ));
+                    // Barang baru - kirim ke API (POST)
+                    response = await ApiService.postBarang(data);
                   }
                 } else {
-                  // Edit Barang
-                  await db.updateBarangs(
-                    barang.copyWith(
-                      kodeBarang: kodeCtrl.text,
-                      namaBarang: namaBrgCtrl.text,
-                      noRak: noRakCtrl.text,
-                      kelompok: kelompoktCtrl.text,
-                      satuan: satuanCtrl.text,
-                      stokAktual: int.tryParse(stokCtrl.text) ?? 0,
-                      hargaBeli: int.tryParse(hargaBCtrl.text
-                              .replaceAll(RegExp(r'[^0-9]'), '')) ??
-                          0,
-                      hargaJual: int.tryParse(hargaJCtrl.text
-                              .replaceAll(RegExp(r'[^0-9]'), '')) ??
-                          0,
-                      jualDisc1: Value(int.tryParse(dic1Ctrl.text) ?? 0),
-                      jualDisc2: Value(int.tryParse(dic2Ctrl.text) ?? 0),
-                      jualDisc3: Value(int.tryParse(dic3Ctrl.text) ?? 0),
-                      jualDisc4: Value(int.tryParse(dic4Ctrl.text) ?? 0),
-                    ),
-                  );
+                  // Edit barang
+                  response =
+                      await ApiService.updateBarang(barang.kodeBarang, data);
                 }
 
-                if (context.mounted) Navigator.pop(context);
-                await _loadBarangs();
+                if (response.statusCode == 200 || response.statusCode == 201) {
+                  if (context.mounted) Navigator.pop(context);
+                  await _loadBarangs(); // refresh data
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Gagal menyimpan data')),
+                  );
+                }
               }
             },
             child: const Text('Simpan'),
@@ -499,12 +463,12 @@ class _BarangScreenState extends State<BarangScreen> {
     );
   }
 
-  void _deleteBarangs(int id) async {
+  void _deleteBarang(String kode) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Hapus Barang'),
-        content: const Text('Yakin ingin menghapus data barang ini?'),
+        title: const Text('Hapus Dokter'),
+        content: const Text('Yakin ingin menghapus supplier ini?'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context, false),
@@ -517,8 +481,18 @@ class _BarangScreenState extends State<BarangScreen> {
     );
 
     if (confirm == true) {
-      await db.deleteBarangs(id);
-      await _loadBarangs(); // <-- refresh data di layar
+      final response = await ApiService.deleteBarang(kode); // <--- ganti ini
+
+      if (response.statusCode == 200) {
+        await _loadBarangs(); // refresh data dari server
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Supplier berhasil dihapus')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Gagal menghapus supplier')),
+        );
+      }
     }
   }
 
@@ -534,6 +508,7 @@ class _BarangScreenState extends State<BarangScreen> {
       'No',
       'Kode Barang',
       'Nama Barang',
+      'Rak',
       'Kelompok',
       'Satuan',
       'Stok Aktual',
@@ -552,6 +527,7 @@ class _BarangScreenState extends State<BarangScreen> {
         i + 1, // Nomor urut dimulai dari 1
         s.kodeBarang,
         s.namaBarang,
+        s.noRak,
         s.kelompok,
         s.satuan,
         s.stokAktual,
@@ -588,6 +564,7 @@ class _BarangScreenState extends State<BarangScreen> {
             headers: [
               'Kode Barang',
               'Nama Barang',
+              'Rak',
               'Kelompok',
               'Satuan',
               'Stok Aktual',
@@ -602,6 +579,7 @@ class _BarangScreenState extends State<BarangScreen> {
               return [
                 s.kodeBarang,
                 s.namaBarang,
+                s.noRak,
                 s.kelompok,
                 s.satuan,
                 s.stokAktual,
@@ -726,41 +704,58 @@ class _BarangScreenState extends State<BarangScreen> {
                           type: FileType.custom,
                           allowedExtensions: ['xlsx'],
                         );
-                        if (result != null &&
-                            result.files.single.path != null) {
-                          final file = File(result.files.single.path!);
 
-                          final confirm = await showDialog<bool>(
-                            context: context,
-                            builder: (context) => AlertDialog(
-                              title: const Text('Konfirmasi Import'),
-                              content: const Text(
-                                  'Apakah Anda yakin ingin mengupload file ini?'),
-                              actions: [
-                                TextButton(
-                                  child: const Text('Batal'),
-                                  onPressed: () =>
-                                      Navigator.pop(context, false),
-                                ),
-                                ElevatedButton(
-                                  child: const Text('Ya, Upload'),
-                                  onPressed: () => Navigator.pop(context, true),
-                                ),
-                              ],
-                            ),
-                          );
-
-                          if (confirm == true) {
-                            await importBarangsFromExcel(
-                                file: file, db: db, onFinished: _loadBarangs);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Import berhasil!')),
-                            );
-                          }
-                        } else {
+                        if (result == null ||
+                            result.files.single.path == null) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
                                 content: Text('Tidak ada file dipilih')),
+                          );
+                          return;
+                        }
+
+                        final file = File(result.files.single.path!);
+
+                        final confirm = await showDialog<bool>(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: const Text('Konfirmasi Import'),
+                            content: const Text(
+                                'Apakah Anda yakin ingin mengupload file ini?'),
+                            actions: [
+                              TextButton(
+                                child: const Text('Batal'),
+                                onPressed: () => Navigator.pop(context, false),
+                              ),
+                              ElevatedButton(
+                                child: const Text('Ya, Upload'),
+                                onPressed: () => Navigator.pop(context, true),
+                              ),
+                            ],
+                          ),
+                        );
+
+                        if (confirm != true) return;
+
+                        try {
+                          final response =
+                              await ApiService.importBarangFromExcel(file);
+
+                          if (response.statusCode == 200) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Import berhasil!')),
+                            );
+                            await _loadBarangs(); // Refresh tabel
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                  content:
+                                      Text('Gagal import: ${response.body}')),
+                            );
+                          }
+                        } catch (e) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Terjadi kesalahan: $e')),
                           );
                         }
                       },
@@ -837,7 +832,8 @@ class _BarangScreenState extends State<BarangScreen> {
                               DataColumn(label: Text('Disc4')),
                               DataColumn(label: Text('Aksi')),
                             ],
-                            rows: _paginatedBarang.asMap().entries.map((entry) {
+                            rows:
+                                _paginatedBarangs.asMap().entries.map((entry) {
                               final index = entry.key;
                               final s = entry.value;
                               return DataRow(cells: [
@@ -852,19 +848,19 @@ class _BarangScreenState extends State<BarangScreen> {
                                 )),
                                 DataCell(Tooltip(
                                   message: 'Nama Barang',
-                                  child: Text(s.namaBarang),
+                                  child: Text(s.namaBarang ?? ''),
                                 )),
                                 DataCell(Tooltip(
                                   message: 'Nomor Rak',
-                                  child: Text(s.noRak),
+                                  child: Text(s.noRak ?? ''),
                                 )),
                                 DataCell(Tooltip(
                                   message: 'Kelompok Barang',
-                                  child: Text(s.kelompok),
+                                  child: Text(s.kelompok ?? ''),
                                 )),
                                 DataCell(Tooltip(
                                   message: 'Satuan',
-                                  child: Text(s.satuan),
+                                  child: Text(s.satuan ?? ''),
                                 )),
                                 DataCell(Tooltip(
                                   message: 'Stok Aktual',
@@ -909,7 +905,8 @@ class _BarangScreenState extends State<BarangScreen> {
                                       child: IconButton(
                                         icon: const Icon(Icons.delete,
                                             color: Colors.red),
-                                        onPressed: () => _deleteBarangs(s.id),
+                                        onPressed: () =>
+                                            _deleteBarang(s.kodeBarang),
                                       ),
                                     ),
                                   ],

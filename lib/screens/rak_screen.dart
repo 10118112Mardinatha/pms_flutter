@@ -1,9 +1,13 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:drift/drift.dart' as drift;
 import 'package:excel/excel.dart';
+import 'package:http/http.dart' as http;
+import 'package:pms_flutter/models/rak_model.dart';
+import 'package:pms_flutter/services/api_service.dart';
 import 'package:printing/printing.dart';
 import '../database/app_database.dart';
 import 'dart:typed_data';
@@ -21,8 +25,8 @@ class RakScreen extends StatefulWidget {
 
 class _RakScreenState extends State<RakScreen> {
   late AppDatabase db;
-  List<Rak> allRaks = [];
-  List<Rak> filteredRaks = [];
+  List<RakModel> allRaks = [];
+  List<RakModel> filteredRaks = [];
   String searchField = 'Nama';
   String searchText = '';
   final TextEditingController _searchController = TextEditingController();
@@ -38,71 +42,34 @@ class _RakScreenState extends State<RakScreen> {
   }
 
   Future<void> _loadRaks() async {
-    final data = await db.getAllRaks();
-    setState(() {
-      allRaks = data;
-      _applySearch();
-    });
+    final response = await ApiService.fetchAllRak();
+    if (response.statusCode == 200) {
+      final List<dynamic> jsonList = jsonDecode(response.body);
+      print(jsonList);
+      setState(() {
+        allRaks = jsonList.map((json) => RakModel.fromJson(json)).toList();
+
+        // Awalnya filteredSuppliers sama dengan semua supplier
+        filteredRaks = List.from(allRaks);
+        _currentPage = 0; // Reset ke halaman pertama
+      });
+    } else {
+      // Tangani error jika perlu
+      print('Gagal memuat data supplier: ${response.statusCode}');
+    }
   }
 
   int _currentPage = 0;
 
-  int get _totalPages => (filteredRaks.length / _rowsPerPage)
-      .ceil()
-      .clamp(1, double.infinity)
-      .toInt();
+  int get _totalPages => (filteredRaks.length / _rowsPerPage).ceil();
 
-  List<Rak> get _paginatedRaks {
+  List<RakModel> get _paginatedRak {
     final startIndex = _currentPage * _rowsPerPage;
     final endIndex = (_currentPage + 1) * _rowsPerPage;
-    return filteredRaks.sublist(
-      startIndex,
-      endIndex > filteredRaks.length ? filteredRaks.length : endIndex,
-    );
-  }
+    final cappedEndIndex =
+        endIndex > filteredRaks.length ? filteredRaks.length : endIndex;
 
-  Future<void> importRaksFromExcel({
-    required File file,
-    required AppDatabase db,
-    required VoidCallback onFinished,
-  }) async {
-    try {
-      final bytes = file.readAsBytesSync();
-      final excel = Excel.decodeBytes(bytes);
-      final sheet = excel.tables[excel.tables.keys.first];
-      if (sheet == null) return;
-
-      for (var row in sheet.rows.skip(1)) {
-        final kodeRak = row[0]?.value.toString() ?? '';
-        final namaRak = row[1]?.value.toString() ?? '';
-        final lokasi = row[2]?.value.toString();
-        final keterangan = row[3]?.value.toString();
-
-        if (kodeRak.isEmpty || namaRak.isEmpty) continue;
-
-        // Cek apakah kodeSupplier sudah ada
-        final exists = await (db.select(db.raks)
-              ..where((tbl) => tbl.kodeRak.equals(kodeRak)))
-            .getSingleOrNull();
-
-        if (exists != null) {
-          debugPrint('Kode $kodeRak sudah ada, dilewati.');
-          continue;
-        }
-
-        await db.into(db.raks).insert(
-              RaksCompanion(
-                kodeRak: drift.Value(kodeRak),
-                namaRak: drift.Value(namaRak),
-                lokasi: drift.Value(lokasi!),
-                keterangan: drift.Value(keterangan),
-              ),
-            );
-      }
-      onFinished();
-    } catch (e) {
-      debugPrint('Gagal import file Excel: $e');
-    }
+    return filteredRaks.sublist(startIndex, cappedEndIndex);
   }
 
   void _applySearch() {
@@ -121,7 +88,7 @@ class _RakScreenState extends State<RakScreen> {
   }
 
 //
-  void _showForm({Rak? Rak}) {
+  void _showForm({RakModel? Rak}) {
     final formKey = GlobalKey<FormState>();
     final kodeCtrl = TextEditingController(text: Rak?.kodeRak ?? '');
     final namaCtrl = TextEditingController(text: Rak?.namaRak ?? '');
@@ -185,21 +152,34 @@ class _RakScreenState extends State<RakScreen> {
           ElevatedButton(
             onPressed: () async {
               if (formKey.currentState!.validate()) {
+                final data = {
+                  'kodeRak': kodeCtrl.text,
+                  'namaRak': namaCtrl.text,
+                  'lokasi': lokasiCtrl.text,
+                  'keterangan': ketCtrl.text,
+                };
+
+                late http.Response response;
+
                 if (Rak == null) {
-                  await db.insertRaks(RaksCompanion(
-                      kodeRak: Value(kodeCtrl.text),
-                      namaRak: Value(namaCtrl.text),
-                      lokasi: Value(ketCtrl.text),
-                      keterangan: Value(ketCtrl.text)));
+                  // TAMBAH SUPPLIER
+                  response = await ApiService.postRak(data);
                 } else {
-                  await db.updateRaks(Rak.copyWith(
-                      kodeRak: kodeCtrl.text,
-                      namaRak: namaCtrl.text,
-                      lokasi: ketCtrl.text,
-                      keterangan: Value(ketCtrl.text)));
+                  // EDIT SUPPLIER
+                  response = await ApiService.updateRak(
+                    Rak.kodeRak, // Ganti dari supplier.id
+                    data,
+                  );
                 }
-                if (context.mounted) Navigator.pop(context);
-                await _loadRaks();
+
+                if (response.statusCode == 200 || response.statusCode == 201) {
+                  if (context.mounted) Navigator.pop(context);
+                  await _loadRaks(); // refresh table
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Gagal menyimpan data')),
+                  );
+                }
               }
             },
             child: const Text('Simpan'),
@@ -209,12 +189,12 @@ class _RakScreenState extends State<RakScreen> {
     );
   }
 
-  void _deleteRak(int id) async {
+  void _deleteRak(String kode) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Hapus Rak'),
-        content: const Text('Yakin ingin menghapus data rak ini?'),
+        title: const Text('Hapus Supplier'),
+        content: const Text('Yakin ingin menghapus supplier ini?'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context, false),
@@ -227,8 +207,18 @@ class _RakScreenState extends State<RakScreen> {
     );
 
     if (confirm == true) {
-      await db.deleteRaks(id);
-      await _loadRaks(); // <-- refresh data di layar
+      final response = await ApiService.deleteRak(kode); // <--- ganti ini
+
+      if (response.statusCode == 200) {
+        await _loadRaks(); // refresh data dari server
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Supplier berhasil dihapus')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Gagal menghapus supplier')),
+        );
+      }
     }
   }
 
@@ -396,41 +386,58 @@ class _RakScreenState extends State<RakScreen> {
                           type: FileType.custom,
                           allowedExtensions: ['xlsx'],
                         );
-                        if (result != null &&
-                            result.files.single.path != null) {
-                          final file = File(result.files.single.path!);
 
-                          final confirm = await showDialog<bool>(
-                            context: context,
-                            builder: (context) => AlertDialog(
-                              title: const Text('Konfirmasi Import'),
-                              content: const Text(
-                                  'Apakah Anda yakin ingin mengupload file ini?'),
-                              actions: [
-                                TextButton(
-                                  child: const Text('Batal'),
-                                  onPressed: () =>
-                                      Navigator.pop(context, false),
-                                ),
-                                ElevatedButton(
-                                  child: const Text('Ya, Upload'),
-                                  onPressed: () => Navigator.pop(context, true),
-                                ),
-                              ],
-                            ),
-                          );
-
-                          if (confirm == true) {
-                            await importRaksFromExcel(
-                                file: file, db: db, onFinished: _loadRaks);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Import berhasil!')),
-                            );
-                          }
-                        } else {
+                        if (result == null ||
+                            result.files.single.path == null) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
                                 content: Text('Tidak ada file dipilih')),
+                          );
+                          return;
+                        }
+
+                        final file = File(result.files.single.path!);
+
+                        final confirm = await showDialog<bool>(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: const Text('Konfirmasi Import'),
+                            content: const Text(
+                                'Apakah Anda yakin ingin mengupload file ini?'),
+                            actions: [
+                              TextButton(
+                                child: const Text('Batal'),
+                                onPressed: () => Navigator.pop(context, false),
+                              ),
+                              ElevatedButton(
+                                child: const Text('Ya, Upload'),
+                                onPressed: () => Navigator.pop(context, true),
+                              ),
+                            ],
+                          ),
+                        );
+
+                        if (confirm != true) return;
+
+                        try {
+                          final response =
+                              await ApiService.importRakFromExcel(file);
+
+                          if (response.statusCode == 200) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Import berhasil!')),
+                            );
+                            await _loadRaks(); // Refresh tabel
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                  content:
+                                      Text('Gagal import: ${response.body}')),
+                            );
+                          }
+                        } catch (e) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Terjadi kesalahan: $e')),
                           );
                         }
                       },
@@ -499,7 +506,7 @@ class _RakScreenState extends State<RakScreen> {
                               DataColumn(label: Text('Keterangan')),
                               DataColumn(label: Text('Aksi')),
                             ],
-                            rows: _paginatedRaks.asMap().entries.map((entry) {
+                            rows: _paginatedRak.asMap().entries.map((entry) {
                               final index = entry.key;
                               final s = entry.value;
                               return DataRow(cells: [
@@ -540,7 +547,7 @@ class _RakScreenState extends State<RakScreen> {
                                       tooltip: 'Hapus Data',
                                       icon: const Icon(Icons.delete,
                                           color: Colors.red),
-                                      onPressed: () => _deleteRak(s.id),
+                                      onPressed: () => _deleteRak(s.kodeRak),
                                     ),
                                   ],
                                 )),
