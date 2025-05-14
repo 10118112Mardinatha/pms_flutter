@@ -94,7 +94,8 @@ class _SupplierScreenState extends State<SupplierScreen> {
 
   void _showForm({SupplierModel? supplier}) {
     final formKey = GlobalKey<FormState>();
-    final kodeCtrl = TextEditingController(text: supplier?.kodeSupplier ?? '');
+    final kodeCtrl = TextEditingController(
+        text: supplier?.kodeSupplier ?? _generateKodeSupplier());
     final namaCtrl = TextEditingController(text: supplier?.namaSupplier ?? '');
     final alamatCtrl = TextEditingController(text: supplier?.alamat ?? '');
     final teleponCtrl = TextEditingController(text: supplier?.telepon ?? '');
@@ -187,7 +188,13 @@ class _SupplierScreenState extends State<SupplierScreen> {
                     data,
                   );
                 }
-
+                if (response.statusCode == 409) {
+                  final msg = jsonDecode(response.body)['error'];
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(msg), backgroundColor: Colors.red),
+                  );
+                  return;
+                }
                 if (response.statusCode == 200 || response.statusCode == 201) {
                   if (context.mounted) Navigator.pop(context);
                   await _loadSuppliers(); // refresh table
@@ -236,6 +243,20 @@ class _SupplierScreenState extends State<SupplierScreen> {
         );
       }
     }
+  }
+
+  String _generateKodeSupplier() {
+    final prefix = 'SPL';
+    final existingIds = suppliers.map((d) {
+      final match = RegExp(r'(\d+)$').firstMatch(d.kodeSupplier ?? '');
+      return match != null ? int.tryParse(match.group(1)!) ?? 0 : 0;
+    }).toList();
+
+    final maxId = existingIds.isNotEmpty
+        ? existingIds.reduce((a, b) => a > b ? a : b)
+        : 0;
+    final nextId = maxId + 1;
+    return '$prefix${nextId.toString().padLeft(3, '0')}';
   }
 
   Future<void> _exportToExcel() async {

@@ -1,15 +1,16 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:pms_flutter/database/app_database.dart';
 import 'package:pms_flutter/models/user_model.dart';
+import 'package:pms_flutter/services/api_service.dart';
 
 class TambahUserScreen extends StatefulWidget {
-  final AppDatabase database;
   final int currentUserId;
-  const TambahUserScreen(
-      {super.key, required this.database, required this.currentUserId});
+  const TambahUserScreen({super.key, required this.currentUserId});
 
   @override
   State<TambahUserScreen> createState() => _TambahUserScreenState();
@@ -22,6 +23,8 @@ class _TambahUserScreenState extends State<TambahUserScreen> {
   final TextEditingController _confirmPasswordController =
       TextEditingController();
   String? _selectedRole;
+  List<UserModel> users = [];
+
   File? _pickedImage;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
@@ -40,26 +43,30 @@ class _TambahUserScreenState extends State<TambahUserScreen> {
 
   void _submitForm() async {
     if (_formKey.currentState!.validate()) {
-      final newUser = UsersCompanion(
-        username: Value(_usernameController.text),
-        password: Value(_passwordController.text),
-        role: Value(_selectedRole!),
-        aktif: const Value(true),
-        avatar: Value(_pickedImage?.path),
+      final user = UserModel(
+        id: 0,
+        username: _usernameController.text,
+        password: _passwordController.text,
+        role: _selectedRole!,
+        aktif: true,
+        avatar: _pickedImage?.path,
       );
 
       try {
-        await widget.database.insertUser(newUser);
-
+        await ApiService.addUser(user);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('User berhasil ditambahkan')),
         );
-
         _formKey.currentState!.reset();
+        _usernameController.clear();
+        _passwordController.clear();
+        _confirmPasswordController.clear();
         setState(() {
           _pickedImage = null;
           _selectedRole = null;
         });
+        users = await ApiService.fetchUsers();
+        _showUserDialog();
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Gagal menyimpan user: ${e.toString()}')),
@@ -69,7 +76,9 @@ class _TambahUserScreenState extends State<TambahUserScreen> {
   }
 
   Future<void> _showUserDialog() async {
-    final users = await widget.database.getAllUsers();
+    if (users.isEmpty) {
+      users = await ApiService.fetchUsers();
+    }
 
     showDialog(
       context: context,
@@ -112,28 +121,79 @@ class _TambahUserScreenState extends State<TambahUserScreen> {
                                   key: ValueKey(user.aktif),
                                   value: user.aktif,
                                   onChanged: user.id == widget.currentUserId
-                                      ? null // disable switch untuk user sendiri
+                                      ? null
                                       : (_) async {
-                                          final updated =
-                                              user.copyWith(aktif: !user.aktif);
-                                          await widget.database
-                                              .updateUser(updated);
-                                          setState(() {});
-                                          Navigator.pop(context);
-                                          _showUserDialog(); // refresh dialog
+                                          final updatedAktif = !user.aktif;
+                                          final response = await http.put(
+                                            Uri.parse(
+                                                'http://192.168.1.6:8080//users/${user.id}'),
+                                            headers: {
+                                              'Content-Type': 'application/json'
+                                            },
+                                            body: jsonEncode(
+                                                {'aktif': updatedAktif}),
+                                          );
+                                          if (response.statusCode == 200) {
+                                            setState(() {});
+                                            Navigator.pop(context);
+                                            _showUserDialog();
+                                          } else {
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(
+                                              const SnackBar(
+                                                  content: Text(
+                                                      'Gagal memperbarui status user')),
+                                            );
+                                          }
                                         },
                                   activeColor: Colors.green,
                                   inactiveThumbColor: Colors.red,
                                 ),
                               ),
                             ),
+                            DropdownButton<String>(
+                              value: user.role,
+                              items: ['admin', 'apoteker'].map((role) {
+                                return DropdownMenuItem(
+                                    value: role, child: Text(role));
+                              }).toList(),
+                              onChanged: user.id == widget.currentUserId
+                                  ? null
+                                  : (newRole) async {
+                                      final response = await http.put(
+                                        Uri.parse(
+                                            'http://192.168.1.6:8080/user/${user.id}'),
+                                        headers: {
+                                          'Content-Type': 'application/json'
+                                        },
+                                        body: jsonEncode({
+                                          'role': newRole,
+                                          'aktif': user.aktif
+                                        }),
+                                      );
+
+                                      if (response.statusCode == 200) {
+                                        setState(() {});
+                                        Navigator.pop(context);
+                                        _showUserDialog();
+                                      } else {
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          const SnackBar(
+                                              content:
+                                                  Text('Gagal mengubah role')),
+                                        );
+                                      }
+                                    },
+                            ),
+                            const SizedBox(width: 8),
                             IconButton(
                               tooltip: user.id == widget.currentUserId
                                   ? 'Tidak bisa menghapus user sendiri'
                                   : 'Hapus User',
                               icon: const Icon(Icons.delete, color: Colors.red),
                               onPressed: user.id == widget.currentUserId
-                                  ? null // disable tombol
+                                  ? null
                                   : () async {
                                       final confirm = await showDialog<bool>(
                                         context: context,
@@ -155,13 +215,25 @@ class _TambahUserScreenState extends State<TambahUserScreen> {
                                           ],
                                         ),
                                       );
+
                                       if (confirm == true) {
-                                        await widget.database
-                                            .deleteUser(user.id);
-                                        setState(() {});
-                                        Navigator.pop(context); // keluar dulu
-                                        Future.delayed(
-                                            Duration.zero, _showUserDialog);
+                                        final response = await http.delete(
+                                          Uri.parse(
+                                              'http://192.168.1.6:8080/user/${user.id}'),
+                                        );
+                                        if (response.statusCode == 200) {
+                                          setState(() {});
+                                          Navigator.pop(context);
+                                          Future.delayed(
+                                              Duration.zero, _showUserDialog);
+                                        } else {
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(
+                                            const SnackBar(
+                                                content: Text(
+                                                    'Gagal menghapus user')),
+                                          );
+                                        }
                                       }
                                     },
                             ),

@@ -95,7 +95,10 @@ class _DoctorScreenState extends State<DoctorScreen> {
 //
   void _showForm({DoctorModel? doctor}) {
     final formKey = GlobalKey<FormState>();
-    final kodeCtrl = TextEditingController(text: doctor?.kodeDoctor ?? '');
+    final kodeCtrl = TextEditingController(
+      text: doctor?.kodeDoctor ?? _generateKodeDokter(),
+    );
+
     final namaCtrl = TextEditingController(text: doctor?.namaDoctor ?? '');
     final alamatCtrl = TextEditingController(text: doctor?.alamat ?? '');
     final teleponCtrl = TextEditingController(text: doctor?.telepon ?? '');
@@ -188,7 +191,7 @@ class _DoctorScreenState extends State<DoctorScreen> {
                   'namaDoctor': namaCtrl.text,
                   'alamat': alamatCtrl.text,
                   'telepon': teleponCtrl.text,
-                  'nilaiPenjualan': int.tryParse(nilaipenjualanCtrl.text
+                  'nilaipenjualan': int.tryParse(nilaipenjualanCtrl.text
                           .replaceAll(RegExp(r'[^0-9]'), '')) ??
                       0,
                 };
@@ -221,6 +224,20 @@ class _DoctorScreenState extends State<DoctorScreen> {
         ],
       ),
     );
+  }
+
+  String _generateKodeDokter() {
+    final prefix = 'DOC';
+    final existingIds = doctors.map((d) {
+      final match = RegExp(r'(\d+)$').firstMatch(d.kodeDoctor ?? '');
+      return match != null ? int.tryParse(match.group(1)!) ?? 0 : 0;
+    }).toList();
+
+    final maxId = existingIds.isNotEmpty
+        ? existingIds.reduce((a, b) => a > b ? a : b)
+        : 0;
+    final nextId = maxId + 1;
+    return '$prefix${nextId.toString().padLeft(3, '0')}';
   }
 
   void _deleteDokter(String kode) async {

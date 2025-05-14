@@ -1,50 +1,35 @@
-import 'package:pms_flutter/database/app_database.dart';
-
 class UserModel {
-  final String id;
+  final int id;
   final String username;
+  final String? password;
   final String role;
+  final bool aktif;
   final String? avatar;
-  final bool aktif; // Tambahkan ini
 
   UserModel({
     required this.id,
     required this.username,
     required this.role,
+    required this.aktif,
     this.avatar,
-    required this.aktif, // Tambahkan ke konstruktor
+    required this.password,
   });
 
-  // Dari database User
-  factory UserModel.fromUser(User user) {
-    return UserModel(
-      id: user.id.toString(),
-      username: user.username,
-      role: user.role,
-      avatar: user.avatar,
-      aktif: user.aktif, // Ambil dari database
-    );
-  }
+  factory UserModel.fromJson(Map<String, dynamic> json) => UserModel(
+        id: json['id'],
+        username: json['username'],
+        password: json['password'],
+        role: json['role'],
+        aktif: json['aktif'],
+        avatar: json['avatar'],
+      );
 
-  // Dari JSON (kalau ambil dari API)
-  factory UserModel.fromJson(Map<String, dynamic> json) {
-    return UserModel(
-      id: json['id'] ?? '',
-      username: json['username'] ?? '',
-      role: json['role'] ?? '',
-      avatar: json['avatar'],
-      aktif: json['aktif'] ?? true, // Default true jika null
-    );
-  }
-
-  // Untuk kirim ke API atau simpan ke storage
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'username': username,
-      'role': role,
-      'avatar': avatar,
-      'aktif': aktif,
-    };
-  }
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'username': username,
+        'password': password,
+        'role': role,
+        'aktif': aktif,
+        'avatar': avatar,
+      };
 }

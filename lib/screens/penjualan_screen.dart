@@ -4,7 +4,13 @@ import 'package:drift/drift.dart' show OrderingTerm, Value;
 import 'package:drift/drift.dart' as drift;
 import 'package:excel/excel.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
+import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
+import 'package:pms_flutter/models/barang_model.dart';
+import 'package:pms_flutter/models/doctor_model.dart';
+import 'package:pms_flutter/models/pelanggan_model.dart';
+import 'package:pms_flutter/models/penjualantmp_model.dart';
+import 'package:pms_flutter/services/api_service.dart';
 import 'package:printing/printing.dart';
 import '../database/app_database.dart';
 import 'dart:typed_data';
@@ -25,7 +31,7 @@ class PenjualanScreen extends StatefulWidget {
 
 class _PenjualanScreenState extends State<PenjualanScreen> {
   late AppDatabase db;
-  List<PenjualanstmpData> allPenjualantmp = [];
+  List<PenjualanTmpModel> allPenjualantmp = [];
   bool iscekumum = true;
   bool iscekpelanggan = false;
   bool iscekresep = false;
@@ -42,7 +48,7 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
       NumberFormat.currency(locale: 'id', symbol: 'Rp ', decimalDigits: 0);
   DateTime? tgexpired;
   String kodeDoctor = ' ';
-  Barang? selectedBarang;
+  BarangModel? selectedBarang;
   String totalpenjualan = '';
   String kodebarang = '';
   int idstok = 0;
@@ -66,11 +72,13 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
   }
 
   Future<void> _loadPenjualan() async {
-    final data = await db.getAllPenjualansTmp();
+    final data = await ApiService.fetchPenjualanTmp('Admin123');
     tanggaljualCtrl.text = DateTime.now().toIso8601String().split('T').first;
-    generateNoFakturPenjualan(db, _nofakturController);
+    final nofakturbaru = await ApiService.generatenofakturpenjualan();
+
     setState(() {
       allPenjualantmp = data;
+      _nofakturController.text = nofakturbaru;
     });
     updateTotalSeluruh();
   }
@@ -113,8 +121,6 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
     totalharga = (hargajual * jumlahjual);
     totalhargastlhdiskon = (jualdiscon * jumlahjual);
     totaldiskon = totalharga - totalhargastlhdiskon;
-    final tanggalexpired = tgexpired;
-    final id = idstok;
     final sisa = sisaStok;
 
     if (namabarang != '') {
@@ -135,40 +141,65 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
         );
         return; // ❌ Jangan lanjut insert
       }
-      await db.insertPenjualanTmp(PenjualanstmpCompanion(
-        kodeBarang: Value(kodebarang),
-        namaBarang: Value(_barangController.text),
-        idStok: Value(id),
-        expired:
-            Value(tanggalexpired ?? DateTime.now()), // fallback jika kosong
-        kelompok: Value(kelompok),
-        satuan: Value(satuan),
-        hargaBeli: Value(hargabeli),
-        hargaJual: Value(hargajual),
-        jualDiscon: Value(jualdiscon),
-        jumlahJual: Value(jumlahjual),
-        totalHargaSebelumDisc: Value(totalharga),
-        totalHargaSetelahDisc: Value(totalhargastlhdiskon),
-        totalDisc: Value(totaldiskon),
-      ));
+      final dat = {
+        'username': 'Admin123', // jgn lupa
+        'kodeBarang': kodebarang,
+        'namaBarang': _barangController.text,
+        'kelompok': kelompok,
+        'satuan': satuan,
+        'hargaBeli': hargabeli,
+        'hargaJual': hargajual,
+        'jualDiscon': jualdiscon,
+        'jumlahJual': jumlahjual,
+        'totalHargaSebelumDisc': totalharga,
+        'totalHargaSetelahDisc': totalhargastlhdiskon,
+        'totalDisc': totaldiskon,
+        'status': 'menunggu',
+      };
+      late http.Response response;
+      response = await ApiService.postPenjualanTmp(dat);
+      if (!mounted) return; // <-- ini cek awal, sebelum lanjut
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Barang berhasil masuk ke penjualan')),
+        );
+        if (Navigator.canPop(context)) {
+          Navigator.pop(context);
+        }
+        _barangController.clear();
+        _discController.clear();
+        tgexpired = null;
+        _jumlahbarangController.clear();
+        _expiredController.clear;
+        _loadPenjualan();
+      } else if (response.statusCode == 404) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(response.body)),
+          );
+        }
+      } else {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content:
+                    Text('Gagal menyimpan data. Code: ${response.statusCode}')),
+          );
+        }
+      }
     }
-
-    _barangController.clear();
-    _discController.clear();
-    tgexpired = null;
-    _jumlahbarangController.clear();
-    _expiredController.clear;
-    _loadPenjualan();
   }
 
   Future<void> updateTotalSeluruh() async {
-    final total = await db.getTotalHargaSetelahDiscPenjualanTmp();
+    final total = await ApiService.getTotalHargaPenjualanTmp('Admin123');
     totalpenjualan = total == 0 ? '' : '${total.toString()}';
+    setState(() {});
   }
 
   Future<void> prosesbatal() async {
     // Bersihkan tabel pembelianstmp
-    await db.delete(db.penjualanstmp).go();
+    late http.Response respon;
+    respon = await ApiService.deletePenjualanTmpUser('Admin123');
 
     // Reset form input
     _loadPenjualan();
@@ -178,7 +209,7 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
     _pelangganController.clear();
   }
 
-  void _deletepenjualantmp(int id) async {
+  void _deletepenjualantmp(String id) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
@@ -196,12 +227,22 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
     );
 
     if (confirm == true) {
-      await db.deletePenjualanTmp(id);
-      await _loadPenjualan(); // <-- refresh data di layar
+      final response = await ApiService.deletePenjualanTmp(id);
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        await _loadPenjualan(); // <-- refresh data di layar
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Barang di Penjualan ini berhasil dihapus')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Gagal menghapus')),
+        );
+      }
     }
   }
 
-  Future<void> _showForm({PenjualanstmpData? penjualanstmp}) async {
+  Future<void> _showForm({PenjualanTmpModel? penjualanstmp}) async {
     final formKey = GlobalKey<FormState>();
     final kodebarangCtrl =
         TextEditingController(text: penjualanstmp?.kodeBarang ?? '');
@@ -212,8 +253,8 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
         text: penjualanstmp?.jualDiscon?.toString() ?? '');
     final jumlahCtrl =
         TextEditingController(text: penjualanstmp?.jumlahJual.toString() ?? '');
-
-    Barang? pilihBarang = await db.getBarangByKode(kodebarangCtrl.text);
+    BarangModel? pilihBarang =
+        await ApiService.fetchBarangByKodefodiscon(kodebarangCtrl.text);
     int idstokupdate = 0;
     int sisaStokupdate = 0;
 
@@ -316,7 +357,8 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
             onPressed: () async {
               if (formKey.currentState!.validate()) {
                 if (penjualanstmp != null) {
-                  int jumlah = pilihBarang?.stokAktual ?? 0;
+                  int sisaStokupdate = pilihBarang?.stokAktual ?? 0;
+                  int jumlah = int.tryParse(jumlahCtrl.text) ?? 0;
                   if (jumlah != null &&
                       sisaStokupdate != null &&
                       jumlah! > sisaStokupdate!) {
@@ -336,17 +378,41 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
                     );
                     return; // ❌ Jangan lanjut insert
                   }
-                  await db.updatePenjualanTmp(
-                    penjualanstmp.copyWith(
-                        kodeBarang: kodebarangCtrl.text,
-                        namaBarang: namabarangCtrl.text,
-                        idStok: Value(idstokupdate),
-                        jualDiscon: Value(int.tryParse(jualdiscCtrl.text)),
-                        jumlahJual: Value(int.tryParse(jumlahCtrl.text))),
-                  );
+                  int jumlahbeli = int.tryParse(jumlahCtrl.text) ?? 0;
+                  int totalhar = penjualanstmp.hargaJual * jumlahbeli;
+                  int jualdis = int.tryParse(jualdiscCtrl.text) ??
+                      penjualanstmp.hargaJual;
+                  int totalstlhdisc = jualdis * jumlahbeli;
+                  int totaldis = totalhar - totalstlhdisc;
+                  final dat = {
+                    'id': penjualanstmp.id,
+                    'username': 'Admin123',
+                    'kodeBarang': kodebarangCtrl.text,
+                    'namaBarang': namabarangCtrl.text,
+                    'kelompok': penjualanstmp.kelompok,
+                    'satuan': penjualanstmp.satuan,
+                    'hargaBeli': penjualanstmp.hargaBeli,
+                    'hargaJual': penjualanstmp.hargaJual,
+                    'jualDiscon': int.tryParse(jualdiscCtrl.text),
+                    'jumlahJual': int.tryParse(jumlahCtrl.text),
+                    'totalHargaSebelumDisc': totalhar,
+                    'totalHargaSetelahDisc': totalstlhdisc,
+                    'totalDisc': totaldis,
+                    'status': 'menunggu',
+                  };
+                  late http.Response update;
+                  update = await ApiService.updatePenjualanTmp(
+                      penjualanstmp.id.toString(), dat);
+
+                  if (update.statusCode == 200 || update.statusCode == 201) {
+                    if (context.mounted) Navigator.pop(context);
+                    await _loadPenjualan(); // refresh data
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Gagal menyimpan data')),
+                    );
+                  }
                 }
-                if (context.mounted) Navigator.pop(context);
-                await _loadPenjualan();
               }
             },
             child: const Text('Simpan'),
@@ -373,76 +439,71 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
       );
       return;
     }
+    final data = {
+      'noFaktur': nofaktur,
+      'kodePelanggan': kdpelanggan,
+      'namaPelanggan': namapelanggan,
+      'kodeDoctor': kddoctor,
+      'namaDoctor': namadoctor,
+      'tanggalPenjualan': tanggaljual!.toIso8601String(),
+    };
 
-    final items = await db.getAllPenjualansTmp();
+    try {
+      final bolehLanjut =
+          await ApiService.cekNoFakturPenjualanBelumAda(nofaktur);
 
-    if (items.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Tidak ada data yang akan diproses')),
-      );
-      return;
-    }
+      if (!bolehLanjut) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('No Faktur sudah digunakan')),
+          );
+        }
+        return;
+      }
+      late http.Response response;
+      response = await ApiService.pindahPenjualan(data, 'Admin123');
 
-    // Gunakan batch untuk insert semua data ke tabel pembelians
-    await db.batch((batch) {
-      batch.insertAll(
-        db.penjualans,
-        items
-            .map((item) => PenjualansCompanion(
-                noFaktur: Value(nofaktur),
-                kodePelanggan: Value(kdpelanggan),
-                namaPelanggan: Value(namapelanggan),
-                kodeDoctor: Value(kddoctor),
-                namaDoctor: Value(namadoctor),
-                tanggalPenjualan: Value(tanggalpenjualan),
-                kodeBarang: Value(item.kodeBarang),
-                namaBarang: Value(item.namaBarang),
-                expired: Value(item.expired!),
-                kelompok: Value(item.kelompok),
-                satuan: Value(item.satuan),
-                hargaBeli: Value(item.hargaBeli),
-                hargaJual: Value(item.hargaJual),
-                jualDiscon: Value(item.jualDiscon),
-                jumlahJual: Value(item.jumlahJual),
-                totalHargaSebelumDisc: Value(item.totalHargaSebelumDisc),
-                totalHargaSetelahDisc: Value(item.totalHargaSetelahDisc),
-                totalDisc: Value(item.totalDisc)))
-            .toList(),
-      );
-      // Update stok di tabel barangs
-      for (final item in items) {
-        batch.customStatement(
-          '''
-        UPDATE barangs
-        SET stok_aktual = stok_aktual - ?
-        WHERE kode_barang = ?
-        ''',
-          [
-            item.jumlahJual ?? 0,
-            item.kodeBarang,
-          ],
+      if (!mounted) return; // <-- ini cek awal, sebelum lanjut
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Data pembelian berhasil disimpan')),
+        );
+        if (Navigator.canPop(context)) {
+          Navigator.pop(context);
+        }
+
+        // Reset form input
+        _pelangganController.clear();
+        kodepelanggan = ' ';
+        _pelangganController.clear();
+        _doctorController.clear();
+        kodeDoctor = ' ';
+        tanggaljual = DateTime.now();
+
+        // Refresh tampilan
+        _loadPenjualan();
+      } else if (response.statusCode == 404) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(response.body)),
+          );
+        }
+      } else {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content:
+                    Text('Gagal menyimpan data. Code: ${response.statusCode}')),
+          );
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
         );
       }
-    });
-
-    // Bersihkan tabel pembelianstmp
-    await db.delete(db.penjualanstmp).go();
-
-    // Reset form input
-    _pelangganController.clear();
-    kodepelanggan = ' ';
-    _pelangganController.clear();
-    _doctorController.clear();
-    kodeDoctor = ' ';
-    tanggaljual = DateTime.now();
-
-    // Refresh tampilan
-    _loadPenjualan();
-
-    // Notifikasi sukses
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Data penjualan berhasil diproses.')),
-    );
+    }
   }
 
   void _handleSimpanPenjualan() async {
@@ -672,7 +733,7 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
                     width: 15,
                   ),
                   ElevatedButton.icon(
-                    onPressed: _handleSimpanPenjualan,
+                    onPressed: prosesSimpan,
                     icon: const Icon(Icons.save),
                     label: const Text('Simpan/Bayar'),
                   ),
@@ -766,7 +827,7 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
                   SizedBox(
                     height: 35,
                     width: 200,
-                    child: TypeAheadField<Pelanggan>(
+                    child: TypeAheadField<PelangganModel>(
                       textFieldConfiguration: TextFieldConfiguration(
                           decoration: InputDecoration(
                             contentPadding: EdgeInsets.all(5),
@@ -776,18 +837,26 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
                           controller: _pelangganController,
                           enabled: iscekpelanggan),
                       suggestionsCallback: (pattern) async {
-                        return await db.searchPelanggan(
-                            pattern); // db adalah instance AppDatabase
+                        try {
+                          final response =
+                              await ApiService.searchPelanggan(pattern);
+                          return response
+                              .map<PelangganModel>(
+                                  (json) => PelangganModel.fromJson(json))
+                              .toList();
+                        } catch (e) {
+                          return [];
+                        }
                       },
-                      itemBuilder: (context, Pelanggan suggestion) {
+                      itemBuilder: (context, PelangganModel suggestion) {
                         return ListTile(
                           title: Text(suggestion.namaPelanggan),
-                          subtitle: Text('Kode: ${suggestion.kodPelanggan}'),
+                          subtitle: Text('Kode: ${suggestion.kodePelanggan}'),
                         );
                       },
-                      onSuggestionSelected: (Pelanggan suggestion) {
+                      onSuggestionSelected: (PelangganModel suggestion) {
                         _pelangganController.text = suggestion.namaPelanggan;
-                        kodepelanggan = suggestion.kodPelanggan;
+                        kodepelanggan = suggestion.kodePelanggan;
                       },
                     ),
                   ),
@@ -808,31 +877,8 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
 
                       if (iscekresep && kodepelanggan.isNotEmpty) {
                         // Ambil resep dari DB
-                        final resepList =
-                            await db.getResepByKodePelanggan(kodepelanggan);
-
-                        // Masukkan ke Penjualanstmp
-                        for (final resep in resepList) {
-                          await db.insertPenjualanTmp(PenjualanstmpCompanion(
-                            kodeBarang: Value(resep.kodeBarang),
-                            namaBarang: Value(resep
-                                .namaBarang), // Gunakan expired default sementara
-                            kelompok: Value(resep.kelompok),
-                            satuan: Value(resep.satuan),
-                            hargaBeli: Value(resep.hargaBeli),
-                            hargaJual: Value(resep.hargaJual),
-                            jualDiscon: Value(resep.jualDiscon),
-                            jumlahJual: Value(resep.jumlahJual),
-                            totalHargaSebelumDisc:
-                                Value(resep.totalHargaSebelumDisc),
-                            totalHargaSetelahDisc:
-                                Value(resep.totalHargaSetelahDisc),
-                            totalDisc: Value(resep.totalDisc),
-                          ));
-                          _doctorController.text = resep.namaDoctor;
-                          kodeDoctor = resep.kodeDoctor!;
-                        }
-                        // Trigger UI refresh jika perlu
+                        await ApiService.insertResepToPenjualanTmp(
+                            kodePelanggan: kodepelanggan, username: 'Admin123');
                         _loadPenjualan(); // Refresh data
                         setState(() {});
                       }
@@ -843,7 +889,7 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
                 SizedBox(
                   height: 35,
                   width: 200,
-                  child: TypeAheadField<Doctor>(
+                  child: TypeAheadField<DoctorModel>(
                     textFieldConfiguration: TextFieldConfiguration(
                         decoration: InputDecoration(
                           contentPadding: EdgeInsets.all(5),
@@ -859,16 +905,23 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
                           }
                         }),
                     suggestionsCallback: (pattern) async {
-                      return await db.searcDoctor(
-                          pattern); // db adalah instance AppDatabase
+                      try {
+                        final response = await ApiService.searchDoctor(pattern);
+                        return response
+                            .map<DoctorModel>(
+                                (json) => DoctorModel.fromJson(json))
+                            .toList();
+                      } catch (e) {
+                        return [];
+                      }
                     },
-                    itemBuilder: (context, Doctor suggestion) {
+                    itemBuilder: (context, DoctorModel suggestion) {
                       return ListTile(
                         title: Text(suggestion.namaDoctor),
                         subtitle: Text('Kode: ${suggestion.kodeDoctor}'),
                       );
                     },
-                    onSuggestionSelected: (Doctor suggestion) {
+                    onSuggestionSelected: (DoctorModel suggestion) {
                       _doctorController.text = suggestion.namaDoctor;
                       kodeDoctor = suggestion.kodeDoctor;
                     },
@@ -883,7 +936,7 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
                 SizedBox(
                   height: 35,
                   width: 250,
-                  child: TypeAheadField<Barang>(
+                  child: TypeAheadField<BarangModel>(
                     textFieldConfiguration: TextFieldConfiguration(
                       decoration: InputDecoration(
                         contentPadding: EdgeInsets.all(5),
@@ -893,25 +946,34 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
                       controller: _barangController,
                     ),
                     suggestionsCallback: (pattern) async {
-                      return await db.searchBarang(
-                          pattern); // db adalah instance AppDatabase
+                      try {
+                        final response = await ApiService.searchBarang(pattern);
+                        return response
+                            .map<BarangModel>(
+                                (json) => BarangModel.fromJson(json))
+                            .toList();
+                      } catch (e) {
+                        return [];
+                      }
                     },
-                    itemBuilder: (context, Barang suggestion) {
+                    itemBuilder: (context, BarangModel suggestion) {
                       return ListTile(
-                        title: Text(suggestion.namaBarang),
+                        title: Text(suggestion.namaBarang!),
                         subtitle: Text(
                             'Kode: ${suggestion.kodeBarang}|| Rak : ${suggestion.noRak}'),
                       );
                     },
-                    onSuggestionSelected: (Barang suggestion) async {
-                      _barangController.text = suggestion.namaBarang;
+                    onSuggestionSelected: (BarangModel suggestion) async {
+                      _barangController.text = suggestion.namaBarang!;
                       kodebarang = suggestion.kodeBarang;
-                      kelompok = suggestion.kelompok;
-                      satuan = suggestion.satuan;
+                      kelompok = suggestion.kelompok!;
+                      satuan = suggestion.satuan!;
                       sisaStok = suggestion.stokAktual;
                       hargabeli = suggestion.hargaBeli;
                       hargajual = suggestion.hargaJual;
-                      selectedBarang = await db.getBarangByKode(kodebarang);
+                      selectedBarang =
+                          await ApiService.fetchBarangByKodefodiscon(
+                              kodebarang);
                       // Ambil expired paling tua
 
                       setState(() {});
@@ -1058,7 +1120,8 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
                                 tooltip: 'Hapus Data',
                                 icon:
                                     const Icon(Icons.delete, color: Colors.red),
-                                onPressed: () => _deletepenjualantmp(p.id),
+                                onPressed: () =>
+                                    _deletepenjualantmp(p.id.toString()),
                               ),
                             ],
                           )),

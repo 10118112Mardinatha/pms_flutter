@@ -10,18 +10,20 @@ import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:pms_flutter/models/barang_model.dart';
 import 'package:pms_flutter/models/pelanggan_model.dart';
+import 'package:pms_flutter/models/rak_model.dart';
+import 'package:pms_flutter/models/user_model.dart';
 import 'package:pms_flutter/services/api_service.dart';
 import 'package:printing/printing.dart';
 import 'package:collection/collection.dart';
 import '../database/app_database.dart';
 import 'dart:typed_data';
 import 'package:pdf/widgets.dart' as pw;
+
 import 'package:file_picker/file_picker.dart';
 
 class BarangScreen extends StatefulWidget {
-  final AppDatabase database;
-
-  const BarangScreen({super.key, required this.database});
+  final UserModel user;
+  const BarangScreen({super.key, required this.user});
 
   @override
   State<BarangScreen> createState() => _BarangScreenState();
@@ -31,6 +33,7 @@ class _BarangScreenState extends State<BarangScreen> {
   late AppDatabase db;
   List<BarangModel> barangs = [];
   List<BarangModel> filteredBarangs = [];
+  List<UserModel> users = [];
   String searchField = 'Nama Barang';
   String searchText = '';
   final TextEditingController _searchController = TextEditingController();
@@ -40,7 +43,7 @@ class _BarangScreenState extends State<BarangScreen> {
     'Kode Barang',
     'Nama Barang',
     'Kelompok',
-    'Satuan',
+    'Rak',
   ];
   final formatter =
       NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
@@ -48,7 +51,7 @@ class _BarangScreenState extends State<BarangScreen> {
   @override
   void initState() {
     super.initState();
-    db = widget.database;
+    widget.user.id;
     _loadBarangs();
   }
 
@@ -90,7 +93,7 @@ class _BarangScreenState extends State<BarangScreen> {
           'Kode Baramg' => s.kodeBarang,
           'Nama Barang' => s.namaBarang!,
           'Kelompok' => s.kelompok ?? '',
-          'Satuan' => s.satuan ?? '',
+          'Rak' => s.noRak ?? '',
           _ => '',
         };
         return value.toLowerCase().contains(searchText.toLowerCase());
@@ -100,7 +103,8 @@ class _BarangScreenState extends State<BarangScreen> {
 
   void _showForm({BarangModel? barang}) {
     final formKey = GlobalKey<FormState>();
-    final kodeCtrl = TextEditingController(text: barang?.kodeBarang ?? '');
+    final kodeCtrl =
+        TextEditingController(text: barang?.kodeBarang ?? _generateBarang());
     final namaBrgCtrl = TextEditingController(text: barang?.namaBarang ?? '');
     final noRakCtrl = TextEditingController(text: barang?.noRak ?? '');
     final kelompoktCtrl = TextEditingController(text: barang?.kelompok ?? '');
@@ -155,7 +159,7 @@ class _BarangScreenState extends State<BarangScreen> {
                         ? 'Wajib diisi tidak boleh kosong'
                         : null,
                   ),
-                  TypeAheadField<Rak>(
+                  TypeAheadField<RakModel>(
                     textFieldConfiguration: TextFieldConfiguration(
                       decoration: InputDecoration(
                         contentPadding: EdgeInsets.all(5),
@@ -167,19 +171,19 @@ class _BarangScreenState extends State<BarangScreen> {
                       try {
                         final response = await ApiService.searchRak(pattern);
                         return response
-                            .map<Rak>((json) => Rak.fromJson(json))
+                            .map<RakModel>((json) => RakModel.fromJson(json))
                             .toList();
                       } catch (e) {
                         return [];
                       }
                     },
-                    itemBuilder: (context, Rak suggestion) {
+                    itemBuilder: (context, RakModel suggestion) {
                       return ListTile(
                         title: Text(suggestion.kodeRak),
                         subtitle: Text('Nama: ${suggestion.namaRak}'),
                       );
                     },
-                    onSuggestionSelected: (Rak suggestion) {
+                    onSuggestionSelected: (RakModel suggestion) {
                       noRakCtrl.text = suggestion.kodeRak;
                     },
                   ),
@@ -436,14 +440,23 @@ class _BarangScreenState extends State<BarangScreen> {
 
                     response = await ApiService.updateBarang(
                         existing.kodeBarang, data);
+                    // Log activity untuk update barang
+                    await ApiService.logActivity(
+                        widget.user.id, 'Update Barang ${existing.kodeBarang}');
                   } else {
                     // Barang baru - kirim ke API (POST)
                     response = await ApiService.postBarang(data);
+                    // Log activity untuk tambah barang baru
+                    await ApiService.logActivity(
+                        widget.user.id, 'Tambah Barang $kode');
                   }
                 } else {
-                  // Edit barang
+                  // Edit barang yang sudah ada
                   response =
                       await ApiService.updateBarang(barang.kodeBarang, data);
+                  // Log activity untuk edit barang
+                  await ApiService.logActivity(
+                      widget.user.id, 'Edit Barang ${barang.kodeBarang}');
                 }
 
                 if (response.statusCode == 200 || response.statusCode == 201) {
@@ -484,6 +497,7 @@ class _BarangScreenState extends State<BarangScreen> {
       final response = await ApiService.deleteBarang(kode); // <--- ganti ini
 
       if (response.statusCode == 200) {
+        await ApiService.logActivity(widget.user.id, 'Delete Barang');
         await _loadBarangs(); // refresh data dari server
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Supplier berhasil dihapus')),
@@ -494,6 +508,20 @@ class _BarangScreenState extends State<BarangScreen> {
         );
       }
     }
+  }
+
+  String _generateBarang() {
+    final prefix = 'BRG';
+    final existingIds = barangs.map((d) {
+      final match = RegExp(r'(\d+)$').firstMatch(d.kodeBarang ?? '');
+      return match != null ? int.tryParse(match.group(1)!) ?? 0 : 0;
+    }).toList();
+
+    final maxId = existingIds.isNotEmpty
+        ? existingIds.reduce((a, b) => a > b ? a : b)
+        : 0;
+    final nextId = maxId + 1;
+    return '$prefix${nextId.toString().padLeft(3, '0')}';
   }
 
   Future<void> _exportToExcel() async {

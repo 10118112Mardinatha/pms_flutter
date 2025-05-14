@@ -91,11 +91,24 @@ class _PelangganScreenState extends State<PelangganScreen> {
     });
   }
 
-//
+  String _generateKodePelanggan() {
+    final prefix = 'PLGN';
+    final existingIds = allPelanggan.map((d) {
+      final match = RegExp(r'(\d+)$').firstMatch(d.kodePelanggan ?? '');
+      return match != null ? int.tryParse(match.group(1)!) ?? 0 : 0;
+    }).toList();
+
+    final maxId = existingIds.isNotEmpty
+        ? existingIds.reduce((a, b) => a > b ? a : b)
+        : 0;
+    final nextId = maxId + 1;
+    return '$prefix${nextId.toString().padLeft(3, '0')}';
+  }
+
   void _showForm({PelangganModel? Pelanggan}) {
     final formKey = GlobalKey<FormState>();
-    final kodeCtrl =
-        TextEditingController(text: Pelanggan?.kodePelanggan ?? '');
+    final kodeCtrl = TextEditingController(
+        text: Pelanggan?.kodePelanggan ?? _generateKodePelanggan());
     final namaCtrl =
         TextEditingController(text: Pelanggan?.namaPelanggan ?? '');
     final usiaCtrl =

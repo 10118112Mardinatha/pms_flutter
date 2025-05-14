@@ -5,10 +5,15 @@ import 'package:drift/drift.dart' show OrderingMode, OrderingTerm, Value;
 import 'package:drift/drift.dart' as drift;
 import 'package:excel/excel.dart';
 import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
+import 'package:pms_flutter/models/supplier_model.dart';
+import 'package:pms_flutter/services/api_service.dart';
 import '../database/app_database.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
+import 'package:pms_flutter/models/barang_model.dart';
+import 'package:pms_flutter/models/pembeliantmp_model.dart';
 
 class PembelianScreen extends StatefulWidget {
   final AppDatabase database;
@@ -21,8 +26,8 @@ class PembelianScreen extends StatefulWidget {
 
 class _PembelianScreenState extends State<PembelianScreen> {
   late AppDatabase db;
-  List<PembelianstmpData> allPembeliantmp = [];
-  List<Pembelians> filteredPembelians = [];
+  List<PembelianTmpModel> allPembeliantmp = [];
+  bool _isSelectingSupplier = false;
   String searchField = 'Nama';
   String searchText = '';
   Pembelian? data;
@@ -50,58 +55,26 @@ class _PembelianScreenState extends State<PembelianScreen> {
   }
 
   Future<void> _loadPembelians() async {
-    final data = await db.getAllPembeliansTmp();
+    final data = await ApiService.fetchPembelianTmp('Admin123');
     tanggalBeliCtrl.text = DateTime.now().toIso8601String().split('T').first;
+
     setState(() {
       allPembeliantmp = data;
     });
     updateTotalSeluruh();
   }
 
-  Future<String> generateKodeBarang() async {
-    final last = await (db.select(db.barangs)
-          ..orderBy([
-            (tbl) => OrderingTerm(expression: tbl.id, mode: OrderingMode.desc)
-          ])
-          ..limit(1))
-        .getSingleOrNull();
-
-    int nextNumber = 1;
-    if (last != null) {
-      final match = RegExp(r'BRG(\d+)').firstMatch(last.kodeBarang);
-      if (match != null) {
-        nextNumber = int.parse(match.group(1)!) + 1;
-      }
-    }
-
-    return 'BRG${nextNumber.toString().padLeft(4, '0')}';
-  }
-
-  Future<void> generateNoFakturPembelian(
-      AppDatabase db, TextEditingController noFakturController) async {
-    int counter = 1;
-    String newNoFaktur;
-
-    while (true) {
-      newNoFaktur = 'PB${counter.toString().padLeft(5, '0')}';
-
-      final query = db.select(db.pembelians)
-        ..where((tbl) => tbl.noFaktur.equals(newNoFaktur));
-
-      final results = await query.get();
-
-      if (results.isEmpty) {
-        break; // NoFaktur unik
-      }
-
-      counter++;
-    }
-
-    noFakturController.text = newNoFaktur;
-  }
-
   Future<void> setNofaktur() async {
-    generateNoFakturPembelian(db, _nofaktur);
+    try {
+      final kode = await ApiService.generatenofakturpembelian();
+      setState(() {
+        _nofaktur.text = kode;
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal generate kode: $e')),
+      );
+    }
   }
 
   Future<void> prosesPembelian() async {
@@ -110,142 +83,80 @@ class _PembelianScreenState extends State<PembelianScreen> {
     final namaSupplier = _SupplierController.text;
     final tanggal = tanggalBeli;
 
-    if (!_supplierValid ||
-        _kodeSupplierController.text.isEmpty ||
-        _nofaktur.text.isEmpty ||
-        tanggal == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Pilih supplier dari daftar dan isi semua data')),
-      );
-      return;
-    }
-    // Validasi supplier dari database
-    final supplier = await db.getSupplierByNama(namaSupplier);
-    if (supplier == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text(
-                'Kode supplier tidak valid. Pilih dari daftar yang tersedia.')),
-      );
-      return;
-    }
-    final items = await db.getAllPembeliansTmp();
-
-    if (items.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Tidak ada data yang akan diproses')),
-      );
+    if (kodeSupplier.isEmpty || noFaktur.isEmpty || tanggal == null) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Pilih supplier dari daftar dan isi semua data')),
+        );
+      }
       return;
     }
 
-    await db.transaction(() async {
-      for (final item in items) {
-        // Cek apakah kodeBarang kosong
-        String kodeBarangFinal = item.kodeBarang.trim();
-        bool isNewBarang = false;
+    final data = {
+      'noFaktur': noFaktur,
+      'kodeSupplier': kodeSupplier,
+      'namaSupplier': namaSupplier,
+      'tanggalBeli': tanggal.toIso8601String(),
+    };
 
-        if (kodeBarangFinal.isEmpty) {
-          kodeBarangFinal = await generateKodeBarang();
-          isNewBarang = true;
+    try {
+      final bolehLanjut = await ApiService.cekNoFakturBelumAda(noFaktur);
 
-          // Masukkan barang baru ke tabel barangs
-          await db.into(db.barangs).insert(
-                BarangsCompanion(
-                  kodeBarang: Value(kodeBarangFinal),
-                  namaBarang: Value(item.namaBarang),
-                  kelompok: Value(item.kelompok),
-                  satuan: Value(item.satuan),
-                  noRak: const Value(''), // Set default jika tidak ada input
-                  stokAktual: Value(item.jumlahBeli ?? 0),
-                  hargaBeli: Value(item.hargaBeli),
-                  hargaJual: Value(item.hargaJual),
-                  jualDisc1: Value(item.jualDisc1),
-                  jualDisc2: Value(item.jualDisc2),
-                  jualDisc3: Value(item.jualDisc3),
-                  jualDisc4: Value(item.jualDisc4),
-                ),
-              );
-        } else {
-          // Jika barang sudah ada, update stok
-          await db.customStatement(
-            '''
-        UPDATE barangs
-        SET 
-          stok_aktual = stok_aktual + ?,
-          harga_beli = ?,
-          harga_jual = ?,
-          jual_disc1 = ?,
-          jual_disc2 = ?,
-          jual_disc3 = ?,
-          jual_disc4 = ?
-        WHERE kode_barang = ?
-        ''',
-            [
-              item.jumlahBeli ?? 0,
-              item.hargaBeli,
-              item.hargaJual,
-              item.jualDisc1,
-              item.jualDisc2,
-              item.jualDisc3,
-              item.jualDisc4,
-              kodeBarangFinal,
-            ],
+      if (!bolehLanjut) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('No Faktur sudah digunakan')),
           );
         }
-
-        // Insert ke pembelians
-        await db.into(db.pembelians).insert(
-              PembeliansCompanion(
-                noFaktur: Value(noFaktur),
-                kodeSupplier: Value(kodeSupplier),
-                namaSuppliers: Value(namaSupplier),
-                kodeBarang: Value(kodeBarangFinal),
-                namaBarang: Value(item.namaBarang),
-                tanggalBeli: Value(tanggal),
-                expired: item.expired != null
-                    ? Value(item.expired!)
-                    : const Value.absent(),
-                kelompok: Value(item.kelompok),
-                satuan: Value(item.satuan),
-                hargaBeli: Value(item.hargaBeli),
-                hargaJual: Value(item.hargaJual),
-                jualDisc1: Value(item.jualDisc1),
-                jualDisc2: Value(item.jualDisc2),
-                jualDisc3: Value(item.jualDisc3),
-                jualDisc4: Value(item.jualDisc4),
-                ppn: Value(item.ppn),
-                jumlahBeli: Value(item.jumlahBeli),
-                totalHarga: Value(item.totalHarga),
-              ),
-            );
+        return;
       }
-    });
+      late http.Response response;
+      response = await ApiService.pindahPembelian(data, 'Admin123');
 
-    // Bersihkan tabel pembelianstmp
-    await db.delete(db.pembelianstmp).go();
+      if (!mounted) return; // <-- ini cek awal, sebelum lanjut
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Data pembelian berhasil disimpan')),
+        );
+        if (Navigator.canPop(context)) {
+          Navigator.pop(context);
+        }
 
-    // Reset form input
-    _nofaktur.clear();
-    _kodeSupplierController.clear();
-    _SupplierController.clear();
-    tanggalBeli = DateTime.now();
-
-    totalSeluruhCtrl.clear();
-
-    // Refresh tampilan
-    _loadPembelians();
-
-    // Notifikasi sukses
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Data pembelian berhasil diproses.')),
-    );
+        await _loadPembelians();
+        _nofaktur.clear();
+        _kodeSupplierController.clear();
+        _SupplierController.clear();
+        tanggalBeli = DateTime.now();
+        totalSeluruhCtrl.clear();
+      } else if (response.statusCode == 404) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(response.body)),
+          );
+        }
+      } else {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content:
+                    Text('Gagal menyimpan data. Code: ${response.statusCode}')),
+          );
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    }
   }
 
   Future<void> prosesbatal() async {
     // Bersihkan tabel pembelianstmp
-    await db.delete(db.pembelianstmp).go();
-
+    late http.Response respon;
+    respon = await ApiService.deletePembelianTmpUser('Admin123');
     // Reset form input
     _nofaktur.clear();
     _kodeSupplierController.clear();
@@ -325,14 +236,12 @@ class _PembelianScreenState extends State<PembelianScreen> {
 
 //
   Future<void> showFormPembelianstmp({
-    PembelianstmpData? data,
+    PembelianTmpModel? data,
   }) async {
     final formKey = GlobalKey<FormState>();
+    bool _isSelectingSuggestion = false;
 
     final kodeBarangCtrl = TextEditingController(text: data?.kodeBarang ?? '');
-    final namaBarangCtrl = TextEditingController(text: data?.namaBarang ?? '');
-    final expiredCtrl = TextEditingController(
-        text: data?.expired?.toIso8601String().split('T').first ?? '');
     final kelompokCtrl = TextEditingController(text: data?.kelompok ?? '');
     final satuanCtrl = TextEditingController(text: data?.satuan ?? '');
     final hargaBeliCtrl =
@@ -347,15 +256,14 @@ class _PembelianScreenState extends State<PembelianScreen> {
         TextEditingController(text: data?.jualDisc3?.toString() ?? '');
     final disc4Ctrl =
         TextEditingController(text: data?.jualDisc4?.toString() ?? '');
-    final ppnCtrl = TextEditingController(text: data?.ppn?.toString() ?? '');
     final jumlahBeliCtrl =
         TextEditingController(text: data?.jumlahBeli?.toString() ?? '');
     final totalHargaCtrl =
         TextEditingController(text: data?.totalHarga?.toString() ?? '');
-    final TextEditingController _barangController = TextEditingController();
+    final TextEditingController _barangController =
+        TextEditingController(text: data?.namaBarang ?? '');
     final formatCurrency =
         NumberFormat.currency(locale: 'id', symbol: 'Rp ', decimalDigits: 0);
-    var expired = data?.expired ?? null;
     Barang? selectedBarang;
 
     void hitungTotalHarga() {
@@ -386,37 +294,60 @@ class _PembelianScreenState extends State<PembelianScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  TypeAheadField<Barang>(
+                  TypeAheadField<BarangModel>(
                     textFieldConfiguration: TextFieldConfiguration(
                       decoration: InputDecoration(
                         labelText: 'Nama Obat/Jasa',
                       ),
                       controller: _barangController,
+                      onChanged: (value) {
+                        if (!_isSelectingSuggestion) {
+                          // Kosongkan field jika user sedang mengetik (bukan dari suggestion)
+                          kodeBarangCtrl.clear();
+                          satuanCtrl.clear();
+                          kelompokCtrl.clear();
+                          hargaJualCtrl.clear();
+                          hargaBeliCtrl.clear();
+                          disc1Ctrl.clear();
+                          disc2Ctrl.clear();
+                          disc3Ctrl.clear();
+                          disc4Ctrl.clear();
+                        }
+                      },
                     ),
                     suggestionsCallback: (pattern) async {
-                      return await db.searchBarang(
-                          pattern); // db adalah instance AppDatabase
+                      try {
+                        final response = await ApiService.searchBarang(pattern);
+                        return response
+                            .map<BarangModel>(
+                                (json) => BarangModel.fromJson(json))
+                            .toList();
+                      } catch (e) {
+                        return [];
+                      } // db adalah instance AppDatabase
                     },
-                    itemBuilder: (context, Barang suggestion) {
+                    itemBuilder: (context, BarangModel suggestion) {
                       return ListTile(
-                        title: Text(suggestion.namaBarang),
+                        title: Text(suggestion.namaBarang!),
                         subtitle: Text(
                             'Kode: ${suggestion.kodeBarang}|| Rak : ${suggestion.noRak}'),
                       );
                     },
-                    onSuggestionSelected: (Barang suggestion) {
-                      _barangController.text = suggestion.namaBarang;
+                    onSuggestionSelected: (BarangModel suggestion) {
+                      _barangController.text = suggestion.namaBarang!;
                       kodeBarangCtrl.text = suggestion.kodeBarang;
-                      satuanCtrl.text = suggestion.satuan;
-                      kelompokCtrl.text = suggestion.kelompok;
+                      satuanCtrl.text = suggestion.satuan!;
+                      kelompokCtrl.text = suggestion.kelompok!;
                       hargaJualCtrl.text = suggestion.hargaJual.toString();
                       hargaBeliCtrl.text = suggestion.hargaBeli.toString();
                       disc1Ctrl.text = suggestion.jualDisc1.toString();
                       disc2Ctrl.text = suggestion.jualDisc2.toString();
                       disc3Ctrl.text = suggestion.jualDisc3.toString();
                       disc4Ctrl.text = suggestion.jualDisc4.toString();
-                      // kamu bisa simpan juga id barang atau kodeBarang ke variabel lain
-                      selectedBarang = suggestion;
+
+                      Future.delayed(Duration(milliseconds: 100), () {
+                        _isSelectingSuggestion = false;
+                      });
                     },
                   ),
                   Visibility(
@@ -426,31 +357,6 @@ class _PembelianScreenState extends State<PembelianScreen> {
                       readOnly: true,
                       decoration: InputDecoration(labelText: 'Kode Barang'),
                     ),
-                  ),
-                  TextFormField(
-                    controller: expiredCtrl,
-                    readOnly: true,
-                    decoration: InputDecoration(
-                      labelText: 'Tanggal Expired',
-                      suffixIcon: Icon(Icons.calendar_today),
-                    ),
-                    onTap: () async {
-                      FocusScope.of(context)
-                          .requestFocus(FocusNode()); // hilangkan keyboard
-                      final picked = await showDatePicker(
-                        context: context,
-                        initialDate: tanggalBeli ?? DateTime.now(),
-                        firstDate: DateTime(2020),
-                        lastDate: DateTime(2100),
-                      );
-                      if (picked != null) {
-                        expired = picked;
-                        expiredCtrl.text = picked
-                            .toIso8601String()
-                            .split('T')
-                            .first; // format ke yyyy-MM-dd
-                      }
-                    },
                   ),
                   Row(children: [
                     SizedBox(
@@ -725,10 +631,7 @@ class _PembelianScreenState extends State<PembelianScreen> {
             onPressed: () async {
               if (formKey.currentState!.validate()) {
                 if (data == null) {
-                  final existingBarang = await db.getBarangByKodeDanNama(
-                      kodeBarangCtrl.text, _barangController.text);
-
-                  if (existingBarang == null) {
+                  if (kodeBarangCtrl.text == '') {
                     final shouldInsert = await showDialog<bool>(
                       context: context,
                       builder: (context) => AlertDialog(
@@ -749,113 +652,138 @@ class _PembelianScreenState extends State<PembelianScreen> {
                     );
 
                     if (shouldInsert == true) {
-                      // ✅ Generate kode unik yang belum dipakai
-                      String generatedKode;
-                      do {
-                        generatedKode = await db.generateKodeBarang();
-                      } while (await db.getBarangByKode(generatedKode) != null);
-
+                      String kodeBaru = await ApiService.generateKodeBarang();
                       // ✅ Insert ke tabel barangs
-                      await db.insertBarangs(BarangsCompanion(
-                        kodeBarang: Value(generatedKode),
-                        namaBarang: Value(_barangController.text),
-                        kelompok: Value(kelompokCtrl.text),
-                        satuan: Value(satuanCtrl.text),
-                        noRak: Value(''), // atau input manual jika ada
-                        stokAktual: Value(0),
-                        hargaBeli: Value(int.tryParse(hargaBeliCtrl.text
+                      final raw = {
+                        'kodeBarang': kodeBaru,
+                        'namaBarang': _barangController.text,
+                        'noRak': '',
+                        'kelompok': kelompokCtrl.text,
+                        'satuan': satuanCtrl.text,
+                        'stokAktual': 0,
+                        'hargaBeli': int.tryParse(hargaBeliCtrl.text
                                 .replaceAll(RegExp(r'[^0-9]'), '')) ??
-                            0),
-                        hargaJual: Value(int.tryParse(hargaJualCtrl.text
+                            0,
+                        'hargaJual': int.tryParse(hargaJualCtrl.text
                                 .replaceAll(RegExp(r'[^0-9]'), '')) ??
-                            0),
-                        jualDisc1: Value(int.tryParse(
-                            disc1Ctrl.text.replaceAll(RegExp(r'[^0-9]'), ''))),
-                        jualDisc2: Value(int.tryParse(
-                            disc2Ctrl.text.replaceAll(RegExp(r'[^0-9]'), ''))),
-                        jualDisc3: Value(int.tryParse(
-                            disc3Ctrl.text.replaceAll(RegExp(r'[^0-9]'), ''))),
-                        jualDisc4: Value(int.tryParse(
-                            disc4Ctrl.text.replaceAll(RegExp(r'[^0-9]'), ''))),
-                      ));
-
-                      // ✅ Gunakan kode yang digenerate juga untuk pembelianstmp
-                      kodeBarangCtrl.text = generatedKode;
+                            0,
+                        'jualDisc1': int.tryParse(disc1Ctrl.text
+                                .replaceAll(RegExp(r'[^0-9]'), '')) ??
+                            0,
+                        'jualDisc2': int.tryParse(disc2Ctrl.text
+                                .replaceAll(RegExp(r'[^0-9]'), '')) ??
+                            0,
+                        'jualDisc3': int.tryParse(disc3Ctrl.text
+                                .replaceAll(RegExp(r'[^0-9]'), '')) ??
+                            0,
+                        'jualDisc4': int.tryParse(disc4Ctrl.text
+                                .replaceAll(RegExp(r'[^0-9]'), '')) ??
+                            0,
+                      };
+                      late http.Response response;
+                      response = await ApiService.postBarang(raw);
+                      if (response.statusCode == 200 ||
+                          response.statusCode == 201) {
+                        if (context.mounted) Navigator.pop(context);
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Gagal menyimpan data')),
+                        );
+                      }
+                      kodeBarangCtrl.text = kodeBaru;
                     } else {
                       return;
                     }
                   }
-                  //Masuk tabel sementara
-                  await db.insertPembelianTmp(PembelianstmpCompanion(
-                    kodeBarang: Value(kodeBarangCtrl.text),
-                    namaBarang: Value(_barangController.text),
-                    expired: Value(expired),
-                    kelompok: Value(kelompokCtrl.text),
-                    satuan: Value(satuanCtrl.text),
-                    hargaBeli: Value(int.tryParse(hargaBeliCtrl.text
+                  final raw2 = {
+                    'username': 'Admin123',
+                    'kodeBarang': kodeBarangCtrl.text,
+                    'namaBarang': _barangController.text,
+                    'kelompok': kelompokCtrl.text,
+                    'satuan': satuanCtrl.text,
+                    'hargaBeli': int.tryParse(hargaBeliCtrl.text
                             .replaceAll(RegExp(r'[^0-9]'), '')) ??
-                        0),
-                    hargaJual: Value(int.tryParse(hargaJualCtrl.text
+                        0,
+                    'hargaJual': int.tryParse(hargaJualCtrl.text
                             .replaceAll(RegExp(r'[^0-9]'), '')) ??
-                        0),
-                    jualDisc1: Value(int.tryParse(
+                        0,
+                    'jualDisc1': int.tryParse(
                             disc1Ctrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
-                        0),
-                    jualDisc2: Value(int.tryParse(
+                        0,
+                    'jualDisc2': int.tryParse(
                             disc2Ctrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
-                        0),
-                    jualDisc3: Value(int.tryParse(
+                        0,
+                    'jualDisc3': int.tryParse(
                             disc3Ctrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
-                        0),
-                    jualDisc4: Value(int.tryParse(
+                        0,
+                    'jualDisc4': int.tryParse(
                             disc4Ctrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
-                        0),
-                    ppn: Value(int.tryParse(ppnCtrl.text)),
-                    jumlahBeli: Value(int.tryParse(jumlahBeliCtrl.text)),
-                    totalHarga: Value(int.tryParse(totalHargaCtrl.text
+                        0,
+                    'jumlahBeli': int.tryParse(jumlahBeliCtrl.text
                             .replaceAll(RegExp(r'[^0-9]'), '')) ??
-                        0),
-                  ));
+                        0,
+                    'totalHarga': int.tryParse(totalHargaCtrl.text
+                            .replaceAll(RegExp(r'[^0-9]'), '')) ??
+                        0,
+                  };
+                  late http.Response masuk;
+                  masuk = await ApiService.postPembelianTmp(raw2);
+                  if (masuk.statusCode == 200 || masuk.statusCode == 201) {
+                    if (context.mounted) Navigator.pop(context);
+                    await _loadPembelians(); // refresh data
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Gagal menyimpan data')),
+                    );
+                  }
                 } else {
-                  await db.updatePembelianTmp(
-                    data.copyWith(
-                      kodeBarang: kodeBarangCtrl.text,
-                      namaBarang: namaBarangCtrl.text,
-                      expired: Value(expired),
-                      kelompok: kelompokCtrl.text,
-                      satuan: satuanCtrl.text,
-                      hargaBeli: int.tryParse(hargaBeliCtrl.text
-                              .replaceAll(RegExp(r'[^0-9]'), '')) ??
-                          0,
-                      hargaJual: int.tryParse(hargaJualCtrl.text
-                              .replaceAll(RegExp(r'[^0-9]'), '')) ??
-                          0,
-                      // Mulai dari sini pakai Value karena nullable
-                      jualDisc1: Value(int.tryParse(disc1Ctrl.text
-                              .replaceAll(RegExp(r'[^0-9]'), '')) ??
-                          0),
-                      jualDisc2: Value(int.tryParse(disc2Ctrl.text
-                              .replaceAll(RegExp(r'[^0-9]'), '')) ??
-                          0),
-                      jualDisc3: Value(int.tryParse(disc3Ctrl.text
-                              .replaceAll(RegExp(r'[^0-9]'), '')) ??
-                          0),
-                      jualDisc4: Value(int.tryParse(disc4Ctrl.text
-                              .replaceAll(RegExp(r'[^0-9]'), '')) ??
-                          0),
-                      ppn: Value(int.tryParse(ppnCtrl.text)),
-                      jumlahBeli: Value(int.tryParse(jumlahBeliCtrl.text)),
-                      totalHarga: Value(
-                        int.tryParse(totalHargaCtrl.text
-                                .replaceAll(RegExp(r'[^0-9]'), '')) ??
-                            0,
-                      ),
-                    ),
-                  );
+                  //updat
+                  final raw3 = {
+                    'id': data.id,
+                    'username': 'Admin123',
+                    'kodeBarang': kodeBarangCtrl.text,
+                    'namaBarang': _barangController.text,
+                    'kelompok': kelompokCtrl.text,
+                    'satuan': satuanCtrl.text,
+                    'hargaBeli': int.tryParse(hargaBeliCtrl.text
+                            .replaceAll(RegExp(r'[^0-9]'), '')) ??
+                        0,
+                    'hargaJual': int.tryParse(hargaJualCtrl.text
+                            .replaceAll(RegExp(r'[^0-9]'), '')) ??
+                        0,
+                    'jualDisc1': int.tryParse(
+                            disc1Ctrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
+                        0,
+                    'jualDisc2': int.tryParse(
+                            disc2Ctrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
+                        0,
+                    'jualDisc3': int.tryParse(
+                            disc3Ctrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
+                        0,
+                    'jualDisc4': int.tryParse(
+                            disc4Ctrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
+                        0,
+                    'jumlahBeli': int.tryParse(jumlahBeliCtrl.text
+                            .replaceAll(RegExp(r'[^0-9]'), '')) ??
+                        0,
+                    'totalHarga': int.tryParse(totalHargaCtrl.text
+                            .replaceAll(RegExp(r'[^0-9]'), '')) ??
+                        0,
+                  };
+                  late http.Response update;
+                  update = await ApiService.updatePembelianTmp(
+                      data.id.toString(), raw3);
+
+                  if (update.statusCode == 200 || update.statusCode == 201) {
+                    if (context.mounted) Navigator.pop(context);
+                    await _loadPembelians(); // refresh data
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Gagal menyimpan data')),
+                    );
+                  }
                 }
 
-                if (context.mounted) Navigator.pop(context);
-                _loadPembelians();
                 updateTotalSeluruh();
               }
             },
@@ -871,11 +799,12 @@ class _PembelianScreenState extends State<PembelianScreen> {
   }
 
   Future<void> updateTotalSeluruh() async {
-    final total = await db.getTotalHargaPembelianTmp();
+    final total = await ApiService.getTotalHargaPembelianTmp('Admin123');
     totalpembelian = total == 0 ? '' : 'Rp. ${total.toString()}';
+    setState(() {}); // Jika kamu ingin memperbarui tampilan setelah ini
   }
 
-  void _deletePembelian(int id) async {
+  void _deletePembelian(String id) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
@@ -893,8 +822,18 @@ class _PembelianScreenState extends State<PembelianScreen> {
     );
 
     if (confirm == true) {
-      await db.deletePembelianTmp(id);
-      await _loadPembelians(); // <-- refresh data di layar
+      final response = await ApiService.deletePembelianTmp(id);
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        await _loadPembelians(); // <-- refresh data di layar
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Barang dipemblian ini berhasil dihapus')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Gagal menghapus')),
+        );
+      }
     }
   }
 
@@ -1018,28 +957,47 @@ class _PembelianScreenState extends State<PembelianScreen> {
                 SizedBox(
                   height: 35,
                   width: 250,
-                  child: TypeAheadFormField<Supplier>(
+                  child: TypeAheadFormField<SupplierModel>(
                     textFieldConfiguration: TextFieldConfiguration(
                       controller: _SupplierController,
+                      onChanged: (value) {
+                        if (!_isSelectingSupplier) {
+                          // Kosongkan field jika user sedang mengetik (bukan dari suggestion)
+
+                          _kodeSupplierController.clear();
+                        }
+                      },
                       decoration: InputDecoration(
                         border: OutlineInputBorder(),
                         labelText: 'Nama Supplier',
                       ),
                     ),
                     suggestionsCallback: (pattern) async {
-                      return await db.searchSupplier(pattern);
+                      try {
+                        final response =
+                            await ApiService.searchSupplier(pattern);
+                        return response
+                            .map<SupplierModel>(
+                                (json) => SupplierModel.fromJson(json))
+                            .toList();
+                      } catch (e) {
+                        return [];
+                      }
                     },
-                    itemBuilder: (context, Supplier suggestion) {
+                    itemBuilder: (context, SupplierModel suggestion) {
                       return ListTile(
                         title: Text(suggestion.namaSupplier),
                         subtitle: Text('Kode: ${suggestion.kodeSupplier}'),
                       );
                     },
-                    onSuggestionSelected: (Supplier suggestion) {
+                    onSuggestionSelected: (SupplierModel suggestion) {
                       _SupplierController.text = suggestion.namaSupplier;
                       _kodeSupplierController.text = suggestion.kodeSupplier;
-                      selectedSupplier = suggestion;
+
                       _supplierValid = true;
+                      Future.delayed(Duration(milliseconds: 100), () {
+                        _isSelectingSupplier = false;
+                      });
                     },
                     validator: (value) {
                       if (!_supplierValid || value == null || value.isEmpty) {
@@ -1161,7 +1119,6 @@ class _PembelianScreenState extends State<PembelianScreen> {
                     columns: const [
                       DataColumn(label: Text('Kode')),
                       DataColumn(label: Text('Nama')),
-                      DataColumn(label: Text('Expired')),
                       DataColumn(label: Text('Kelompok')),
                       DataColumn(label: Text('Satuan')),
                       DataColumn(label: Text('Harga Beli')),
@@ -1170,7 +1127,6 @@ class _PembelianScreenState extends State<PembelianScreen> {
                       DataColumn(label: Text('Disc2')),
                       DataColumn(label: Text('Disc3')),
                       DataColumn(label: Text('Disc4')),
-                      DataColumn(label: Text('PPN')),
                       DataColumn(label: Text('Jumlah')),
                       DataColumn(label: Text('Total')),
                       DataColumn(label: Text('Aksi')),
@@ -1185,12 +1141,6 @@ class _PembelianScreenState extends State<PembelianScreen> {
                           DataCell(Tooltip(
                             message: 'Nama Barang',
                             child: Text(p.namaBarang),
-                          )),
-                          DataCell(Text(
-                            p.expired != null
-                                ? formatDate(
-                                    DateTime.parse(p.expired.toString()))
-                                : '',
                           )),
                           DataCell(Tooltip(
                             message: 'Kelompok',
@@ -1236,10 +1186,6 @@ class _PembelianScreenState extends State<PembelianScreen> {
                               child: Text(formatter.format(p.jualDisc4 ?? 0)),
                             ),
                           ),
-                          DataCell(Tooltip(
-                            message: 'PPN',
-                            child: Text(p.ppn.toString()),
-                          )),
                           DataCell(
                             Tooltip(
                               message: 'Jumlah Beli',
@@ -1255,7 +1201,7 @@ class _PembelianScreenState extends State<PembelianScreen> {
                           DataCell(Row(
                             children: [
                               IconButton(
-                                tooltip: 'Edit Data',
+                                tooltip: 'Hapus Data',
                                 icon:
                                     const Icon(Icons.edit, color: Colors.blue),
                                 onPressed: () => showFormPembelianstmp(data: p),
@@ -1264,7 +1210,8 @@ class _PembelianScreenState extends State<PembelianScreen> {
                                 tooltip: 'Hapus Data',
                                 icon:
                                     const Icon(Icons.delete, color: Colors.red),
-                                onPressed: () => _deletePembelian(p.id),
+                                onPressed: () =>
+                                    _deletePembelian(p.id.toString()),
                               ),
                             ],
                           )),

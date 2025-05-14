@@ -4,7 +4,13 @@ import 'package:drift/drift.dart' show Value;
 import 'package:drift/drift.dart' as drift;
 import 'package:excel/excel.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
+import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
+import 'package:pms_flutter/models/barang_model.dart';
+import 'package:pms_flutter/models/doctor_model.dart';
+import 'package:pms_flutter/models/pelanggan_model.dart';
+import 'package:pms_flutter/models/reseptmp_model.dart';
+import 'package:pms_flutter/services/api_service.dart';
 import 'package:printing/printing.dart';
 import '../database/app_database.dart';
 import 'dart:typed_data';
@@ -22,7 +28,7 @@ class ResepScreen extends StatefulWidget {
 
 class _ResepScreenState extends State<ResepScreen> {
   late AppDatabase db;
-  List<ResepstmpData> allReseptmp = [];
+  List<ResepTmpModel> allData = [];
   bool iscekumum = true;
   bool iscekpelanggan = false;
   bool iscekresep = false;
@@ -39,7 +45,7 @@ class _ResepScreenState extends State<ResepScreen> {
   final TextEditingController _keteranganController = TextEditingController();
   final TextEditingController _kelompokController = TextEditingController();
   final TextEditingController _discController = TextEditingController();
-  Barang? selectedBarang;
+  BarangModel? selectedBarang;
   final formatter =
       NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
 //formutama
@@ -66,38 +72,18 @@ class _ResepScreenState extends State<ResepScreen> {
 
   Future<void> _loadResep() async {
     tanggalCtrl.text = DateTime.now().toIso8601String().split('T').first;
-    generateNoResep(db, _noResepController);
-    final data = await db.getAllResepsTmp();
+
+    final noresepbaru = await ApiService.generatenoResep();
+    final data = await ApiService.fetchResepTmp('Admin123');
     setState(() {
-      allReseptmp = data;
+      allData = data;
+      _noResepController.text = noresepbaru;
     });
   }
 
   @override
   void dispose() {
     super.dispose();
-  }
-
-  Future<void> generateNoResep(
-      AppDatabase db, TextEditingController noResepController) async {
-    int counter = 1;
-    String newNoResep;
-
-    while (true) {
-      newNoResep = 'RS${counter.toString().padLeft(5, '0')}'; // Contoh: RS00001
-
-      final query = db.select(db.reseps)
-        ..where((tbl) => tbl.noResep.equals(newNoResep));
-
-      final results = await query.get();
-
-      if (results.isEmpty) {
-        break; // NoFaktur unik
-      }
-      counter++;
-    }
-
-    noResepController.text = newNoResep;
   }
 
   Future<void> prosesSimpan() async {
@@ -120,51 +106,85 @@ class _ResepScreenState extends State<ResepScreen> {
       );
       return;
     }
+    final data = {
+      'noResep': noresep,
+      'tanggal': tanggalresep.toIso8601String(),
+      'namaPelanggan': namapelanggan,
+      'kodePelanggan': kdpelanggan,
+      'kelompokPelanggan': kelompokpelanggan,
+      'kodeDoctor': kddoctor,
+      'namaDoctor': namadoctor,
+      'usia': umur,
+      'alamat': alamat,
+      'keterangan': keterangan,
+      'noTelp': nohp
+    };
+    try {
+      final bolehLanjut = await ApiService.cekNoResepBelumAda(noresep);
 
-    final items = await db.getAllResepsTmp();
+      if (!bolehLanjut) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('No Faktur sudah digunakan')),
+          );
+        }
+        return;
+      }
+      late http.Response response;
+      response = await ApiService.pindahResep(data, 'Admin123');
 
-    if (items.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Tidak ada data yang akan diproses')),
-      );
-      return;
+      ///jgn lupa
+
+      if (!mounted) return; // <-- ini cek awal, sebelum lanjut
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Resep berhasil disimpan')),
+        );
+        if (Navigator.canPop(context)) {
+          Navigator.pop(context);
+        }
+
+        _pelangganController.clear();
+        _namaDoctorController.clear();
+        kodePelanggan = '';
+        kodedokter = '';
+        tanggal = DateTime.now();
+        tanggalCtrl.clear();
+        _alamatController.clear();
+        _kelompokController.clear();
+        _umurController.clear();
+        _keteranganController.clear();
+        _noHpController.clear();
+        // Refresh tampilan
+        _loadResep();
+      } else if (response.statusCode == 404) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(response.body)),
+          );
+        }
+      } else {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content:
+                    Text('Gagal menyimpan data. Code: ${response.statusCode}')),
+          );
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
     }
+  }
 
-    // Gunakan batch untuk insert semua data ke tabel pembelians
-    await db.batch((batch) {
-      batch.insertAll(
-        db.reseps,
-        items
-            .map((item) => ResepsCompanion(
-                noResep: Value(noresep),
-                tanggal: Value(tanggalresep),
-                kodePelanggan: Value(kdpelanggan),
-                namaPelanggan: Value(namapelanggan),
-                kelompokPelanggan: Value(kelompokpelanggan),
-                kodeDoctor: Value(kddoctor),
-                namaDoctor: Value(namadoctor),
-                usia: Value(umur),
-                alamat: Value(alamat),
-                keterangan: Value(keterangan),
-                noTelp: Value(nohp),
-                kodeBarang: Value(item.kodeBarang),
-                namaBarang: Value(item.namaBarang),
-                kelompok: Value(item.kelompok),
-                satuan: Value(item.satuan),
-                hargaBeli: Value(item.hargaBeli),
-                hargaJual: Value(item.hargaJual),
-                jualDiscon: Value(item.jualDiscon),
-                jumlahJual: Value(item.jumlahJual),
-                totalHargaSebelumDisc: Value(item.totalHargaSebelumDisc),
-                totalHargaSetelahDisc: Value(item.totalHargaSetelahDisc),
-                totalDisc: Value(item.totalDisc)))
-            .toList(),
-      );
-    });
-
+  Future<void> prosesbatal() async {
     // Bersihkan tabel pembelianstmp
-    await db.delete(db.resepstmp).go();
-
+    late http.Response respon;
+    respon = await ApiService.deleteResepTmpUser('Admin123'); // jgn lupa
     // Reset form input
     _pelangganController.clear();
     _namaDoctorController.clear();
@@ -177,13 +197,7 @@ class _ResepScreenState extends State<ResepScreen> {
     _umurController.clear();
     _keteranganController.clear();
     _noHpController.clear();
-    // Refresh tampilan
     _loadResep();
-
-    // Notifikasi sukses
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Resep berhasil disimpan.')),
-    );
   }
 
   String formatDate(DateTime date) {
@@ -199,26 +213,62 @@ class _ResepScreenState extends State<ResepScreen> {
     totaldiskon = totalharga - totalhargastlhdiskon;
 
     if (namabarang != '') {
-      await db.insertResepsTmp(ResepstmpCompanion(
-          kodeBarang: Value(kodebarang),
-          namaBarang: Value(_barangController.text),
-          kelompok: Value(kelompok),
-          satuan: Value(satuan),
-          hargaBeli: Value(hargabeli),
-          hargaJual: Value(hargajual),
-          jualDiscon: Value(jualdiscon),
-          jumlahJual: Value(jumlahjual),
-          totalHargaSebelumDisc: Value(totalharga),
-          totalHargaSetelahDisc: Value(totalhargastlhdiskon),
-          totalDisc: Value(totaldiskon)));
+      final dat = {
+        'username': 'Admin123', // jgn lupa
+        'kodeBarang': kodebarang,
+        'namaBarang': _barangController.text,
+        'kelompok': kelompok,
+        'satuan': satuan,
+        'hargaBeli': hargabeli,
+        'hargaJual': hargajual,
+        'jualDiscon': jualdiscon,
+        'jumlahJual': jumlahjual,
+        'totalHargaSebelumDisc': totalharga,
+        'totalHargaSetelahDisc': totalhargastlhdiskon,
+        'totalDisc': totaldiskon,
+      };
+      late http.Response response;
+      response = await ApiService.postResepTmp(dat);
+      if (!mounted) return; // <-- ini cek awal, sebelum lanjut
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Barang berhasil masuk ke resep')),
+        );
+        if (Navigator.canPop(context)) {
+          Navigator.pop(context);
+        }
+        _barangController.clear();
+        _jumlahbarangController.clear();
+        _discController.clear();
+        kodebarang = '';
+        satuan = '';
+        kelompok = '';
+        hargabeli = 0;
+        hargajual = 0;
+        jumlahjual = 0;
+        totalharga = 0;
+        totalhargastlhdiskon = 0;
+        totaldiskon = 0;
+        _loadResep();
+      } else if (response.statusCode == 404) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(response.body)),
+          );
+        }
+      } else {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content:
+                    Text('Gagal menyimpan data. Code: ${response.statusCode}')),
+          );
+        }
+      }
     }
-    _barangController.clear();
-    _jumlahbarangController.clear();
-    _discController.clear();
-    _loadResep();
   }
 
-  void _deleteResep(int id) async {
+  void _deleteResep(String id) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
@@ -236,9 +286,171 @@ class _ResepScreenState extends State<ResepScreen> {
     );
 
     if (confirm == true) {
-      await db.deleteResepTmp(id);
-      await _loadResep(); // <-- refresh data di layar
+      final response = await ApiService.deleteResepTmp(id);
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        await _loadResep(); // <-- refresh data di layar
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Barang di Resep ini berhasil dihapus')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Gagal menghapus')),
+        );
+      }
     }
+  }
+
+  Future<void> _showForm({ResepTmpModel? data}) async {
+    final formKey = GlobalKey<FormState>();
+    final kodebarangCtrl = TextEditingController(text: data?.kodeBarang ?? '');
+    final namabarangCtrl = TextEditingController(text: data?.namaBarang ?? '');
+
+    final jualdiscCtrl =
+        TextEditingController(text: data?.jualDiscon?.toString() ?? '');
+    final jumlahCtrl =
+        TextEditingController(text: data?.jumlahJual.toString() ?? '');
+
+    BarangModel? pilihBarang =
+        await ApiService.fetchBarangByKodefodiscon(kodebarangCtrl.text);
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text(data == null ? 'Tambah' : 'Edit'),
+        content: SizedBox(
+          width: 400,
+          child: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: kodebarangCtrl,
+                  decoration: InputDecoration(labelText: 'Kode barang'),
+                  readOnly: true,
+                ),
+                TextFormField(
+                  controller: namabarangCtrl,
+                  decoration: InputDecoration(labelText: 'Nama '),
+                  readOnly: true,
+                ),
+                TypeAheadFormField<Map<String, dynamic>>(
+                  textFieldConfiguration: TextFieldConfiguration(
+                    controller: jualdiscCtrl,
+                    decoration: InputDecoration(
+                      contentPadding: EdgeInsets.all(5),
+                      labelText: 'Jual Diskon',
+                    ),
+                  ),
+                  suggestionsCallback: (pattern) {
+                    if (pilihBarang == null) return [];
+
+                    final discs = <Map<String, dynamic>>[];
+
+                    if (pilihBarang!.jualDisc1 != null &&
+                        pilihBarang!.jualDisc1 != 0) {
+                      discs.add({
+                        'label': 'Diskon 1',
+                        'value': pilihBarang!.jualDisc1
+                      });
+                    }
+                    if (pilihBarang!.jualDisc2 != null &&
+                        pilihBarang!.jualDisc2 != 0) {
+                      discs.add({
+                        'label': 'Diskon 2',
+                        'value': pilihBarang!.jualDisc2
+                      });
+                    }
+                    if (pilihBarang!.jualDisc3 != null &&
+                        pilihBarang!.jualDisc3 != 0) {
+                      discs.add({
+                        'label': 'Diskon 3',
+                        'value': pilihBarang!.jualDisc3
+                      });
+                    }
+                    if (pilihBarang!.jualDisc4 != null &&
+                        pilihBarang!.jualDisc4 != 0) {
+                      discs.add({
+                        'label': 'Diskon 4',
+                        'value': pilihBarang!.jualDisc4
+                      });
+                    }
+
+                    return discs
+                        .where((d) => d['value'].toString().contains(pattern));
+                  },
+                  itemBuilder: (context, suggestion) {
+                    return ListTile(
+                      title: Text(suggestion['value'].toString()),
+                      subtitle: Text(suggestion['label']),
+                    );
+                  },
+                  onSuggestionSelected: (suggestion) {
+                    jualdiscCtrl.text = suggestion['value'].toString();
+                  },
+                  noItemsFoundBuilder: (context) =>
+                      Text('Diskon tidak tersedia'),
+                ),
+                TextFormField(
+                  controller: jumlahCtrl,
+                  decoration: InputDecoration(labelText: 'Jumlah jual'),
+                  validator: (value) => value == null || value.isEmpty
+                      ? 'Wajib diisi tidak boleh kosong'
+                      : null,
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (formKey.currentState!.validate()) {
+                if (data != null) {
+                  int jumlah = int.tryParse(jumlahCtrl.text) ?? 0;
+                  int totalhar = data.hargaJual * jumlah;
+                  int jualdis =
+                      int.tryParse(jualdiscCtrl.text) ?? data.hargaJual;
+                  int totalstlhdisc = jualdis * jumlah;
+                  int totaldis = totalhar - totalstlhdisc;
+                  final dat = {
+                    'id': data.id,
+                    'username': 'Admin123',
+                    'kodeBarang': kodebarangCtrl.text,
+                    'namaBarang': namabarangCtrl.text,
+                    'kelompok': data.kelompok,
+                    'satuan': data.satuan,
+                    'hargaBeli': data.hargaBeli,
+                    'hargaJual': data.hargaJual,
+                    'jualDiscon': int.tryParse(jualdiscCtrl.text),
+                    'jumlahJual': int.tryParse(jumlahCtrl.text),
+                    'totalHargaSebelumDisc': totalhar,
+                    'totalHargaSetelahDisc': totalstlhdisc,
+                    'totalDisc': totaldis,
+                  };
+                  late http.Response update;
+                  update =
+                      await ApiService.updateResepTmp(data.id.toString(), dat);
+
+                  if (update.statusCode == 200 || update.statusCode == 201) {
+                    if (context.mounted) Navigator.pop(context);
+                    await _loadResep(); // refresh data
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Gagal menyimpan data')),
+                    );
+                  }
+                }
+              }
+            },
+            child: const Text('Simpan'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -261,7 +473,7 @@ class _ResepScreenState extends State<ResepScreen> {
                 ),
                 Row(children: [
                   ElevatedButton.icon(
-                    onPressed: _loadResep,
+                    onPressed: prosesbatal,
                     icon: const Icon(Icons.close),
                     label: const Text('Batal'),
                     style: ElevatedButton.styleFrom(
@@ -336,7 +548,7 @@ class _ResepScreenState extends State<ResepScreen> {
                   SizedBox(
                     height: 35,
                     width: 200,
-                    child: TypeAheadField<Doctor>(
+                    child: TypeAheadField<DoctorModel>(
                       textFieldConfiguration: TextFieldConfiguration(
                         decoration: InputDecoration(
                           contentPadding: EdgeInsets.all(5),
@@ -346,16 +558,24 @@ class _ResepScreenState extends State<ResepScreen> {
                         controller: _namaDoctorController,
                       ),
                       suggestionsCallback: (pattern) async {
-                        return await db.searcDoctor(
-                            pattern); // db adalah instance AppDatabase
+                        try {
+                          final response =
+                              await ApiService.searchDoctor(pattern);
+                          return response
+                              .map<DoctorModel>(
+                                  (json) => DoctorModel.fromJson(json))
+                              .toList();
+                        } catch (e) {
+                          return [];
+                        }
                       },
-                      itemBuilder: (context, Doctor suggestion) {
+                      itemBuilder: (context, DoctorModel suggestion) {
                         return ListTile(
                           title: Text(suggestion.namaDoctor),
                           subtitle: Text('Kode: ${suggestion.kodeDoctor}'),
                         );
                       },
-                      onSuggestionSelected: (Doctor suggestion) {
+                      onSuggestionSelected: (DoctorModel suggestion) {
                         _namaDoctorController.text = suggestion.namaDoctor;
                         kodedokter = suggestion.kodeDoctor;
                       },
@@ -371,7 +591,7 @@ class _ResepScreenState extends State<ResepScreen> {
                 SizedBox(
                   height: 35,
                   width: 200,
-                  child: TypeAheadField<Pelanggan>(
+                  child: TypeAheadField<PelangganModel>(
                     textFieldConfiguration: TextFieldConfiguration(
                       decoration: InputDecoration(
                         contentPadding: EdgeInsets.all(5),
@@ -381,18 +601,26 @@ class _ResepScreenState extends State<ResepScreen> {
                       controller: _pelangganController,
                     ),
                     suggestionsCallback: (pattern) async {
-                      return await db.searchPelanggan(
-                          pattern); // db adalah instance AppDatabase
+                      try {
+                        final response =
+                            await ApiService.searchPelanggan(pattern);
+                        return response
+                            .map<PelangganModel>(
+                                (json) => PelangganModel.fromJson(json))
+                            .toList();
+                      } catch (e) {
+                        return [];
+                      }
                     },
-                    itemBuilder: (context, Pelanggan suggestion) {
+                    itemBuilder: (context, PelangganModel suggestion) {
                       return ListTile(
                         title: Text(suggestion.namaPelanggan),
-                        subtitle: Text('Kode: ${suggestion.kodPelanggan}'),
+                        subtitle: Text('Kode: ${suggestion.kodePelanggan}'),
                       );
                     },
-                    onSuggestionSelected: (Pelanggan suggestion) {
+                    onSuggestionSelected: (PelangganModel suggestion) {
                       _pelangganController.text = suggestion.namaPelanggan;
-                      kodePelanggan = suggestion.kodPelanggan;
+                      kodePelanggan = suggestion.kodePelanggan;
                       _alamatController.text = suggestion.alamat!;
                       _umurController.text = suggestion.usia.toString();
                       _kelompokController.text = suggestion.kelompok!;
@@ -486,7 +714,7 @@ class _ResepScreenState extends State<ResepScreen> {
                 SizedBox(
                   height: 35,
                   width: 250,
-                  child: TypeAheadField<Barang>(
+                  child: TypeAheadField<BarangModel>(
                     textFieldConfiguration: TextFieldConfiguration(
                       decoration: InputDecoration(
                         contentPadding: EdgeInsets.all(5),
@@ -496,23 +724,33 @@ class _ResepScreenState extends State<ResepScreen> {
                       controller: _barangController,
                     ),
                     suggestionsCallback: (pattern) async {
-                      return await db.searchBarang(
-                          pattern); // db adalah instance AppDatabase
+                      try {
+                        final response = await ApiService.searchBarang(pattern);
+                        return response
+                            .map<BarangModel>(
+                                (json) => BarangModel.fromJson(json))
+                            .toList();
+                      } catch (e) {
+                        return [];
+                      }
                     },
-                    itemBuilder: (context, Barang suggestion) {
+                    itemBuilder: (context, BarangModel suggestion) {
                       return ListTile(
-                        title: Text(suggestion.namaBarang),
+                        title: Text(suggestion.namaBarang!),
                         subtitle: Text('Kode: ${suggestion.kodeBarang}'),
                       );
                     },
-                    onSuggestionSelected: (Barang suggestion) async {
-                      _barangController.text = suggestion.namaBarang;
+                    onSuggestionSelected: (BarangModel suggestion) async {
+                      _barangController.text = suggestion.namaBarang!;
                       kodebarang = suggestion.kodeBarang;
-                      kelompok = suggestion.kelompok;
-                      satuan = suggestion.satuan;
+                      kelompok = suggestion.kelompok!;
+                      satuan = suggestion.satuan!;
                       hargabeli = suggestion.hargaBeli;
                       hargajual = suggestion.hargaJual;
-                      selectedBarang = await db.getBarangByKode(kodebarang);
+                      selectedBarang =
+                          await ApiService.fetchBarangByKodefodiscon(
+                              kodebarang);
+
                       setState(() {});
                     },
                   ),
@@ -631,7 +869,7 @@ class _ResepScreenState extends State<ResepScreen> {
                       DataColumn(label: Text('Total Disc')),
                       DataColumn(label: Text('Aksi')),
                     ],
-                    rows: allReseptmp.map((p) {
+                    rows: allData.map((p) {
                       return DataRow(
                         cells: [
                           DataCell(Text(p.kodeBarang)),
@@ -657,13 +895,13 @@ class _ResepScreenState extends State<ResepScreen> {
                                 tooltip: 'Edit Data',
                                 icon:
                                     const Icon(Icons.edit, color: Colors.blue),
-                                onPressed: () => (data: p),
+                                onPressed: () => _showForm(data: p),
                               ),
                               IconButton(
                                 tooltip: 'Hapus Data',
                                 icon:
                                     const Icon(Icons.delete, color: Colors.red),
-                                onPressed: () => _deleteResep(p.id),
+                                onPressed: () => _deleteResep(p.id.toString()),
                               ),
                             ],
                           )),

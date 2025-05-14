@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:pms_flutter/database/app_database.dart';
+import 'package:pms_flutter/models/log_activity_model.dart';
 import 'package:pms_flutter/screens/pelanggan_screen.dart';
 import 'package:pms_flutter/screens/pembelian_lap_screen.dart';
 import 'package:pms_flutter/screens/pembelian_screen.dart';
 import 'package:pms_flutter/screens/penjualan_lap_screen.dart';
 import 'package:pms_flutter/screens/penjualan_screen.dart';
+import 'package:pms_flutter/screens/riwayat_user_screen.dart';
 import 'package:pms_flutter/screens/resep_lap_screen.dart';
 import 'package:pms_flutter/screens/resep_screen.dart';
 import '../models/user_model.dart'; // Ganti sesuai path model user kamu
@@ -58,10 +60,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
       case 'Laporan Resep':
         return LaporanResepScreen(database: db);
       case 'Obat':
-        return BarangScreen(database: db);
+        return BarangScreen(user: widget.user);
       case 'User':
-        return TambahUserScreen(
-            database: db, currentUserId: int.parse(widget.user.id));
+        return TambahUserScreen(currentUserId: widget.user.id);
+      case 'Log Aktivitas':
+        return const RiwayatUserScreen();
       default:
         return _buildDashboardContent();
     }
@@ -129,7 +132,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
               children: [
                 TopBar(
                   user: widget.user,
-                  db: db,
                 ),
                 Expanded(
                   child: Padding(

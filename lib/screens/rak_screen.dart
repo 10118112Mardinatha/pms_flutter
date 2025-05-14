@@ -87,10 +87,25 @@ class _RakScreenState extends State<RakScreen> {
     });
   }
 
+  String _generateKodeRak() {
+    final prefix = 'RAK';
+    final existingIds = allRaks.map((d) {
+      final match = RegExp(r'(\d+)$').firstMatch(d.kodeRak ?? '');
+      return match != null ? int.tryParse(match.group(1)!) ?? 0 : 0;
+    }).toList();
+
+    final maxId = existingIds.isNotEmpty
+        ? existingIds.reduce((a, b) => a > b ? a : b)
+        : 0;
+    final nextId = maxId + 1;
+    return '$prefix${nextId.toString().padLeft(3, '0')}';
+  }
+
 //
   void _showForm({RakModel? Rak}) {
     final formKey = GlobalKey<FormState>();
-    final kodeCtrl = TextEditingController(text: Rak?.kodeRak ?? '');
+    final kodeCtrl =
+        TextEditingController(text: Rak?.kodeRak ?? _generateKodeRak());
     final namaCtrl = TextEditingController(text: Rak?.namaRak ?? '');
     final lokasiCtrl = TextEditingController(text: Rak?.lokasi ?? '');
     final ketCtrl = TextEditingController(text: Rak?.keterangan ?? '');

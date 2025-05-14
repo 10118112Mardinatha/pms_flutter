@@ -563,6 +563,21 @@ class AppDatabase extends _$AppDatabase {
     return result.data['total'] as int? ?? 0;
   }
 
+  Future<void> seedAdmin() async {
+    final existing = await (select(users)
+          ..where((u) => u.username.equals('admin')))
+        .getSingleOrNull();
+    if (existing == null) {
+      await into(users).insert(const UsersCompanion(
+        username: Value('admin'),
+        password: Value('admin123'),
+        role: Value('admin'),
+        aktif: Value(true),
+        avatar: Value(null),
+      ));
+    }
+  }
+
   //Rak
   Future<List<Rak>> getAllRaks() => select(raks).get();
 

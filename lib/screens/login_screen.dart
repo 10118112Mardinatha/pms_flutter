@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
-import '../database/app_database.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:http/http.dart' as http;
+import 'package:pms_flutter/services/api_service.dart';
+import 'dart:convert';
 import '../models/user_model.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 import 'dashboard_screen.dart';
 
 class LoginScreen extends StatefulWidget {
-  final AppDatabase db;
-  const LoginScreen({Key? key, required this.db}) : super(key: key);
+  const LoginScreen({Key? key}) : super(key: key);
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -23,45 +27,97 @@ class _LoginScreenState extends State<LoginScreen> {
 
     setState(() => _isLoading = true);
 
-    final user = await widget.db.login(
-      _usernameController.text.trim(),
-      _passwordController.text,
-    );
+    final username = _usernameController.text.trim();
+    final password = _passwordController.text;
 
-    setState(() => _isLoading = false);
+    try {
+      final response = await http.post(
+        Uri.parse('http://192.168.1.6:8080/user/login'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'username': username,
+          'password': password,
+        }),
+      );
 
-    if (user != null) {
-      if (user.aktif != true) {
-        // Akun tidak aktif
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Akun Anda tidak aktif. Silakan hubungi admin.'),
-            backgroundColor: Colors.orangeAccent,
-          ),
+      setState(() => _isLoading = false);
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+
+        final userModel = UserModel(
+          id: data['id'],
+          password: data['password'],
+          username: data['username'],
+          role: data['role'],
+          aktif: data['aktif'],
+          avatar: data['avatar'],
         );
-        return;
+
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setInt('userId', userModel.id);
+        await prefs.setString('username', userModel.username);
+        await prefs.setString('role', userModel.role);
+        await prefs.setBool('aktif', userModel.aktif);
+        if (userModel.avatar != null) {
+          await prefs.setString('avatar', userModel.avatar!);
+        }
+
+        await ApiService.logActivity(
+            userModel.id, 'Login berhasil sebagai ${userModel.role}');
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => DashboardScreen(user: userModel)),
+        );
+      } else {
+        // Jika login gagal, coba fallback admin
+        if (username == 'admin' && password == 'admin123') {
+          final fallbackUser = UserModel(
+            id: 0,
+            username: 'admin',
+            password: password,
+            role: 'admin',
+            aktif: true,
+            avatar: null,
+          );
+
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+                builder: (_) => DashboardScreen(user: fallbackUser)),
+          );
+        } else {
+          final msg = jsonDecode(response.body)['message'] ?? 'Login gagal';
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(msg), backgroundColor: Colors.red),
+          );
+        }
       }
+    } catch (e) {
+      setState(() => _isLoading = false);
 
-      // Konversi ke UserModel
-      final userModel = UserModel(
-        id: user.id.toString(),
-        username: user.username,
-        role: user.role,
-        aktif: user.aktif,
-        avatar: null,
-      );
+      // Coba fallback jika tidak bisa connect
+      if (username == 'admin' && password == 'admin123') {
+        final fallbackUser = UserModel(
+          id: 0,
+          username: 'admin',
+          password: password,
+          role: 'admin',
+          aktif: true,
+          avatar: null,
+        );
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => DashboardScreen(user: userModel)),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Username atau password salah'),
-          backgroundColor: Colors.redAccent,
-        ),
-      );
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+              builder: (_) => DashboardScreen(user: fallbackUser)),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal terhubung ke server: $e')),
+        );
+      }
     }
   }
 
@@ -86,7 +142,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 constraints: const BoxConstraints(maxWidth: 400),
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: Colors.white.withOpacity(0.95),
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: const [
                     BoxShadow(
@@ -101,14 +157,49 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Text(
-                        'Pharmacy PMS Login',
-                        style: TextStyle(
-                          fontSize: 24,
+                      Text(
+                        'Login',
+                        style: GoogleFonts.poppins(
+                          fontSize: 28,
                           fontWeight: FontWeight.bold,
+                          color: Colors.black87,
                         ),
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(
+                        height: 8,
+                      ),
+                      StreamBuilder<DateTime>(
+                        stream: Stream.periodic(
+                            const Duration(seconds: 1), (_) => DateTime.now()),
+                        builder: (context, snapshot) {
+                          final now = snapshot.data ?? DateTime.now();
+                          final formattedDate =
+                              '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}';
+                          final formattedTime =
+                              '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}';
+
+                          return Column(
+                            children: [
+                              Text(
+                                formattedDate,
+                                style: GoogleFonts.poppins(
+                                  fontSize: 12,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                              Text(
+                                formattedTime,
+                                style: GoogleFonts.poppins(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.grey[700],
+                                ),
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 15),
                       TextFormField(
                         controller: _usernameController,
                         decoration: const InputDecoration(
@@ -116,8 +207,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           prefixIcon: Icon(Icons.person),
                           border: OutlineInputBorder(),
                         ),
-                        onFieldSubmitted: (_) =>
-                            FocusScope.of(context).nextFocus(),
+                        style: GoogleFonts.poppins(),
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
                             return 'Username wajib diisi';
@@ -147,6 +237,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                           border: const OutlineInputBorder(),
                         ),
+                        style: GoogleFonts.poppins(),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return 'Password wajib diisi';
@@ -167,12 +258,19 @@ class _LoginScreenState extends State<LoginScreen> {
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
+                            backgroundColor: Colors.blue.shade600,
                           ),
                           child: _isLoading
                               ? const CircularProgressIndicator(
                                   color: Colors.white,
                                 )
-                              : const Text('Login'),
+                              : Text(
+                                  'Login',
+                                  style: GoogleFonts.poppins(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                         ),
                       ),
                     ],
