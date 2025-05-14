@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:pms_flutter/models/supplier_model.dart';
+import 'package:pms_flutter/models/user_model.dart';
 import 'package:pms_flutter/services/api_service.dart';
 import '../database/app_database.dart';
 import 'package:file_picker/file_picker.dart';
@@ -16,9 +17,8 @@ import 'package:pms_flutter/models/barang_model.dart';
 import 'package:pms_flutter/models/pembeliantmp_model.dart';
 
 class PembelianScreen extends StatefulWidget {
-  final AppDatabase database;
-
-  const PembelianScreen({super.key, required this.database});
+  final UserModel user;
+  const PembelianScreen({super.key, required this.user});
 
   @override
   State<PembelianScreen> createState() => _PembelianScreenState();
@@ -50,12 +50,12 @@ class _PembelianScreenState extends State<PembelianScreen> {
   @override
   void initState() {
     super.initState();
-    db = widget.database;
+    widget.user.id;
     _loadPembelians();
   }
 
   Future<void> _loadPembelians() async {
-    final data = await ApiService.fetchPembelianTmp('Admin123');
+    final data = await ApiService.fetchPembelianTmp(widget.user.username);
     tanggalBeliCtrl.text = DateTime.now().toIso8601String().split('T').first;
 
     setState(() {
@@ -112,7 +112,7 @@ class _PembelianScreenState extends State<PembelianScreen> {
         return;
       }
       late http.Response response;
-      response = await ApiService.pindahPembelian(data, 'Admin123');
+      response = await ApiService.pindahPembelian(data, widget.user.username);
 
       if (!mounted) return; // <-- ini cek awal, sebelum lanjut
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -156,7 +156,7 @@ class _PembelianScreenState extends State<PembelianScreen> {
   Future<void> prosesbatal() async {
     // Bersihkan tabel pembelianstmp
     late http.Response respon;
-    respon = await ApiService.deletePembelianTmpUser('Admin123');
+    respon = await ApiService.deletePembelianTmpUser(widget.user.username);
     // Reset form input
     _nofaktur.clear();
     _kodeSupplierController.clear();
@@ -682,21 +682,14 @@ class _PembelianScreenState extends State<PembelianScreen> {
                       };
                       late http.Response response;
                       response = await ApiService.postBarang(raw);
-                      if (response.statusCode == 200 ||
-                          response.statusCode == 201) {
-                        if (context.mounted) Navigator.pop(context);
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Gagal menyimpan data')),
-                        );
-                      }
+
                       kodeBarangCtrl.text = kodeBaru;
                     } else {
                       return;
                     }
                   }
                   final raw2 = {
-                    'username': 'Admin123',
+                    'username': widget.user.username,
                     'kodeBarang': kodeBarangCtrl.text,
                     'namaBarang': _barangController.text,
                     'kelompok': kelompokCtrl.text,
@@ -740,7 +733,7 @@ class _PembelianScreenState extends State<PembelianScreen> {
                   //updat
                   final raw3 = {
                     'id': data.id,
-                    'username': 'Admin123',
+                    'username': widget.user.username,
                     'kodeBarang': kodeBarangCtrl.text,
                     'namaBarang': _barangController.text,
                     'kelompok': kelompokCtrl.text,
@@ -776,7 +769,7 @@ class _PembelianScreenState extends State<PembelianScreen> {
 
                   if (update.statusCode == 200 || update.statusCode == 201) {
                     if (context.mounted) Navigator.pop(context);
-                    await _loadPembelians(); // refresh data
+                    await _loadPembelians();
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text('Gagal menyimpan data')),
@@ -799,7 +792,8 @@ class _PembelianScreenState extends State<PembelianScreen> {
   }
 
   Future<void> updateTotalSeluruh() async {
-    final total = await ApiService.getTotalHargaPembelianTmp('Admin123');
+    final total =
+        await ApiService.getTotalHargaPembelianTmp(widget.user.username);
     totalpembelian = total == 0 ? '' : 'Rp. ${total.toString()}';
     setState(() {}); // Jika kamu ingin memperbarui tampilan setelah ini
   }

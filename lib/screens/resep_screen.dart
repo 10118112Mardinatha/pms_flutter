@@ -10,6 +10,7 @@ import 'package:pms_flutter/models/barang_model.dart';
 import 'package:pms_flutter/models/doctor_model.dart';
 import 'package:pms_flutter/models/pelanggan_model.dart';
 import 'package:pms_flutter/models/reseptmp_model.dart';
+import 'package:pms_flutter/models/user_model.dart';
 import 'package:pms_flutter/services/api_service.dart';
 import 'package:printing/printing.dart';
 import '../database/app_database.dart';
@@ -18,9 +19,8 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:file_picker/file_picker.dart';
 
 class ResepScreen extends StatefulWidget {
-  final AppDatabase database;
-
-  const ResepScreen({super.key, required this.database});
+  final UserModel user;
+  const ResepScreen({super.key, required this.user});
 
   @override
   State<ResepScreen> createState() => _ResepScreenState();
@@ -66,7 +66,7 @@ class _ResepScreenState extends State<ResepScreen> {
   @override
   void initState() {
     super.initState();
-    db = widget.database;
+    widget.user.id;
     _loadResep();
   }
 
@@ -74,7 +74,7 @@ class _ResepScreenState extends State<ResepScreen> {
     tanggalCtrl.text = DateTime.now().toIso8601String().split('T').first;
 
     final noresepbaru = await ApiService.generatenoResep();
-    final data = await ApiService.fetchResepTmp('Admin123');
+    final data = await ApiService.fetchResepTmp(widget.user.username);
     setState(() {
       allData = data;
       _noResepController.text = noresepbaru;
@@ -131,7 +131,7 @@ class _ResepScreenState extends State<ResepScreen> {
         return;
       }
       late http.Response response;
-      response = await ApiService.pindahResep(data, 'Admin123');
+      response = await ApiService.pindahResep(data, widget.user.username);
 
       ///jgn lupa
 
@@ -184,7 +184,8 @@ class _ResepScreenState extends State<ResepScreen> {
   Future<void> prosesbatal() async {
     // Bersihkan tabel pembelianstmp
     late http.Response respon;
-    respon = await ApiService.deleteResepTmpUser('Admin123'); // jgn lupa
+    respon =
+        await ApiService.deleteResepTmpUser(widget.user.username); // jgn lupa
     // Reset form input
     _pelangganController.clear();
     _namaDoctorController.clear();
@@ -214,7 +215,7 @@ class _ResepScreenState extends State<ResepScreen> {
 
     if (namabarang != '') {
       final dat = {
-        'username': 'Admin123', // jgn lupa
+        'username': widget.user.username, // jgn lupa
         'kodeBarang': kodebarang,
         'namaBarang': _barangController.text,
         'kelompok': kelompok,
@@ -418,7 +419,7 @@ class _ResepScreenState extends State<ResepScreen> {
                   int totaldis = totalhar - totalstlhdisc;
                   final dat = {
                     'id': data.id,
-                    'username': 'Admin123',
+                    'username': widget.user.username,
                     'kodeBarang': kodebarangCtrl.text,
                     'namaBarang': namabarangCtrl.text,
                     'kelompok': data.kelompok,

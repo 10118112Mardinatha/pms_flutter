@@ -14,7 +14,7 @@ import 'package:pms_flutter/models/user_model.dart';
 
 class ApiService {
   static const String baseUrl =
-      'http://192.168.1.6:8080'; // Ganti sesuai IP server LAN
+      'http://192.168.100.142:8080'; // Ganti sesuai IP server LAN
 
   // ====================== SUPPLIER ======================
   static Future<http.Response> fetchAllSuppliers() async {

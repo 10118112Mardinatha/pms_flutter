@@ -10,6 +10,7 @@ import 'package:pms_flutter/models/barang_model.dart';
 import 'package:pms_flutter/models/doctor_model.dart';
 import 'package:pms_flutter/models/pelanggan_model.dart';
 import 'package:pms_flutter/models/penjualantmp_model.dart';
+import 'package:pms_flutter/models/user_model.dart';
 import 'package:pms_flutter/services/api_service.dart';
 import 'package:printing/printing.dart';
 import '../database/app_database.dart';
@@ -21,9 +22,8 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
 class PenjualanScreen extends StatefulWidget {
-  final AppDatabase database;
-
-  const PenjualanScreen({super.key, required this.database});
+  final UserModel user;
+  const PenjualanScreen({super.key, required this.user});
 
   @override
   State<PenjualanScreen> createState() => _PenjualanScreenState();
@@ -67,12 +67,12 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
   @override
   void initState() {
     super.initState();
-    db = widget.database;
+    widget.user.id;
     _loadPenjualan();
   }
 
   Future<void> _loadPenjualan() async {
-    final data = await ApiService.fetchPenjualanTmp('Admin123');
+    final data = await ApiService.fetchPenjualanTmp(widget.user.username);
     tanggaljualCtrl.text = DateTime.now().toIso8601String().split('T').first;
     final nofakturbaru = await ApiService.generatenofakturpenjualan();
 
@@ -142,7 +142,7 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
         return; // ❌ Jangan lanjut insert
       }
       final dat = {
-        'username': 'Admin123', // jgn lupa
+        'username': widget.user.username, // jgn lupa
         'kodeBarang': kodebarang,
         'namaBarang': _barangController.text,
         'kelompok': kelompok,
@@ -191,7 +191,8 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
   }
 
   Future<void> updateTotalSeluruh() async {
-    final total = await ApiService.getTotalHargaPenjualanTmp('Admin123');
+    final total =
+        await ApiService.getTotalHargaPenjualanTmp(widget.user.username);
     totalpenjualan = total == 0 ? '' : '${total.toString()}';
     setState(() {});
   }
@@ -199,7 +200,7 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
   Future<void> prosesbatal() async {
     // Bersihkan tabel pembelianstmp
     late http.Response respon;
-    respon = await ApiService.deletePenjualanTmpUser('Admin123');
+    respon = await ApiService.deletePenjualanTmpUser(widget.user.username);
 
     // Reset form input
     _loadPenjualan();
@@ -386,7 +387,7 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
                   int totaldis = totalhar - totalstlhdisc;
                   final dat = {
                     'id': penjualanstmp.id,
-                    'username': 'Admin123',
+                    'username': widget.user.username,
                     'kodeBarang': kodebarangCtrl.text,
                     'namaBarang': namabarangCtrl.text,
                     'kelompok': penjualanstmp.kelompok,
@@ -461,7 +462,7 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
         return;
       }
       late http.Response response;
-      response = await ApiService.pindahPenjualan(data, 'Admin123');
+      response = await ApiService.pindahPenjualan(data, widget.user.username);
 
       if (!mounted) return; // <-- ini cek awal, sebelum lanjut
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -878,7 +879,8 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
                       if (iscekresep && kodepelanggan.isNotEmpty) {
                         // Ambil resep dari DB
                         await ApiService.insertResepToPenjualanTmp(
-                            kodePelanggan: kodepelanggan, username: 'Admin123');
+                            kodePelanggan: kodepelanggan,
+                            username: widget.user.username);
                         _loadPenjualan(); // Refresh data
                         setState(() {});
                       }

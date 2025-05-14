@@ -46,11 +46,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
       case 'Pelanggan':
         return PelangganScreen(database: db);
       case 'Pembelian':
-        return PembelianScreen(database: db);
+        return PembelianScreen(user: widget.user);
       case 'Penjualan':
-        return PenjualanScreen(database: db);
+        return PenjualanScreen(user: widget.user);
       case 'Resep':
-        return ResepScreen(database: db);
+        return ResepScreen(user: widget.user);
       case 'Rak':
         return RakScreen(database: db);
       case 'Laporan Pembelian':
