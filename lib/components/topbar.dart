@@ -275,7 +275,11 @@ class _TopBarState extends State<TopBar> {
 
     if (confirmed == true && context.mounted) {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.clear();
+      await prefs.remove('userId');
+      await prefs.remove('username');
+      await prefs.remove('role');
+      await prefs.remove('aktif');
+      await prefs.remove('avatar');
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const LoginScreen()),

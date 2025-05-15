@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:pms_flutter/database/app_database.dart';
 import 'package:pms_flutter/models/user_model.dart';
 import 'package:pms_flutter/services/api_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class TambahUserScreen extends StatefulWidget {
   final int currentUserId;
@@ -28,8 +29,22 @@ class _TambahUserScreenState extends State<TambahUserScreen> {
   File? _pickedImage;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  String? _ipAddress;
 
   final List<String> _roles = ['admin', 'apoteker'];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedIp();
+  }
+
+  Future<void> _loadSavedIp() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _ipAddress = prefs.getString('saved_ip');
+    });
+  }
 
   Future<void> _pickImage() async {
     final pickedFile =
@@ -39,6 +54,11 @@ class _TambahUserScreenState extends State<TambahUserScreen> {
         _pickedImage = File(pickedFile.path);
       });
     }
+  }
+
+  Future<String?> getSavedIp() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('ip');
   }
 
   void _submitForm() async {
@@ -126,7 +146,7 @@ class _TambahUserScreenState extends State<TambahUserScreen> {
                                           final updatedAktif = !user.aktif;
                                           final response = await http.put(
                                             Uri.parse(
-                                                'http://192.168.1.6:8080//users/${user.id}'),
+                                                'http://${_ipAddress}:8080//users/${user.id}'),
                                             headers: {
                                               'Content-Type': 'application/json'
                                             },
@@ -162,7 +182,7 @@ class _TambahUserScreenState extends State<TambahUserScreen> {
                                   : (newRole) async {
                                       final response = await http.put(
                                         Uri.parse(
-                                            'http://192.168.1.6:8080/user/${user.id}'),
+                                            'http://${_ipAddress}:8080/user/${user.id}'),
                                         headers: {
                                           'Content-Type': 'application/json'
                                         },
@@ -219,7 +239,7 @@ class _TambahUserScreenState extends State<TambahUserScreen> {
                                       if (confirm == true) {
                                         final response = await http.delete(
                                           Uri.parse(
-                                              'http://192.168.1.6:8080/user/${user.id}'),
+                                              'http://${_ipAddress}:8080/user/${user.id}'),
                                         );
                                         if (response.statusCode == 200) {
                                           setState(() {});

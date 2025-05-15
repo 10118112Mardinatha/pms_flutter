@@ -21,6 +21,21 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool _isLoading = false;
+  final _ipController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadIp();
+  }
+
+  Future<void> _loadIp() async {
+    final pre = await SharedPreferences.getInstance();
+    final String ip = pre.getString('ip') ?? '';
+    setState(() {
+      _ipController.text = ip;
+    });
+  }
 
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
@@ -29,10 +44,11 @@ class _LoginScreenState extends State<LoginScreen> {
 
     final username = _usernameController.text.trim();
     final password = _passwordController.text;
+    final iphost = _ipController.text;
 
     try {
       final response = await http.post(
-        Uri.parse('http://192.168.1.6:8080/user/login'),
+        Uri.parse('http://${iphost}:8080/user/login'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'username': username,
@@ -59,6 +75,7 @@ class _LoginScreenState extends State<LoginScreen> {
         await prefs.setString('username', userModel.username);
         await prefs.setString('role', userModel.role);
         await prefs.setBool('aktif', userModel.aktif);
+        await prefs.setString('ip', _ipController.text.trim());
         if (userModel.avatar != null) {
           await prefs.setString('avatar', userModel.avatar!);
         }
@@ -81,6 +98,8 @@ class _LoginScreenState extends State<LoginScreen> {
             aktif: true,
             avatar: null,
           );
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('ip', _ipController.text.trim());
 
           Navigator.pushReplacement(
             context,
@@ -95,29 +114,10 @@ class _LoginScreenState extends State<LoginScreen> {
         }
       }
     } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal terhubung ke server: $e')),
+      );
       setState(() => _isLoading = false);
-
-      // Coba fallback jika tidak bisa connect
-      if (username == 'admin' && password == 'admin123') {
-        final fallbackUser = UserModel(
-          id: 0,
-          username: 'admin',
-          password: password,
-          role: 'admin',
-          aktif: true,
-          avatar: null,
-        );
-
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-              builder: (_) => DashboardScreen(user: fallbackUser)),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal terhubung ke server: $e')),
-        );
-      }
     }
   }
 
@@ -244,6 +244,22 @@ class _LoginScreenState extends State<LoginScreen> {
                           }
                           if (value.length < 6) {
                             return 'Password minimal 6 karakter';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _ipController,
+                        decoration: const InputDecoration(
+                          labelText: 'IP Address Host',
+                          prefixIcon: Icon(Icons.wifi),
+                          border: OutlineInputBorder(),
+                        ),
+                        style: GoogleFonts.poppins(),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'IP Address wajib diisi';
                           }
                           return null;
                         },
