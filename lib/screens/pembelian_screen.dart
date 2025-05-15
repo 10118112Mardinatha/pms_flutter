@@ -39,7 +39,7 @@ class _PembelianScreenState extends State<PembelianScreen> {
   final tanggalBeliCtrl = TextEditingController();
   DateTime? tanggalBeli = DateTime.now();
   final TextEditingController totalSeluruhCtrl = TextEditingController();
-  String totalpembelian = '';
+  int? totalpembelian;
   bool _supplierValid = false;
   Supplier? selectedSupplier;
   final formatter =
@@ -165,73 +165,6 @@ class _PembelianScreenState extends State<PembelianScreen> {
     tanggalBeliCtrl.clear();
     totalSeluruhCtrl.clear();
     _loadPembelians();
-  }
-
-  Future<void> importPembelianFromExcel({
-    required File file,
-    required AppDatabase db,
-    required VoidCallback onFinished,
-  }) async {
-    try {
-      final bytes = file.readAsBytesSync();
-      final excel = Excel.decodeBytes(bytes);
-      final sheet = excel.tables[excel.tables.keys.first];
-      if (sheet == null) return;
-
-      for (var row in sheet.rows.skip(1)) {
-        final kodeBarang = row[0]?.value.toString() ?? ' ';
-        final namaBarang = row[1]?.value.toString() ?? '';
-        final expired = row[2]?.value.toString() ?? '';
-        final kelompok = row[3]?.value.toString() ?? '';
-        final satuan = row[4]?.value.toString() ?? '';
-        final hargaBeli = row[5]?.value.toString();
-        final hargaJual = row[6]?.value.toString();
-        final jualDisc1 = row[7]?.value.toString();
-        final jualDisc2 = row[8]?.value.toString();
-        final jualDisc3 = row[9]?.value.toString();
-        final jualDisc4 = row[10]?.value.toString();
-        final ppn = row[11]?.value.toString();
-        final jumlahpembelian = row[12]?.value.toString();
-        final totalhargapembelian = row[13]?.value.toString();
-
-        if (kodeBarang.isEmpty || namaBarang.isEmpty) continue;
-
-        // Cek apakah Kode Barang sudah ada
-        final exists = await (db.select(db.pembelianstmp)
-              ..where((tbl) => tbl.kodeBarang.equals(kodeBarang)))
-            .getSingleOrNull();
-
-        if (exists != null) {
-          debugPrint('Kode $kodeBarang sudah ada, dilewati.');
-          continue;
-        }
-
-        await db.into(db.pembelianstmp).insert(
-              PembelianstmpCompanion(
-                kodeBarang: drift.Value(kodeBarang),
-                namaBarang: drift.Value(namaBarang),
-                expired: drift.Value(
-                    DateTime.tryParse(expired) ?? DateTime(2000, 1, 1)),
-                kelompok: drift.Value(kelompok),
-                satuan: drift.Value(satuan),
-                hargaBeli: drift.Value(int.tryParse(hargaBeli ?? '0') ?? 0),
-                hargaJual: drift.Value(int.tryParse(hargaJual ?? '0') ?? 0),
-                jualDisc1: drift.Value(int.tryParse(jualDisc1 ?? '0') ?? 0),
-                jualDisc2: drift.Value(int.tryParse(jualDisc2 ?? '0') ?? 0),
-                jualDisc3: drift.Value(int.tryParse(jualDisc3 ?? '0') ?? 0),
-                jualDisc4: drift.Value(int.tryParse(jualDisc4 ?? '0') ?? 0),
-                ppn: drift.Value(int.tryParse(ppn ?? '0') ?? 0),
-                jumlahBeli:
-                    drift.Value(int.tryParse(jumlahpembelian ?? '0') ?? 0),
-                totalHarga:
-                    drift.Value(int.tryParse(totalhargapembelian ?? '0') ?? 0),
-              ),
-            );
-      }
-      onFinished();
-    } catch (e) {
-      debugPrint('Gagal import file Excel: $e');
-    }
   }
 
 //
@@ -422,7 +355,7 @@ class _PembelianScreenState extends State<PembelianScreen> {
                   ),
                   TextFormField(
                     controller: disc1Ctrl,
-                    decoration: InputDecoration(labelText: 'Disc 1'),
+                    decoration: InputDecoration(labelText: 'Harga Disc 1'),
                     keyboardType: TextInputType.number,
                     inputFormatters: [
                       FilteringTextInputFormatter.digitsOnly,
@@ -465,7 +398,7 @@ class _PembelianScreenState extends State<PembelianScreen> {
                   ),
                   TextFormField(
                     controller: disc2Ctrl,
-                    decoration: InputDecoration(labelText: 'Disc 2'),
+                    decoration: InputDecoration(labelText: 'Harga Disc 2'),
                     keyboardType: TextInputType.number,
                     inputFormatters: [
                       FilteringTextInputFormatter.digitsOnly,
@@ -508,7 +441,7 @@ class _PembelianScreenState extends State<PembelianScreen> {
                   ),
                   TextFormField(
                     controller: disc3Ctrl,
-                    decoration: InputDecoration(labelText: 'Disc 3'),
+                    decoration: InputDecoration(labelText: 'Harga Disc 3'),
                     keyboardType: TextInputType.number,
                     inputFormatters: [
                       FilteringTextInputFormatter.digitsOnly,
@@ -551,7 +484,7 @@ class _PembelianScreenState extends State<PembelianScreen> {
                   ),
                   TextFormField(
                     controller: disc4Ctrl,
-                    decoration: InputDecoration(labelText: 'Disc 4'),
+                    decoration: InputDecoration(labelText: 'Harga Disc 4'),
                     keyboardType: TextInputType.number,
                     inputFormatters: [
                       FilteringTextInputFormatter.digitsOnly,
@@ -794,7 +727,7 @@ class _PembelianScreenState extends State<PembelianScreen> {
   Future<void> updateTotalSeluruh() async {
     final total =
         await ApiService.getTotalHargaPembelianTmp(widget.user.username);
-    totalpembelian = total == 0 ? '' : 'Rp. ${total.toString()}';
+    totalpembelian = total;
     setState(() {}); // Jika kamu ingin memperbarui tampilan setelah ini
   }
 
@@ -856,51 +789,6 @@ class _PembelianScreenState extends State<PembelianScreen> {
                       color: Colors.grey[800]),
                 ),
                 Row(children: [
-                  IconButton(
-                    tooltip: 'Import Excel',
-                    icon: const Icon(Icons.upload_file),
-                    onPressed: () async {
-                      final result = await FilePicker.platform.pickFiles(
-                        type: FileType.custom,
-                        allowedExtensions: ['xlsx'],
-                      );
-                      if (result != null && result.files.single.path != null) {
-                        final file = File(result.files.single.path!);
-
-                        final confirm = await showDialog<bool>(
-                          context: context,
-                          builder: (context) => AlertDialog(
-                            title: const Text('Konfirmasi Import'),
-                            content: const Text(
-                                'Apakah Anda yakin ingin mengupload file ini?'),
-                            actions: [
-                              TextButton(
-                                child: const Text('Batal'),
-                                onPressed: () => Navigator.pop(context, false),
-                              ),
-                              ElevatedButton(
-                                child: const Text('Ya, Upload'),
-                                onPressed: () => Navigator.pop(context, true),
-                              ),
-                            ],
-                          ),
-                        );
-
-                        if (confirm == true) {
-                          await importPembelianFromExcel(
-                              file: file, db: db, onFinished: _loadPembelians);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Import berhasil!')),
-                          );
-                        }
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                              content: Text('Tidak ada file dipilih')),
-                        );
-                      }
-                    },
-                  ),
                   ElevatedButton.icon(
                     onPressed: prosesbatal,
                     icon: const Icon(Icons.close),
@@ -1064,7 +952,7 @@ class _PembelianScreenState extends State<PembelianScreen> {
               children: [
                 Expanded(
                   child: Text(
-                    'Total : ${totalpembelian}',
+                    '${formatter.format(totalpembelian ?? 0)}',
                     style: TextStyle(fontSize: 20),
                   ),
                 ),
@@ -1109,7 +997,7 @@ class _PembelianScreenState extends State<PembelianScreen> {
                     headingRowHeight: 30,
                     headingTextStyle: const TextStyle(fontSize: 11),
                     columnSpacing: 20,
-                    dataTextStyle: const TextStyle(fontSize: 10),
+                    dataTextStyle: const TextStyle(fontSize: 11),
                     columns: const [
                       DataColumn(label: Text('Kode')),
                       DataColumn(label: Text('Nama')),
@@ -1117,10 +1005,10 @@ class _PembelianScreenState extends State<PembelianScreen> {
                       DataColumn(label: Text('Satuan')),
                       DataColumn(label: Text('Harga Beli')),
                       DataColumn(label: Text('Harga Jual')),
-                      DataColumn(label: Text('Disc1')),
-                      DataColumn(label: Text('Disc2')),
-                      DataColumn(label: Text('Disc3')),
-                      DataColumn(label: Text('Disc4')),
+                      DataColumn(label: Text('Harga Disc1')),
+                      DataColumn(label: Text('Harga Disc2')),
+                      DataColumn(label: Text('Harga Disc3')),
+                      DataColumn(label: Text('Harga Disc4')),
                       DataColumn(label: Text('Jumlah')),
                       DataColumn(label: Text('Total')),
                       DataColumn(label: Text('Aksi')),
@@ -1132,10 +1020,16 @@ class _PembelianScreenState extends State<PembelianScreen> {
                             message: 'Kode Barang',
                             child: Text(p.kodeBarang),
                           )),
-                          DataCell(Tooltip(
-                            message: 'Nama Barang',
-                            child: Text(p.namaBarang),
-                          )),
+                          DataCell(SizedBox(
+                              width: 140,
+                              child: Tooltip(
+                                message: 'Nama Barang',
+                                child: Text(
+                                  p.namaBarang,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ))),
                           DataCell(Tooltip(
                             message: 'Kelompok',
                             child: Text(p.kelompok),
@@ -1158,25 +1052,25 @@ class _PembelianScreenState extends State<PembelianScreen> {
                           ),
                           DataCell(
                             Tooltip(
-                              message: 'Jual Disc 1',
+                              message: 'Harga Jual Disc 1',
                               child: Text(formatter.format(p.jualDisc1 ?? 0)),
                             ),
                           ),
                           DataCell(
                             Tooltip(
-                              message: 'Jual Disc 2',
+                              message: 'Harga Jual Disc 2',
                               child: Text(formatter.format(p.jualDisc2 ?? 0)),
                             ),
                           ),
                           DataCell(
                             Tooltip(
-                              message: 'Jual Disc 3',
+                              message: 'Harga Jual Disc 3',
                               child: Text(formatter.format(p.jualDisc3 ?? 0)),
                             ),
                           ),
                           DataCell(
                             Tooltip(
-                              message: 'Jual Disc 4',
+                              message: 'Harga Jual Disc 4',
                               child: Text(formatter.format(p.jualDisc4 ?? 0)),
                             ),
                           ),

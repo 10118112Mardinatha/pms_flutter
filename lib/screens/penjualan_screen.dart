@@ -49,7 +49,7 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
   DateTime? tgexpired;
   String kodeDoctor = ' ';
   BarangModel? selectedBarang;
-  String totalpenjualan = '';
+  int? totalpenjualan;
   String kodebarang = '';
   int idstok = 0;
   int sisaStok = 0;
@@ -63,7 +63,7 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
   int totalharga = 0;
   int totalhargastlhdiskon = 0;
   int totaldiskon = 0;
-
+  final formatter = NumberFormat.decimalPattern('id');
   @override
   void initState() {
     super.initState();
@@ -193,7 +193,7 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
   Future<void> updateTotalSeluruh() async {
     final total =
         await ApiService.getTotalHargaPenjualanTmp(widget.user.username);
-    totalpenjualan = total == 0 ? '' : '${total.toString()}';
+    totalpenjualan = total;
     setState(() {});
   }
 
@@ -507,201 +507,6 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
     }
   }
 
-  void _handleSimpanPenjualan() async {
-    final result = await showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Simpan Penjualan'),
-        content: Text('Apakah Anda ingin mencetak struk setelah menyimpan?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, 'batal'),
-            child: Text('Batal'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, 'simpan'),
-            child: Text('Simpan Saja'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, 'simpan_cetak'),
-            child: Text('Simpan dan Cetak'),
-          ),
-        ],
-      ),
-    );
-
-    if (result == 'batal') return;
-
-    // Simpan data ke database
-    await prosesSimpan(); // Pastikan proses ini menyimpan transaksi & detailnya
-
-    // Ambil data penjualan terakhir berdasarkan no faktur
-    final items = await db.getLastPenjualanByNoFaktur(_nofakturController.text);
-
-    if (result == 'simpan_cetak') {
-      _showStrukPreview(items);
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Penjualan berhasil disimpan.')),
-      );
-    }
-  }
-
-  void _showStrukPreview(List<Penjualan> items) {
-    final totalSebelum = items.fold<double>(
-        0, (sum, item) => sum + (item.totalHargaSebelumDisc ?? 0));
-    final totalDiskon =
-        items.fold<int>(0, (sum, item) => sum + (item.jualDiscon ?? 0));
-    final totalBayar = items.fold<double>(
-        0, (sum, item) => sum + (item.totalHargaSetelahDisc ?? 0));
-
-    final now = DateTime.now();
-    final formattedDateTime = DateFormat('dd-MM-yyyy HH:mm:ss').format(now);
-
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Preview Struk'),
-        content: SizedBox(
-          width: 400,
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Column(
-                    children: const [
-                      Text('Apotek Segar 2',
-                          style: TextStyle(fontWeight: FontWeight.bold)),
-                      Text('Jl. Temanggung Tilung No.XII, Menteng,'),
-                      Text('Kec. Jekan Raya Kota Palangka Raya'),
-                      Text('Kalimantan Tengah'),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Text('No Faktur : ${_nofakturController.text}'),
-                Text('Tanggal   : $formattedDateTime'),
-                const Divider(),
-                ...items.asMap().entries.map((entry) {
-                  final i = entry.key + 1;
-                  final item = entry.value;
-                  return Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(child: Text('$i. ${item.namaBarang}')),
-                      Text('${item.satuan}    |   x${item.jumlahJual}'),
-                    ],
-                  );
-                }),
-                const Divider(),
-                Text(
-                    'Total Harga          : Rp ${totalSebelum.toStringAsFixed(0)}'),
-                Text('Total Diskon         : Rp $totalDiskon'),
-                Text(
-                    'Total Dibayar        : Rp ${totalBayar.toStringAsFixed(0)}'),
-                const SizedBox(height: 10),
-                const Divider(),
-                const Center(
-                  child: Text(
-                    'Terima kasih atas kunjungannya',
-                    style: TextStyle(fontStyle: FontStyle.italic),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Tutup'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              await _printStruk(items);
-            },
-            child: const Text('Cetak'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _printStruk(List<Penjualan> items) async {
-    final doc = pw.Document();
-
-    final totalSebelum = items.fold<double>(
-        0, (sum, item) => sum + (item.totalHargaSebelumDisc ?? 0));
-    final totalDiskon =
-        items.fold<int>(0, (sum, item) => sum + (item.jualDiscon ?? 0));
-    final totalBayar = items.fold<double>(
-        0, (sum, item) => sum + (item.totalHargaSetelahDisc ?? 0));
-
-    final now = DateTime.now();
-    final formattedDateTime = DateFormat('dd-MM-yyyy HH:mm:ss').format(now);
-
-    doc.addPage(
-      pw.Page(
-        pageFormat: PdfPageFormat.roll80,
-        build: (pw.Context context) {
-          return pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              pw.Center(
-                child: pw.Column(
-                  children: [
-                    pw.Text('Apotek Segar ',
-                        style: pw.TextStyle(
-                            fontSize: 12, fontWeight: pw.FontWeight.bold)),
-                    pw.Text('Jl. Temanggung Tilung No.XII, Menteng,'),
-                    pw.Text('Kec. Jekan Raya Kota Palangka Raya'),
-                    pw.Text('Kalimantan Tengah'),
-                  ],
-                ),
-              ),
-              pw.SizedBox(height: 10),
-              pw.Text('No Faktur : ${_nofakturController.text}'),
-              pw.Text('Tanggal   : $formattedDateTime'),
-              pw.Divider(),
-              ...items.asMap().entries.map((entry) {
-                final i = entry.key + 1;
-                final item = entry.value;
-                return pw.Row(
-                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                  children: [
-                    pw.Expanded(child: pw.Text('$i. ${item.namaBarang}')),
-                    pw.Text('${item.satuan}    |   x${item.jumlahJual}'),
-                  ],
-                );
-              }),
-              pw.Divider(),
-              pw.Text(
-                  'Total Harga          : Rp ${totalSebelum.toStringAsFixed(0)}'),
-              pw.Text('Total Diskon         : Rp $totalDiskon'),
-              pw.Text(
-                  'Total Dibayar         : Rp ${totalBayar.toStringAsFixed(0)}'),
-              pw.SizedBox(height: 10),
-              pw.Divider(),
-              pw.Center(
-                child: pw.Text(
-                  'Terima kasih atas kunjungannya',
-                  style: pw.TextStyle(
-                      fontSize: 10, fontStyle: pw.FontStyle.italic),
-                ),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-
-    await Printing.layoutPdf(
-      onLayout: (PdfPageFormat format) async => doc.save(),
-      name: 'Struk Penjualan',
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -745,7 +550,7 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
               thickness: 0.7,
             ),
             Text(
-              'Rp.${totalpenjualan} ',
+              '${formatCurrency.format(totalpenjualan ?? 0)} ',
               style: TextStyle(fontSize: 30),
             ),
             Divider(
@@ -943,7 +748,7 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
                       decoration: InputDecoration(
                         contentPadding: EdgeInsets.all(5),
                         border: OutlineInputBorder(),
-                        labelText: 'Tambah barang',
+                        labelText: 'Masukan barang ke penjualan',
                       ),
                       controller: _barangController,
                     ),
@@ -1079,9 +884,9 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
                     dataRowColor: MaterialStateProperty.all(Colors.white),
                     border: TableBorder.all(color: Colors.grey.shade300),
                     headingRowHeight: 30,
-                    headingTextStyle: const TextStyle(fontSize: 11),
-                    columnSpacing: 20,
-                    dataTextStyle: const TextStyle(fontSize: 10),
+                    headingTextStyle: const TextStyle(fontSize: 12),
+                    columnSpacing: 10,
+                    dataTextStyle: const TextStyle(fontSize: 11),
                     columns: const [
                       DataColumn(label: Text('Kode')),
                       DataColumn(label: Text('Nama')),
@@ -1099,7 +904,13 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
                       return DataRow(
                         cells: [
                           DataCell(Text(p.kodeBarang)),
-                          DataCell(Text(p.namaBarang)),
+                          DataCell(SizedBox(
+                              width: 200,
+                              child: Text(
+                                p.namaBarang,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ))),
                           DataCell(Text(p.kelompok)),
                           DataCell(Text(p.satuan)),
                           DataCell(Text(formatCurrency.format(p.hargaJual))),

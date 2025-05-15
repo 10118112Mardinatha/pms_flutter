@@ -720,7 +720,7 @@ class _ResepScreenState extends State<ResepScreen> {
                       decoration: InputDecoration(
                         contentPadding: EdgeInsets.all(5),
                         border: OutlineInputBorder(),
-                        labelText: 'Tambah barang ke resep',
+                        labelText: 'Masukan barang ke resep',
                       ),
                       controller: _barangController,
                     ),

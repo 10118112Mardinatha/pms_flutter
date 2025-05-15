@@ -44,11 +44,10 @@ class _KasirPenjualanScreenState extends State<KasirPenjualanScreen> {
   void _showStrukPreview(List<PenjualanModel> items) {
     final totalSebelum = items.fold<double>(
         0, (sum, item) => sum + (item.totalHargaSebelumDisc ?? 0));
-    final totalDiskon =
-        items.fold<int>(0, (sum, item) => sum + (item.jualDiscon ?? 0));
+
     final totalBayar = items.fold<double>(
         0, (sum, item) => sum + (item.totalHargaSetelahDisc ?? 0));
-
+    final totalDiskon = totalSebelum - totalBayar;
     final now = DateTime.now();
     final formattedDateTime = DateFormat('dd-MM-yyyy HH:mm:ss').format(now);
 
@@ -143,10 +142,10 @@ class _KasirPenjualanScreenState extends State<KasirPenjualanScreen> {
 
     final totalSebelum = items.fold<double>(
         0, (sum, item) => sum + (item.totalHargaSebelumDisc ?? 0));
-    final totalDiskon =
-        items.fold<int>(0, (sum, item) => sum + (item.jualDiscon ?? 0));
+
     final totalBayar = items.fold<double>(
         0, (sum, item) => sum + (item.totalHargaSetelahDisc ?? 0));
+    final totalDiskon = totalSebelum - totalBayar;
 
     final now = DateTime.now();
     final formattedDateTime = DateFormat('dd-MM-yyyy HH:mm:ss').format(now);
@@ -485,6 +484,7 @@ class _KasirPenjualanScreenState extends State<KasirPenjualanScreen> {
               final totalDics = totalHarga - totalSetelahDiskon;
 
               final payload = {
+                'noFaktur': penjualan.noFaktur,
                 'kodePelanggan': penjualan.kodePelanggan,
                 'namaPelanggan': penjualan.namaPelanggan,
                 'kodeDoctor': penjualan.kodeDoctor,
@@ -505,8 +505,8 @@ class _KasirPenjualanScreenState extends State<KasirPenjualanScreen> {
                 'status': penjualan.status,
               };
 
-              await ApiService.updatePenjualanByNoFaktur(
-                penjualan.noFaktur,
+              await ApiService.updatePenjualanByNoid(
+                penjualan.id.toString(),
                 payload,
               );
 

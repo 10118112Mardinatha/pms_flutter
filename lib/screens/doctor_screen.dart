@@ -534,7 +534,7 @@ class _DoctorScreenState extends State<DoctorScreen> {
                 children: [
                   Expanded(
                     child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
+                      scrollDirection: Axis.vertical,
                       child: ConstrainedBox(
                         constraints: const BoxConstraints(minWidth: 1300),
                         child: SingleChildScrollView(

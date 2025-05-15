@@ -71,7 +71,7 @@ class _BarangScreenState extends State<BarangScreen> {
     final response = await ApiService.fetchAllBarang();
     if (response.statusCode == 200) {
       final List<dynamic> jsonList = jsonDecode(response.body);
-      print(jsonList);
+
       setState(() {
         barangs = jsonList.map((json) => BarangModel.fromJson(json)).toList();
 
@@ -826,7 +826,7 @@ class _BarangScreenState extends State<BarangScreen> {
                 children: [
                   Expanded(
                     child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
+                      scrollDirection: Axis.vertical,
                       child: ConstrainedBox(
                         constraints: const BoxConstraints(minWidth: 1300),
                         child: SingleChildScrollView(
@@ -842,7 +842,8 @@ class _BarangScreenState extends State<BarangScreen> {
                               fontWeight: FontWeight.bold,
                             ),
                             dataTextStyle: const TextStyle(fontSize: 13),
-                            columnSpacing: 16,
+                            sortColumnIndex: 5,
+                            columnSpacing: 10,
                             columns: const [
                               DataColumn(label: Text('No')),
                               DataColumn(label: Text('Kode')),
@@ -853,10 +854,10 @@ class _BarangScreenState extends State<BarangScreen> {
                               DataColumn(label: Text('Stok')),
                               DataColumn(label: Text('Beli')),
                               DataColumn(label: Text('Jual')),
-                              DataColumn(label: Text('Disc1')),
-                              DataColumn(label: Text('Disc2')),
-                              DataColumn(label: Text('Disc3')),
-                              DataColumn(label: Text('Disc4')),
+                              DataColumn(label: Text('Harga Disc1')),
+                              DataColumn(label: Text('Harga Disc2')),
+                              DataColumn(label: Text('Harga Disc3')),
+                              DataColumn(label: Text('Harga Disc4')),
                               DataColumn(label: Text('Aksi')),
                             ],
                             rows:
@@ -873,10 +874,16 @@ class _BarangScreenState extends State<BarangScreen> {
                                   message: 'Kode Barang',
                                   child: Text(s.kodeBarang),
                                 )),
-                                DataCell(Tooltip(
-                                  message: 'Nama Barang',
-                                  child: Text(s.namaBarang ?? ''),
-                                )),
+                                DataCell(SizedBox(
+                                    width: 150,
+                                    child: Tooltip(
+                                      message: 'Nama Barang',
+                                      child: Text(
+                                        s.namaBarang ?? '',
+                                        maxLines: 2, // maksimal 2 baris
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ))),
                                 DataCell(Tooltip(
                                   message: 'Nomor Rak',
                                   child: Text(s.noRak ?? ''),

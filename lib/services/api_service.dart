@@ -805,6 +805,21 @@ class ApiService {
     }
   }
 
+  static Future<void> updatePenjualanByNoid(
+      String id, Map<String, dynamic> data) async {
+    final baseUrl = await _getBaseUrl();
+    final url = Uri.parse('$baseUrl/penjualan/id/$id');
+    final response = await http.put(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(data),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Gagal update penjualan');
+    }
+  }
+
   static Future<String> generatenofakturpenjualan() async {
     final baseUrl = await _getBaseUrl();
     final response =
