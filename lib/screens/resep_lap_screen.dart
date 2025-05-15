@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:excel/excel.dart';
 import 'package:pms_flutter/database/app_database.dart';
+import 'package:pms_flutter/models/resep_model.dart';
+import 'package:pms_flutter/services/api_service.dart';
 import 'package:printing/printing.dart';
 
 class LaporanResepScreen extends StatefulWidget {
@@ -17,7 +19,7 @@ class LaporanResepScreen extends StatefulWidget {
 }
 
 class _LaporanResepScreenState extends State<LaporanResepScreen> {
-  List<Resep> allData = [];
+  List<ResepModel> allData = [];
   bool isLoading = true;
   Timer? _debounce;
 
@@ -52,11 +54,12 @@ class _LaporanResepScreenState extends State<LaporanResepScreen> {
 
   Future<void> fetchData() async {
     setState(() => isLoading = true);
-    final result = await widget.database.select(widget.database.reseps).get();
-    setState(() {
-      allData = result;
-      isLoading = false;
-    });
+    try {
+      allData = await ApiService.fetchAllReseplap();
+    } catch (e) {
+      debugPrint('Gagal fetch dari API: $e');
+    }
+    setState(() => isLoading = false);
   }
 
   void clearFilter() {
@@ -68,7 +71,7 @@ class _LaporanResepScreenState extends State<LaporanResepScreen> {
     });
   }
 
-  List<Resep> get filteredData {
+  List<ResepModel> get filteredData {
     return allData.where((item) {
       final matchDate = dateRange == null ||
           (item.tanggal.isAfter(
@@ -91,12 +94,12 @@ class _LaporanResepScreenState extends State<LaporanResepScreen> {
     }).toList();
   }
 
-  List<Resep> get paginatedData {
+  List<ResepModel> get paginatedData {
     final start = currentPage * rowsPerPage;
     return filteredData.skip(start).take(rowsPerPage).toList();
   }
 
-  Future<void> exportToExcel(List<Resep> data) async {
+  Future<void> exportToExcel(List<ResepModel> data) async {
     final excel = Excel.createExcel();
     final sheet = excel['Sheet1'];
 
@@ -154,7 +157,7 @@ class _LaporanResepScreenState extends State<LaporanResepScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final showTable = selectedFilter != 'Pilih Filter' || dateRange != null;
+    final showTable = keyword.trim().isNotEmpty || dateRange != null;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Laporan Resep')),
@@ -184,7 +187,7 @@ class _LaporanResepScreenState extends State<LaporanResepScreen> {
                         onChanged: (value) {
                           setState(() {
                             selectedFilter = value!;
-                            triggerSearchWithLoading();
+                            keyword = '';
                           });
                         },
                       ),

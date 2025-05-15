@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:excel/excel.dart';
 import 'package:pms_flutter/database/app_database.dart';
+import 'package:pms_flutter/models/pembelian_model.dart';
+import 'package:pms_flutter/services/api_service.dart';
 import 'package:printing/printing.dart';
 import 'dart:typed_data';
 
@@ -17,7 +19,7 @@ class LaporanPembelianScreen extends StatefulWidget {
 }
 
 class _LaporanPembelianScreenState extends State<LaporanPembelianScreen> {
-  List<Pembelian> allData = [];
+  List<PembelianModel> allData = [];
   bool isLoading = true;
 // Tambahan: debounce untuk pencarian dan filter agar tidak flicker
   Timer? _debounce;
@@ -52,12 +54,12 @@ class _LaporanPembelianScreenState extends State<LaporanPembelianScreen> {
 
   Future<void> fetchData() async {
     setState(() => isLoading = true);
-    final result =
-        await widget.database.select(widget.database.pembelians).get();
-    setState(() {
-      allData = result;
-      isLoading = false;
-    });
+    try {
+      allData = await ApiService.fetchAllPembelianlap();
+    } catch (e) {
+      debugPrint('Gagal fetch dari API: $e');
+    }
+    setState(() => isLoading = false);
   }
 
   void clearFilter() {
@@ -69,23 +71,30 @@ class _LaporanPembelianScreenState extends State<LaporanPembelianScreen> {
     });
   }
 
-  List<Pembelian> get filteredData {
+  List<PembelianModel> get filteredData {
     return allData.where((item) {
-      final matchDate = dateRange == null ||
-          (item.tanggalBeli.isAfter(
-                  dateRange!.start.subtract(const Duration(days: 1))) &&
-              item.tanggalBeli
-                  .isBefore(dateRange!.end.add(const Duration(days: 1))));
+      final tanggal = item.tanggalBeli;
+      final matchDate = tanggal != null &&
+          (dateRange == null ||
+              (tanggal.isAfter(
+                      dateRange!.start.subtract(const Duration(days: 1))) &&
+                  tanggal
+                      .isBefore(dateRange!.end.add(const Duration(days: 1)))));
+
       final lowerKeyword = keyword.toLowerCase();
+
       switch (selectedFilter) {
         case 'No Faktur':
-          return item.noFaktur.toLowerCase().contains(lowerKeyword) &&
+          return (item.noFaktur?.toLowerCase().contains(lowerKeyword) ??
+                  false) &&
               matchDate;
         case 'Nama Barang':
-          return item.namaBarang.toLowerCase().contains(lowerKeyword) &&
+          return (item.namaBarang?.toLowerCase().contains(lowerKeyword) ??
+                  false) &&
               matchDate;
         case 'Kelompok':
-          return item.kelompok.toLowerCase().contains(lowerKeyword) &&
+          return (item.kelompok?.toLowerCase().contains(lowerKeyword) ??
+                  false) &&
               matchDate;
         default:
           return matchDate;
@@ -93,12 +102,12 @@ class _LaporanPembelianScreenState extends State<LaporanPembelianScreen> {
     }).toList();
   }
 
-  List<Pembelian> get paginatedData {
+  List<PembelianModel> get paginatedData {
     final start = currentPage * rowsPerPage;
     return filteredData.skip(start).take(rowsPerPage).toList();
   }
 
-  Future<void> exportToExcel(List<Pembelian> data) async {
+  Future<void> exportToExcel(List<PembelianModel> data) async {
     final excel = Excel.createExcel();
     final sheet = excel['Sheet1'];
 
@@ -110,7 +119,6 @@ class _LaporanPembelianScreenState extends State<LaporanPembelianScreen> {
       'Kode Barang',
       'Nama Barang',
       'Tanggal Beli',
-      'Expired',
       'Kelompok',
       'Satuan',
       'Harga Beli',
@@ -119,7 +127,6 @@ class _LaporanPembelianScreenState extends State<LaporanPembelianScreen> {
       'Disc2',
       'Disc3',
       'Disc4',
-      'PPN',
       'Jumlah Beli',
       'Total Harga'
     ]);
@@ -134,7 +141,6 @@ class _LaporanPembelianScreenState extends State<LaporanPembelianScreen> {
         p.kodeBarang,
         p.namaBarang,
         DateFormat('dd-MM-yyyy').format(p.tanggalBeli),
-        DateFormat('dd-MM-yyyy').format(p.expired!),
         p.kelompok,
         p.satuan,
         p.hargaBeli,
@@ -143,7 +149,6 @@ class _LaporanPembelianScreenState extends State<LaporanPembelianScreen> {
         p.jualDisc2 ?? 0,
         p.jualDisc3 ?? 0,
         p.jualDisc4 ?? 0,
-        p.ppn ?? 0,
         p.jumlahBeli ?? 0,
         p.totalHarga ?? 0,
       ]);
@@ -166,7 +171,7 @@ class _LaporanPembelianScreenState extends State<LaporanPembelianScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final showTable = selectedFilter != 'Pilih Filter' || dateRange != null;
+    final showTable = keyword.trim().isNotEmpty || dateRange != null;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Laporan Pembelian')),
@@ -196,7 +201,7 @@ class _LaporanPembelianScreenState extends State<LaporanPembelianScreen> {
                         onChanged: (value) {
                           setState(() {
                             selectedFilter = value!;
-                            triggerSearchWithLoading();
+                            keyword = '';
                           });
                         },
                       ),
@@ -290,7 +295,6 @@ class _LaporanPembelianScreenState extends State<LaporanPembelianScreen> {
                                       DataColumn(label: Text('Kode Barang')),
                                       DataColumn(label: Text('Nama Barang')),
                                       DataColumn(label: Text('Tanggal Beli')),
-                                      DataColumn(label: Text('Expired')),
                                       DataColumn(label: Text('Kelompok')),
                                       DataColumn(label: Text('Satuan')),
                                       DataColumn(label: Text('Harga Beli')),
@@ -299,7 +303,6 @@ class _LaporanPembelianScreenState extends State<LaporanPembelianScreen> {
                                       DataColumn(label: Text('Disc2')),
                                       DataColumn(label: Text('Disc3')),
                                       DataColumn(label: Text('Disc4')),
-                                      DataColumn(label: Text('PPN')),
                                       DataColumn(label: Text('Jumlah Beli')),
                                       DataColumn(label: Text('Total Harga')),
                                     ],
@@ -317,12 +320,6 @@ class _LaporanPembelianScreenState extends State<LaporanPembelianScreen> {
                                           DataCell(Text(p.namaBarang)),
                                           DataCell(Text(DateFormat('dd-MM-yyyy')
                                               .format(p.tanggalBeli))),
-                                          DataCell(Text(
-                                            p.expired == null
-                                                ? ''
-                                                : DateFormat('dd-MM-yyyy')
-                                                    .format(p.expired!),
-                                          )),
                                           DataCell(Text(p.kelompok)),
                                           DataCell(Text(p.satuan)),
                                           DataCell(Text(NumberFormat.currency(
@@ -335,7 +332,6 @@ class _LaporanPembelianScreenState extends State<LaporanPembelianScreen> {
                                           DataCell(Text('${p.jualDisc2 ?? 0}')),
                                           DataCell(Text('${p.jualDisc3 ?? 0}')),
                                           DataCell(Text('${p.jualDisc4 ?? 0}')),
-                                          DataCell(Text('${p.ppn ?? 0}')),
                                           DataCell(
                                               Text('${p.jumlahBeli ?? 0}')),
                                           DataCell(Text(NumberFormat.currency(

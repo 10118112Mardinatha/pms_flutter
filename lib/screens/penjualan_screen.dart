@@ -651,7 +651,7 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
               pw.Center(
                 child: pw.Column(
                   children: [
-                    pw.Text('Apotek Segar 2',
+                    pw.Text('Apotek Segar ',
                         style: pw.TextStyle(
                             fontSize: 12, fontWeight: pw.FontWeight.bold)),
                     pw.Text('Jl. Temanggung Tilung No.XII, Menteng,'),

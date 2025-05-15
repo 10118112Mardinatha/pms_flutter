@@ -49,7 +49,9 @@ class PenjualanModel {
       namaPelanggan: json['namaPelanggan'],
       kodeDoctor: json['kodeDoctor'],
       namaDoctor: json['namaDoctor'],
-      tanggalPenjualan: DateTime.parse(json['tanggalPenjualan']),
+      tanggalPenjualan: json['tanggalPenjualan'] is String
+          ? DateTime.parse(json['tanggalPenjualan'])
+          : DateTime.fromMillisecondsSinceEpoch(json['tanggalPenjualan']),
       kodeBarang: json['kodeBarang'],
       namaBarang: json['namaBarang'],
       kelompok: json['kelompok'],

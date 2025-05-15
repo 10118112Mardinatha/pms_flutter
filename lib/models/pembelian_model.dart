@@ -45,7 +45,9 @@ class PembelianModel {
       namaSuppliers: json['namaSuppliers'],
       kodeBarang: json['kodeBarang'],
       namaBarang: json['namaBarang'],
-      tanggalBeli: DateTime.parse(json['tanggalBeli']),
+      tanggalBeli: json['tanggalBeli'] is String
+          ? DateTime.parse(json['tanggalBeli'])
+          : DateTime.fromMillisecondsSinceEpoch(json['tanggalBeli']),
       kelompok: json['kelompok'],
       satuan: json['satuan'],
       hargaBeli: json['hargaBeli'],

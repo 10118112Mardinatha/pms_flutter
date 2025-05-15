@@ -7,14 +7,17 @@ import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:pms_flutter/models/barang_model.dart';
 import 'package:pms_flutter/models/log_activity_model.dart';
+import 'package:pms_flutter/models/pembelian_model.dart';
 import 'package:pms_flutter/models/pembeliantmp_model.dart';
+import 'package:pms_flutter/models/penjualan_model.dart';
 import 'package:pms_flutter/models/penjualantmp_model.dart';
+import 'package:pms_flutter/models/resep_model.dart';
 import 'package:pms_flutter/models/reseptmp_model.dart';
 import 'package:pms_flutter/models/user_model.dart';
 
 class ApiService {
   static const String baseUrl =
-      'http://192.168.100.142:8080'; // Ganti sesuai IP server LAN
+      'http://192.168.1.6:8080'; // Ganti sesuai IP server LAN
 
   // ====================== SUPPLIER ======================
   static Future<http.Response> fetchAllSuppliers() async {
@@ -241,6 +244,39 @@ class ApiService {
     }
   }
 
+  static Future<List<ResepModel>> resepfilter({
+    String? noRak,
+    DateTime? date,
+    String? namarak,
+  }) async {
+    final queryParams = <String, String>{};
+    if (noRak != null && noRak.isNotEmpty) {
+      queryParams['kodeRak'] = noRak;
+    }
+    if (namarak != null && namarak.isNotEmpty) {
+      queryParams['namaRak'] = namarak;
+    }
+    if (date != null) {
+      queryParams['date'] = DateFormat('yyyy-MM-dd').format(date);
+    }
+
+    final uri =
+        Uri.parse('$baseUrl/resep/').replace(queryParameters: queryParams);
+    final response = await http.get(uri);
+
+    if (response.statusCode == 200) {
+      final body = jsonDecode(response.body);
+      if (body is List) {
+        return body.map((e) => ResepModel.fromJson(e)).toList();
+      } else {
+        throw Exception('Respon bukan List');
+      }
+    } else {
+      throw Exception(
+          'Gagal memuat data Rak aktivitas: ${response.statusCode}');
+    }
+  }
+
   // ====================== DOKTER
 
   static Future<http.Response> fetchAllDokter() async {
@@ -453,6 +489,47 @@ class ApiService {
     }
   }
 
+  static Future<http.Response> fetchAllPembelian() async {
+    final url = Uri.parse('$baseUrl/pembelian/');
+    return await http.get(url);
+  }
+
+  static Future<List<PembelianModel>> fetchAllPembelianlap() async {
+    final url = Uri.parse('$baseUrl/pembelian/');
+    final response = await http.get(url);
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body);
+      return data.map((e) => PembelianModel.fromJson(e)).toList();
+    } else {
+      throw Exception('Gagal memuat data pembelian');
+    }
+  }
+
+  static Future<List<PenjualanModel>> fetchAllPenjualanlap() async {
+    final url = Uri.parse('$baseUrl/penjualan/');
+    final response = await http.get(url);
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body);
+      return data.map((e) => PenjualanModel.fromJson(e)).toList();
+    } else {
+      throw Exception('Gagal memuat data pembelian');
+    }
+  }
+
+  static Future<List<ResepModel>> fetchAllReseplap() async {
+    final url = Uri.parse('$baseUrl/resep/');
+    final response = await http.get(url);
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body);
+      return data.map((e) => ResepModel.fromJson(e)).toList();
+    } else {
+      throw Exception('Gagal memuat data pembelian');
+    }
+  }
+
   static Future<http.Response> postPembelianTmp(
       Map<String, dynamic> data) async {
     final url = Uri.parse('$baseUrl/pembeliantmp/');
@@ -640,6 +717,20 @@ class ApiService {
     );
   }
 
+  static Future<void> updatePenjualanByNoFaktur(
+      String noFaktur, Map<String, dynamic> data) async {
+    final url = Uri.parse('$baseUrl/penjualan/nofaktur/$noFaktur');
+    final response = await http.put(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(data),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Gagal update penjualan');
+    }
+  }
+
   static Future<String> generatenofakturpenjualan() async {
     final response =
         await http.get(Uri.parse('$baseUrl/penjualantmp/generatenofaktur/'));
@@ -649,6 +740,19 @@ class ApiService {
       return data['noFaktur']; // ✅ jadi string
     } else {
       throw Exception('Gagal ambil kode');
+    }
+  }
+
+  static Future<void> updateStatusPenjualan(
+      String noFaktur, String status) async {
+    final response = await http.put(
+      Uri.parse('$baseUrl/penjualan/status/$noFaktur'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'status': status}),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Gagal update status penjualan');
     }
   }
 
@@ -727,6 +831,26 @@ class ApiService {
       print('Gagal: ${response.body}');
       return false;
     }
+  }
+
+  static Future<List<PembelianModel>> getPembelian() async {
+    final res = await http.get(Uri.parse('$baseUrl/pembelian'));
+    if (res.statusCode == 200) {
+      final List jsonData = jsonDecode(res.body);
+      return jsonData.map((e) => PembelianModel.fromJson(e)).toList();
+    } else {
+      throw Exception('Gagal mengambil data pembelian');
+    }
+  }
+
+  /// Tambahkan pembelian jika diperlukan nanti
+  static Future<http.Response> addPembelian(Map<String, dynamic> data) async {
+    final url = Uri.parse('$baseUrl/pembelian');
+    return await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(data),
+    );
   }
 
   static Future<bool> cekNoFakturPenjualanBelumAda(String noFaktur) async {

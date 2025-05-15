@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:pms_flutter/database/app_database.dart';
 import 'package:pms_flutter/models/log_activity_model.dart';
+import 'package:pms_flutter/screens/kasir_penjualan_screen.dart';
 import 'package:pms_flutter/screens/pelanggan_screen.dart';
 import 'package:pms_flutter/screens/pembelian_lap_screen.dart';
 import 'package:pms_flutter/screens/pembelian_screen.dart';
@@ -49,6 +50,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         return PembelianScreen(user: widget.user);
       case 'Penjualan':
         return PenjualanScreen(user: widget.user);
+      case 'Kasir':
+        return KasirPenjualanScreen(user: widget.user);
       case 'Resep':
         return ResepScreen(user: widget.user);
       case 'Rak':

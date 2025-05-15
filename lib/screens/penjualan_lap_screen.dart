@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:excel/excel.dart';
 import 'package:pms_flutter/database/app_database.dart';
+import 'package:pms_flutter/models/penjualan_model.dart';
+import 'package:pms_flutter/services/api_service.dart';
 import 'package:printing/printing.dart';
 import 'dart:typed_data';
 
@@ -17,7 +19,7 @@ class LaporanPenjualanScreen extends StatefulWidget {
 }
 
 class _LaporanPenjualanScreenState extends State<LaporanPenjualanScreen> {
-  List<Penjualan> allData = [];
+  List<PenjualanModel> allData = [];
   bool isLoading = true;
   Timer? _debounce;
   void triggerSearchWithLoading() {
@@ -51,12 +53,12 @@ class _LaporanPenjualanScreenState extends State<LaporanPenjualanScreen> {
 
   Future<void> fetchData() async {
     setState(() => isLoading = true);
-    final result =
-        await widget.database.select(widget.database.penjualans).get();
-    setState(() {
-      allData = result;
-      isLoading = false;
-    });
+    try {
+      allData = await ApiService.fetchAllPenjualanlap();
+    } catch (e) {
+      debugPrint('Gagal fetch dari API: $e');
+    }
+    setState(() => isLoading = false);
   }
 
   void clearFilter() {
@@ -68,23 +70,30 @@ class _LaporanPenjualanScreenState extends State<LaporanPenjualanScreen> {
     });
   }
 
-  List<Penjualan> get filteredData {
+  List<PenjualanModel> get filteredData {
     return allData.where((item) {
-      final matchDate = dateRange == null ||
-          (item.tanggalPenjualan.isAfter(
-                  dateRange!.start.subtract(const Duration(days: 1))) &&
-              item.tanggalPenjualan
-                  .isBefore(dateRange!.end.add(const Duration(days: 1))));
+      final tanggal = item.tanggalPenjualan;
+      final matchDate = tanggal != null &&
+          (dateRange == null ||
+              (tanggal.isAfter(
+                      dateRange!.start.subtract(const Duration(days: 1))) &&
+                  tanggal
+                      .isBefore(dateRange!.end.add(const Duration(days: 1)))));
+
       final lowerKeyword = keyword.toLowerCase();
+
       switch (selectedFilter) {
         case 'No Faktur':
-          return item.noFaktur.toLowerCase().contains(lowerKeyword) &&
+          return (item.noFaktur?.toLowerCase().contains(lowerKeyword) ??
+                  false) &&
               matchDate;
         case 'Nama Barang':
-          return item.namaBarang.toLowerCase().contains(lowerKeyword) &&
+          return (item.namaBarang?.toLowerCase().contains(lowerKeyword) ??
+                  false) &&
               matchDate;
         case 'Kelompok':
-          return item.kelompok.toLowerCase().contains(lowerKeyword) &&
+          return (item.kelompok?.toLowerCase().contains(lowerKeyword) ??
+                  false) &&
               matchDate;
         default:
           return matchDate;
@@ -92,12 +101,12 @@ class _LaporanPenjualanScreenState extends State<LaporanPenjualanScreen> {
     }).toList();
   }
 
-  List<Penjualan> get paginatedData {
+  List<PenjualanModel> get paginatedData {
     final start = currentPage * rowsPerPage;
     return filteredData.skip(start).take(rowsPerPage).toList();
   }
 
-  Future<void> exportToExcel(List<Penjualan> data) async {
+  Future<void> exportToExcel(List<PenjualanModel> data) async {
     final excel = Excel.createExcel();
     final sheet = excel['Sheet1'];
 
@@ -147,7 +156,7 @@ class _LaporanPenjualanScreenState extends State<LaporanPenjualanScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final showTable = selectedFilter != 'Pilih Filter' || dateRange != null;
+    final showTable = keyword.trim().isNotEmpty || dateRange != null;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Laporan Penjualan')),
@@ -177,7 +186,7 @@ class _LaporanPenjualanScreenState extends State<LaporanPenjualanScreen> {
                         onChanged: (value) {
                           setState(() {
                             selectedFilter = value!;
-                            triggerSearchWithLoading();
+                            keyword = '';
                           });
                         },
                       ),
@@ -274,6 +283,7 @@ class _LaporanPenjualanScreenState extends State<LaporanPenjualanScreen> {
                                       DataColumn(label: Text('Harga Beli')),
                                       DataColumn(label: Text('Harga Jual')),
                                       DataColumn(label: Text('Total Harga')),
+                                      DataColumn(label: Text('Status')),
                                     ],
                                     rows: List.generate(
                                       paginatedData.length,
@@ -295,6 +305,7 @@ class _LaporanPenjualanScreenState extends State<LaporanPenjualanScreen> {
                                               'Rp ${NumberFormat("#,##0", "id_ID").format(p.hargaJual)}')),
                                           DataCell(Text(
                                               'Rp ${NumberFormat("#,##0", "id_ID").format(p.totalHargaSetelahDisc ?? 0)}')),
+                                          DataCell(Text(p.status)),
                                         ]);
                                       },
                                     ),

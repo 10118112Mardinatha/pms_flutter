@@ -52,7 +52,9 @@ class ResepModel {
     return ResepModel(
       id: json['id'],
       noResep: json['noResep'],
-      tanggal: json['tanggal'],
+      tanggal: json['tanggal'] is String
+          ? DateTime.parse(json['tanggal'])
+          : DateTime.fromMillisecondsSinceEpoch(json['tanggal']),
       kodePelanggan: json['kodePelanggan'],
       namaPelanggan: json['namaPelanggan'],
       kelompokPelanggan: json['kelompokPelanggan'],

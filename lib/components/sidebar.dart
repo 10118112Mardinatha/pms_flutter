@@ -100,6 +100,9 @@ class _SidebarState extends State<Sidebar> {
                               child:
                                   _menuItem(Icons.point_of_sale, 'Penjualan')),
                           Tooltip(
+                              message: _isCollapsed ? 'Kasir' : '',
+                              child: _menuItem(Icons.money, 'Kasir')),
+                          Tooltip(
                               message: _isCollapsed ? 'Resep' : '',
                               child: _menuItem(Icons.receipt_long, 'Resep')),
                           if (_role == 'admin') _divider(),

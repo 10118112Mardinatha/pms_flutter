@@ -30,7 +30,6 @@ class BarangScreen extends StatefulWidget {
 }
 
 class _BarangScreenState extends State<BarangScreen> {
-  late AppDatabase db;
   List<BarangModel> barangs = [];
   List<BarangModel> filteredBarangs = [];
   List<UserModel> users = [];
