@@ -21,7 +21,10 @@ class ResepScreen extends StatefulWidget {
 class _ResepScreenState extends State<ResepScreen> {
   final currencyFormatter =
       NumberFormat.currency(locale: 'id_ID', symbol: 'Rp', decimalDigits: 0);
-
+  final FocusNode _discFocusNode = FocusNode();
+  final FocusNode _barangFocusNode = FocusNode();
+  final FocusNode _jumlahbeliFocusNode = FocusNode();
+  bool _isSelectingSuggestion = false;
   List<ResepTmpModel> allData = [];
   bool iscekumum = true;
   bool iscekpelanggan = false;
@@ -247,7 +250,9 @@ class _ResepScreenState extends State<ResepScreen> {
         totalharga = 0;
         totalhargastlhdiskon = 0;
         totaldiskon = 0;
+        selectedBarang = null;
         _loadResep();
+        _barangFocusNode.requestFocus();
       } else if (response.statusCode == 404) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -401,7 +406,6 @@ class _ResepScreenState extends State<ResepScreen> {
                     ),
                     textInputAction: TextInputAction.done,
                     onSubmitted: (value) async {
-                      print('Enter ditekan di Jual Diskon: $value');
                       await _submitForm();
                     },
                   ),
@@ -457,6 +461,7 @@ class _ResepScreenState extends State<ResepScreen> {
                 TextFormField(
                   controller: jumlahCtrl,
                   decoration: InputDecoration(labelText: 'Jumlah jual'),
+                  onFieldSubmitted: (_) => _submitForm(),
                   keyboardType: TextInputType.number,
                   validator: (value) => value == null || value.isEmpty
                       ? 'Wajib diisi tidak boleh kosong'
@@ -806,6 +811,15 @@ class _ResepScreenState extends State<ResepScreen> {
                         labelText: 'Masukan barang ke resep',
                       ),
                       controller: _barangController,
+                      focusNode: _barangFocusNode,
+                      onChanged: (value) {
+                        if (!_isSelectingSuggestion) {
+                          // Kosongkan field jika user sedang mengetik (bukan dari suggestion)
+                          _jumlahbarangController.clear();
+                          _discController.clear();
+                          selectedBarang = null;
+                        }
+                      },
                     ),
                     suggestionsCallback: (pattern) async {
                       try {
@@ -831,10 +845,13 @@ class _ResepScreenState extends State<ResepScreen> {
                       satuan = suggestion.satuan!;
                       hargabeli = suggestion.hargaBeli;
                       hargajual = suggestion.hargaJual;
+                      _jumlahbeliFocusNode.requestFocus();
                       selectedBarang =
                           await ApiService.fetchBarangByKodefodiscon(
                               kodebarang);
-
+                      Future.delayed(Duration(milliseconds: 100), () {
+                        _isSelectingSuggestion = false;
+                      });
                       setState(() {});
                     },
                   ),
@@ -850,6 +867,7 @@ class _ResepScreenState extends State<ResepScreen> {
                       border: OutlineInputBorder(),
                       labelText: 'Jumlah',
                     ),
+                    onFieldSubmitted: (_) => ProsesTambahresep(),
                   ),
                 ),
                 SizedBox(width: 15),
@@ -859,11 +877,13 @@ class _ResepScreenState extends State<ResepScreen> {
                   child: TypeAheadFormField<Map<String, dynamic>>(
                     textFieldConfiguration: TextFieldConfiguration(
                       controller: _discController,
+                      focusNode: _discFocusNode,
                       decoration: InputDecoration(
                         contentPadding: EdgeInsets.all(5),
                         border: OutlineInputBorder(),
                         labelText: 'Pilih Diskon',
                       ),
+                      onSubmitted: (_) => ProsesTambahresep(),
                     ),
                     suggestionsCallback: (pattern) {
                       if (selectedBarang == null) return [];
@@ -913,6 +933,7 @@ class _ResepScreenState extends State<ResepScreen> {
                     onSuggestionSelected: (suggestion) {
                       _discController.text =
                           currencyFormatter.format(suggestion['value']);
+                      _discFocusNode.requestFocus();
                     },
                     noItemsFoundBuilder: (context) =>
                         Text('Diskon tidak tersedia'),

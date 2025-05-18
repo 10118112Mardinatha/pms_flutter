@@ -209,6 +209,154 @@ class _PembelianScreenState extends State<PembelianScreen> {
     hargaBeliCtrl.addListener(hitungTotalHarga);
     jumlahBeliCtrl.addListener(hitungTotalHarga);
 
+    void _handleSimpan() async {
+      if (!formKey.currentState!.validate()) return;
+
+      if (data == null) {
+        if (kodeBarangCtrl.text == '') {
+          final shouldInsert = await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: Text('Barang belum terdaftar'),
+              content: Text(
+                  'Data barang belum ada. Ingin ditambahkan ke daftar barang?'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: Text('Tidak'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  child: Text('Ya'),
+                ),
+              ],
+            ),
+          );
+
+          if (shouldInsert == true) {
+            String kodeBaru = await ApiService.generateKodeBarang();
+            final raw = {
+              'kodeBarang': kodeBaru,
+              'namaBarang': _barangController.text,
+              'noRak': '',
+              'kelompok': kelompokCtrl.text,
+              'satuan': satuanCtrl.text,
+              'stokAktual': 0,
+              'hargaBeli': int.tryParse(
+                      hargaBeliCtrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
+                  0,
+              'hargaJual': int.tryParse(
+                      hargaJualCtrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
+                  0,
+              'jualDisc1': int.tryParse(
+                      disc1Ctrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
+                  0,
+              'jualDisc2': int.tryParse(
+                      disc2Ctrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
+                  0,
+              'jualDisc3': int.tryParse(
+                      disc3Ctrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
+                  0,
+              'jualDisc4': int.tryParse(
+                      disc4Ctrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
+                  0,
+            };
+
+            await ApiService.postBarang(raw);
+            kodeBarangCtrl.text = kodeBaru;
+          } else {
+            return;
+          }
+        }
+
+        final raw2 = {
+          'username': widget.user.username,
+          'kodeBarang': kodeBarangCtrl.text,
+          'namaBarang': _barangController.text,
+          'kelompok': kelompokCtrl.text,
+          'satuan': satuanCtrl.text,
+          'hargaBeli': int.tryParse(
+                  hargaBeliCtrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
+              0,
+          'hargaJual': int.tryParse(
+                  hargaJualCtrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
+              0,
+          'jualDisc1':
+              int.tryParse(disc1Ctrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
+                  0,
+          'jualDisc2':
+              int.tryParse(disc2Ctrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
+                  0,
+          'jualDisc3':
+              int.tryParse(disc3Ctrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
+                  0,
+          'jualDisc4':
+              int.tryParse(disc4Ctrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
+                  0,
+          'jumlahBeli': int.tryParse(
+                  jumlahBeliCtrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
+              0,
+          'totalHarga': int.tryParse(
+                  totalHargaCtrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
+              0,
+        };
+
+        final masuk = await ApiService.postPembelianTmp(raw2);
+        if (masuk.statusCode == 200 || masuk.statusCode == 201) {
+          if (context.mounted) Navigator.pop(context);
+          await _loadPembelians();
+        } else {
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text('Gagal menyimpan data')));
+        }
+      } else {
+        final raw3 = {
+          'id': data!.id,
+          'username': widget.user.username,
+          'kodeBarang': kodeBarangCtrl.text,
+          'namaBarang': _barangController.text,
+          'kelompok': kelompokCtrl.text,
+          'satuan': satuanCtrl.text,
+          'hargaBeli': int.tryParse(
+                  hargaBeliCtrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
+              0,
+          'hargaJual': int.tryParse(
+                  hargaJualCtrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
+              0,
+          'jualDisc1':
+              int.tryParse(disc1Ctrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
+                  0,
+          'jualDisc2':
+              int.tryParse(disc2Ctrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
+                  0,
+          'jualDisc3':
+              int.tryParse(disc3Ctrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
+                  0,
+          'jualDisc4':
+              int.tryParse(disc4Ctrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
+                  0,
+          'jumlahBeli': int.tryParse(
+                  jumlahBeliCtrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
+              0,
+          'totalHarga': int.tryParse(
+                  totalHargaCtrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
+              0,
+        };
+
+        final update =
+            await ApiService.updatePembelianTmp(data!.id.toString(), raw3);
+        if (update.statusCode == 200 || update.statusCode == 201) {
+          if (context.mounted) Navigator.pop(context);
+          await _loadPembelians();
+        } else {
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text('Gagal menyimpan data')));
+        }
+      }
+
+      updateTotalSeluruh();
+    }
+
     await showDialog(
       context: context,
       builder: (_) => AlertDialog(
@@ -523,6 +671,7 @@ class _PembelianScreenState extends State<PembelianScreen> {
                     keyboardType: TextInputType.number,
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     controller: jumlahBeliCtrl,
+                    onFieldSubmitted: (_) => _handleSimpan(),
                     decoration: InputDecoration(labelText: 'Jumlah Beli'),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
@@ -560,158 +709,7 @@ class _PembelianScreenState extends State<PembelianScreen> {
             child: const Text('Batal'),
           ),
           ElevatedButton(
-            onPressed: () async {
-              if (formKey.currentState!.validate()) {
-                if (data == null) {
-                  if (kodeBarangCtrl.text == '') {
-                    final shouldInsert = await showDialog<bool>(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: Text('Barang belum terdaftar'),
-                        content: Text(
-                            'Data barang belum ada. Ingin ditambahkan ke daftar barang?'),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.of(context).pop(false),
-                            child: Text('Tidak'),
-                          ),
-                          TextButton(
-                            onPressed: () => Navigator.of(context).pop(true),
-                            child: Text('Ya'),
-                          ),
-                        ],
-                      ),
-                    );
-
-                    if (shouldInsert == true) {
-                      String kodeBaru = await ApiService.generateKodeBarang();
-                      // ✅ Insert ke tabel barangs
-                      final raw = {
-                        'kodeBarang': kodeBaru,
-                        'namaBarang': _barangController.text,
-                        'noRak': '',
-                        'kelompok': kelompokCtrl.text,
-                        'satuan': satuanCtrl.text,
-                        'stokAktual': 0,
-                        'hargaBeli': int.tryParse(hargaBeliCtrl.text
-                                .replaceAll(RegExp(r'[^0-9]'), '')) ??
-                            0,
-                        'hargaJual': int.tryParse(hargaJualCtrl.text
-                                .replaceAll(RegExp(r'[^0-9]'), '')) ??
-                            0,
-                        'jualDisc1': int.tryParse(disc1Ctrl.text
-                                .replaceAll(RegExp(r'[^0-9]'), '')) ??
-                            0,
-                        'jualDisc2': int.tryParse(disc2Ctrl.text
-                                .replaceAll(RegExp(r'[^0-9]'), '')) ??
-                            0,
-                        'jualDisc3': int.tryParse(disc3Ctrl.text
-                                .replaceAll(RegExp(r'[^0-9]'), '')) ??
-                            0,
-                        'jualDisc4': int.tryParse(disc4Ctrl.text
-                                .replaceAll(RegExp(r'[^0-9]'), '')) ??
-                            0,
-                      };
-                      late http.Response response;
-                      response = await ApiService.postBarang(raw);
-
-                      kodeBarangCtrl.text = kodeBaru;
-                    } else {
-                      return;
-                    }
-                  }
-                  final raw2 = {
-                    'username': widget.user.username,
-                    'kodeBarang': kodeBarangCtrl.text,
-                    'namaBarang': _barangController.text,
-                    'kelompok': kelompokCtrl.text,
-                    'satuan': satuanCtrl.text,
-                    'hargaBeli': int.tryParse(hargaBeliCtrl.text
-                            .replaceAll(RegExp(r'[^0-9]'), '')) ??
-                        0,
-                    'hargaJual': int.tryParse(hargaJualCtrl.text
-                            .replaceAll(RegExp(r'[^0-9]'), '')) ??
-                        0,
-                    'jualDisc1': int.tryParse(
-                            disc1Ctrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
-                        0,
-                    'jualDisc2': int.tryParse(
-                            disc2Ctrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
-                        0,
-                    'jualDisc3': int.tryParse(
-                            disc3Ctrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
-                        0,
-                    'jualDisc4': int.tryParse(
-                            disc4Ctrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
-                        0,
-                    'jumlahBeli': int.tryParse(jumlahBeliCtrl.text
-                            .replaceAll(RegExp(r'[^0-9]'), '')) ??
-                        0,
-                    'totalHarga': int.tryParse(totalHargaCtrl.text
-                            .replaceAll(RegExp(r'[^0-9]'), '')) ??
-                        0,
-                  };
-                  late http.Response masuk;
-                  masuk = await ApiService.postPembelianTmp(raw2);
-                  if (masuk.statusCode == 200 || masuk.statusCode == 201) {
-                    if (context.mounted) Navigator.pop(context);
-                    await _loadPembelians(); // refresh data
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Gagal menyimpan data')),
-                    );
-                  }
-                } else {
-                  //updat
-                  final raw3 = {
-                    'id': data.id,
-                    'username': widget.user.username,
-                    'kodeBarang': kodeBarangCtrl.text,
-                    'namaBarang': _barangController.text,
-                    'kelompok': kelompokCtrl.text,
-                    'satuan': satuanCtrl.text,
-                    'hargaBeli': int.tryParse(hargaBeliCtrl.text
-                            .replaceAll(RegExp(r'[^0-9]'), '')) ??
-                        0,
-                    'hargaJual': int.tryParse(hargaJualCtrl.text
-                            .replaceAll(RegExp(r'[^0-9]'), '')) ??
-                        0,
-                    'jualDisc1': int.tryParse(
-                            disc1Ctrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
-                        0,
-                    'jualDisc2': int.tryParse(
-                            disc2Ctrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
-                        0,
-                    'jualDisc3': int.tryParse(
-                            disc3Ctrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
-                        0,
-                    'jualDisc4': int.tryParse(
-                            disc4Ctrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
-                        0,
-                    'jumlahBeli': int.tryParse(jumlahBeliCtrl.text
-                            .replaceAll(RegExp(r'[^0-9]'), '')) ??
-                        0,
-                    'totalHarga': int.tryParse(totalHargaCtrl.text
-                            .replaceAll(RegExp(r'[^0-9]'), '')) ??
-                        0,
-                  };
-                  late http.Response update;
-                  update = await ApiService.updatePembelianTmp(
-                      data.id.toString(), raw3);
-
-                  if (update.statusCode == 200 || update.statusCode == 201) {
-                    if (context.mounted) Navigator.pop(context);
-                    await _loadPembelians();
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Gagal menyimpan data')),
-                    );
-                  }
-                }
-
-                updateTotalSeluruh();
-              }
-            },
+            onPressed: _handleSimpan,
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.blue.shade600, // warna tombol simpan
               padding: EdgeInsets.symmetric(horizontal: 24, vertical: 14),
@@ -777,7 +775,7 @@ class _PembelianScreenState extends State<PembelianScreen> {
         await _loadPembelians(); // <-- refresh data di layar
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-              content: Text('Barang dipemblian ini berhasil dihapus')),
+              content: Text('Barang dipembelian ini berhasil dihapus')),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(

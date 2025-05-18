@@ -62,7 +62,7 @@ class _DoctorScreenState extends State<DoctorScreen> {
     final response = await ApiService.fetchAllDokter();
     if (response.statusCode == 200) {
       final List<dynamic> jsonList = jsonDecode(response.body);
-      print(jsonList);
+
       setState(() {
         doctors = jsonList.map((json) => DoctorModel.fromJson(json)).toList();
 
@@ -118,7 +118,7 @@ class _DoctorScreenState extends State<DoctorScreen> {
                   nilaipenjualanCtrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
               0,
         };
-        print(jsonEncode(data));
+
         late http.Response response;
 
         if (doctor == null) {

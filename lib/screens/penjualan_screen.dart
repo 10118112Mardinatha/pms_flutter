@@ -21,10 +21,12 @@ class PenjualanScreen extends StatefulWidget {
 
 class _PenjualanScreenState extends State<PenjualanScreen> {
   List<PenjualanTmpModel> allPenjualantmp = [];
-
+  bool _isSelectingSuggestion = false;
   final currencyFormatter =
       NumberFormat.currency(locale: 'id_ID', symbol: 'Rp', decimalDigits: 0);
-
+  final FocusNode _discFocusNode = FocusNode();
+  final FocusNode _barangFocusNode = FocusNode();
+  final FocusNode _jumlahbeliFocusNode = FocusNode();
   bool iscekumum = true;
   bool iscekpelanggan = false;
   bool iscekresep = false;
@@ -85,28 +87,6 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
     return DateFormat('dd-MM-yyyy').format(date);
   }
 
-  Future<void> generateNoFakturPenjualan(
-      AppDatabase db, TextEditingController noFakturController) async {
-    int counter = 1;
-    String newNoFaktur;
-
-    while (true) {
-      newNoFaktur = 'PJ${counter.toString().padLeft(5, '0')}';
-
-      final query = db.select(db.penjualans)
-        ..where((tbl) => tbl.noFaktur.equals(newNoFaktur));
-
-      final results = await query.get();
-
-      if (results.isEmpty) {
-        break; // NoFaktur unik
-      }
-      counter++;
-    }
-
-    noFakturController.text = newNoFaktur;
-  }
-
   Future<void> ProsesPenjualan() async {
     String namabarang = _barangController.text;
     jumlahjual = int.tryParse(_jumlahbarangController.text) ?? 0;
@@ -164,10 +144,10 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
 
         _barangController.clear();
         _discController.clear();
-        tgexpired = null;
         _jumlahbarangController.clear();
-        _expiredController.clear;
+        selectedBarang = null;
         _loadPenjualan();
+        _barangFocusNode.requestFocus();
       } else if (response.statusCode == 404) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -264,6 +244,62 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
         await ApiService.fetchBarangByKodefodiscon(kodebarangCtrl.text);
     int idstokupdate = 0;
     int sisaStokupdate = 0;
+    void _handleSimpan() async {
+      if (penjualanstmp != null) {
+        int sisaStokupdate = pilihBarang?.stokAktual ?? 0;
+        int jumlah = int.tryParse(jumlahCtrl.text) ?? 0;
+        if (jumlah > sisaStokupdate) {
+          await showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: Text('Stok Tidak Cukup'),
+              content: Text(
+                  'Stok tersedia hanya $sisaStokupdate, tetapi jumlah jual $jumlah.'),
+              actions: [
+                TextButton(
+                    onPressed: () => Navigator.pop(context), child: Text('OK'))
+              ],
+            ),
+          );
+          return;
+        }
+
+        int jumlahbeli = int.tryParse(jumlahCtrl.text) ?? 0;
+        int totalhar = penjualanstmp!.hargaJual * jumlahbeli;
+        int jualdis =
+            int.tryParse(jualdiscCtrl.text) ?? penjualanstmp!.hargaJual;
+        int totalstlhdisc = jualdis * jumlahbeli;
+        int totaldis = totalhar - totalstlhdisc;
+
+        final dat = {
+          'id': penjualanstmp!.id,
+          'username': widget.user.username,
+          'kodeBarang': kodebarangCtrl.text,
+          'namaBarang': namabarangCtrl.text,
+          'kelompok': penjualanstmp!.kelompok,
+          'satuan': penjualanstmp!.satuan,
+          'hargaBeli': penjualanstmp!.hargaBeli,
+          'hargaJual': penjualanstmp!.hargaJual,
+          'jualDiscon': jualdis,
+          'jumlahJual': jumlahbeli,
+          'totalHargaSebelumDisc': totalhar,
+          'totalHargaSetelahDisc': totalstlhdisc,
+          'totalDisc': totaldis,
+          'status': 'menunggu',
+        };
+
+        final update = await ApiService.updatePenjualanTmp(
+            penjualanstmp!.id.toString(), dat);
+
+        if (update.statusCode == 200 || update.statusCode == 201) {
+          if (context.mounted) Navigator.pop(context);
+          await _loadPenjualan();
+        } else {
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text('Gagal menyimpan data')));
+        }
+      }
+    }
 
     showDialog(
       context: context,
@@ -290,6 +326,7 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
                 TypeAheadFormField<Map<String, dynamic>>(
                   textFieldConfiguration: TextFieldConfiguration(
                     controller: jualdiscCtrl,
+                    onSubmitted: (_) => _handleSimpan(),
                     decoration: InputDecoration(
                       contentPadding: EdgeInsets.all(5),
                       labelText: 'Jual Diskon',
@@ -347,6 +384,7 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
                 TextFormField(
                   controller: jumlahCtrl,
                   decoration: InputDecoration(labelText: 'Jumlah jual'),
+                  onFieldSubmitted: (_) => _handleSimpan(),
                   validator: (value) => value == null || value.isEmpty
                       ? 'Wajib diisi tidak boleh kosong'
                       : null,
@@ -366,67 +404,7 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
             child: const Text('Batal'),
           ),
           ElevatedButton(
-            onPressed: () async {
-              if (formKey.currentState!.validate()) {
-                if (penjualanstmp != null) {
-                  int sisaStokupdate = pilihBarang?.stokAktual ?? 0;
-                  int jumlah = int.tryParse(jumlahCtrl.text) ?? 0;
-                  if (jumlah != null &&
-                      sisaStokupdate != null &&
-                      jumlah! > sisaStokupdate!) {
-                    await showDialog(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: Text('Stok Tidak Cukup'),
-                        content: Text(
-                            'Stok tersedia hanya $sisaStokupdate, tetapi jumlah jual $jumlah.'),
-                        actions: [
-                          TextButton(
-                            child: Text('OK'),
-                            onPressed: () => Navigator.of(context).pop(),
-                          ),
-                        ],
-                      ),
-                    );
-                    return; // ❌ Jangan lanjut insert
-                  }
-                  int jumlahbeli = int.tryParse(jumlahCtrl.text) ?? 0;
-                  int totalhar = penjualanstmp.hargaJual * jumlahbeli;
-                  int jualdis = int.tryParse(jualdiscCtrl.text) ??
-                      penjualanstmp.hargaJual;
-                  int totalstlhdisc = jualdis * jumlahbeli;
-                  int totaldis = totalhar - totalstlhdisc;
-                  final dat = {
-                    'id': penjualanstmp.id,
-                    'username': widget.user.username,
-                    'kodeBarang': kodebarangCtrl.text,
-                    'namaBarang': namabarangCtrl.text,
-                    'kelompok': penjualanstmp.kelompok,
-                    'satuan': penjualanstmp.satuan,
-                    'hargaBeli': penjualanstmp.hargaBeli,
-                    'hargaJual': penjualanstmp.hargaJual,
-                    'jualDiscon': int.tryParse(jualdiscCtrl.text),
-                    'jumlahJual': int.tryParse(jumlahCtrl.text),
-                    'totalHargaSebelumDisc': totalhar,
-                    'totalHargaSetelahDisc': totalstlhdisc,
-                    'totalDisc': totaldis,
-                    'status': 'menunggu',
-                  };
-                  late http.Response update;
-                  update = await ApiService.updatePenjualanTmp(
-                      penjualanstmp.id.toString(), dat);
-
-                  if (update.statusCode == 200 || update.statusCode == 201) {
-                    if (context.mounted) Navigator.pop(context);
-                    await _loadPenjualan(); // refresh data
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Gagal menyimpan data')),
-                    );
-                  }
-                }
-              }
-            },
+            onPressed: _handleSimpan,
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.blue.shade600, // warna tombol simpan
               padding: EdgeInsets.symmetric(horizontal: 24, vertical: 14),
@@ -813,6 +791,15 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
                         labelText: 'Masukan barang ke penjualan',
                       ),
                       controller: _barangController,
+                      focusNode: _barangFocusNode,
+                      onChanged: (value) {
+                        if (!_isSelectingSuggestion) {
+                          // Kosongkan field jika user sedang mengetik (bukan dari suggestion)
+                          _jumlahbarangController.clear();
+                          _discController.clear();
+                          selectedBarang = null;
+                        }
+                      },
                     ),
                     suggestionsCallback: (pattern) async {
                       try {
@@ -840,11 +827,14 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
                       sisaStok = suggestion.stokAktual;
                       hargabeli = suggestion.hargaBeli;
                       hargajual = suggestion.hargaJual;
+                      _jumlahbeliFocusNode.requestFocus();
                       selectedBarang =
                           await ApiService.fetchBarangByKodefodiscon(
                               kodebarang);
                       // Ambil expired paling tua
-
+                      Future.delayed(Duration(milliseconds: 100), () {
+                        _isSelectingSuggestion = false;
+                      });
                       setState(() {});
                     },
                   ),
@@ -855,11 +845,13 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
                   width: 75,
                   child: TextFormField(
                     controller: _jumlahbarangController,
+                    focusNode: _jumlahbeliFocusNode,
                     decoration: InputDecoration(
                       contentPadding: EdgeInsets.all(5),
                       border: OutlineInputBorder(),
                       labelText: 'Jumlah',
                     ),
+                    onFieldSubmitted: (_) => ProsesPenjualan(),
                   ),
                 ),
                 SizedBox(width: 15),
@@ -869,11 +861,13 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
                   child: TypeAheadFormField<Map<String, dynamic>>(
                     textFieldConfiguration: TextFieldConfiguration(
                       controller: _discController,
+                      focusNode: _discFocusNode,
                       decoration: InputDecoration(
                         contentPadding: EdgeInsets.all(5),
                         border: OutlineInputBorder(),
                         labelText: 'Jual Diskon',
                       ),
+                      onSubmitted: (_) => ProsesPenjualan(),
                     ),
                     suggestionsCallback: (pattern) {
                       if (selectedBarang == null) return [];
@@ -923,6 +917,7 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
                     onSuggestionSelected: (suggestion) {
                       _discController.text =
                           currencyFormatter.format(suggestion['value']);
+                      _discFocusNode.requestFocus();
                     },
                     noItemsFoundBuilder: (context) =>
                         Text('Diskon tidak tersedia'),

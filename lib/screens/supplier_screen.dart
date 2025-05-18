@@ -57,7 +57,6 @@ class _SupplierScreenState extends State<SupplierScreen> {
     final response = await ApiService.fetchAllSuppliers();
     if (response.statusCode == 200) {
       final List<dynamic> jsonList = jsonDecode(response.body);
-      print(jsonList);
       setState(() {
         suppliers =
             jsonList.map((json) => SupplierModel.fromJson(json)).toList();

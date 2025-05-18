@@ -425,7 +425,6 @@ class _BarangScreenState extends State<BarangScreen> {
                   'jualDisc4': disc4,
                 };
 
-                print(jsonEncode(data));
                 late http.Response response;
 
                 if (barang == null) {

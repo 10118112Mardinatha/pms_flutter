@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:intl/intl.dart';
 import 'package:pms_flutter/models/barang_model.dart';
@@ -19,6 +20,7 @@ class KasirPenjualanScreen extends StatefulWidget {
 
 class _KasirPenjualanScreenState extends State<KasirPenjualanScreen> {
   List<PenjualanModel> menunggu = [];
+  String searchQuery = '';
 
   bool isLoading = true;
   final _nofakturController = TextEditingController();
@@ -57,10 +59,10 @@ class _KasirPenjualanScreenState extends State<KasirPenjualanScreen> {
     final formattedDateTime = DateFormat('dd-MM-yyyy HH:mm:ss').format(now);
     final username = widget.user.username;
     _nofakturController.text = items.first.noFaktur;
-
-    Future<void> bayar() async {
+    final jumlahuangCtrl = TextEditingController();
+    Future<void> bayar(int uang, int kembalian) async {
       await ApiService.updateStatusPenjualan(items.first.noFaktur, 'lunas');
-      await _printStruk(items);
+      await _printStruk(items, uang, kembalian);
       if (context.mounted) Navigator.pop(context);
       fetchMenungguData();
     }
@@ -68,202 +70,242 @@ class _KasirPenjualanScreenState extends State<KasirPenjualanScreen> {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Preview Struk'),
-        content: SizedBox(
-          width: 500,
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Center(
-                  child: Column(
-                    children: [
-                      Text('Apotek Segar',
-                          style: TextStyle(fontWeight: FontWeight.bold)),
-                      Text('Jl. S.Parman, Kavaleri 29, No. 24'),
-                      Text('Kec. Langkai Kel. Pahandut Kota Palangka Raya'),
-                      Text('Kalimantan Tengah , 74874'),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Table(
-                  columnWidths: const {
-                    0: IntrinsicColumnWidth(),
-                    1: FlexColumnWidth(),
-                  },
-                  children: [
-                    TableRow(children: [
-                      const Text('No Faktur'),
-                      Text(': ${_nofakturController.text}'),
-                    ]),
-                    TableRow(children: [
-                      const Text('Tanggal'),
-                      Text(': $formattedDateTime'),
-                    ]),
-                    TableRow(children: [
-                      const Text('Kasir'),
-                      Text(': $username'),
-                    ]),
-                  ],
-                ),
-                const Divider(),
-                const SizedBox(height: 4),
-                Table(
-                  columnWidths: const {
-                    0: FixedColumnWidth(30),
-                    1: FlexColumnWidth(3),
-                    2: FlexColumnWidth(2),
-                    3: FixedColumnWidth(50),
-                    4: FixedColumnWidth(50),
-                    5: FlexColumnWidth(2),
-                    6: FlexColumnWidth(3),
-                  },
-                  children: [
-                    const TableRow(
-                      decoration: BoxDecoration(),
-                      children: [
-                        Center(
-                            child: Text('No',
-                                style: TextStyle(fontWeight: FontWeight.bold))),
-                        Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 4),
-                          child: Text('Nama',
-                              style: TextStyle(fontWeight: FontWeight.bold)),
-                        ),
-                        Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 4),
-                          child: Text('Harga',
-                              style: TextStyle(fontWeight: FontWeight.bold)),
-                        ),
-                        Center(
-                            child: Text('Satuan',
-                                style: TextStyle(fontWeight: FontWeight.bold))),
-                        Center(
-                            child: Text('Qty',
-                                style: TextStyle(fontWeight: FontWeight.bold))),
-                        Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 4),
-                          child: Text('Harga Diskon',
-                              style: TextStyle(fontWeight: FontWeight.bold)),
-                        ),
-                        Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 4),
-                          child: Text('Subtotal',
-                              style: TextStyle(fontWeight: FontWeight.bold)),
-                        ),
-                      ],
-                    ),
-                    ...items.asMap().entries.map((entry) {
-                      final i = entry.key + 1;
-                      final item = entry.value;
-                      final harga = item.hargaJual ?? 0;
-                      final diskon = item.jualDiscon ?? 0;
-                      final qty = item.jumlahJual ?? 0;
-                      final satuan = item.satuan ?? '';
-                      final subtotal = diskon * qty;
-
-                      return TableRow(
-                        children: [
-                          Center(child: Text('$i')),
-                          Padding(
-                            padding: EdgeInsets.symmetric(
-                                horizontal: 4, vertical: 2),
-                            child: Text(item.namaBarang ?? ''),
-                          ),
-                          Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 4),
-                            child: Text(formatRupiah.format(harga)),
-                          ),
-                          Center(child: Text(satuan)),
-                          Center(child: Text('$qty')),
-                          Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 4),
-                            child: Text(formatRupiah.format(diskon)),
-                          ),
-                          Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 4),
-                            child: Text(formatRupiah.format(subtotal)),
-                          ),
-                        ],
-                      );
-                    }).toList(),
-                  ],
-                ),
-                const Divider(),
-                Text('Total Harga   : ${formatRupiah.format(totalSebelum)}'),
-                Text('Total Diskon  : ${formatRupiah.format(totalDiskon)}'),
-                Text('Total Dibayar : ${formatRupiah.format(totalBayar)}'),
-                const SizedBox(height: 10),
-                const Divider(),
-                const Center(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8),
-                    child: Text(
-                      'Terima kasih telah berbelanja di Apotek Segar. '
-                      'Untuk keluhan atau pertanyaan terkait obat, silakan hubungi Apoteker kami. '
-                      'Struk ini harap disimpan sebagai bukti pembelian.',
-                      style: TextStyle(
-                        fontStyle: FontStyle.italic,
-                        fontSize: 11,
-                        color: Colors.grey,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
+        title: const Text('Masukan Jumlah Uang'),
+        content: SingleChildScrollView(
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            TextFormField(
+              controller: jumlahuangCtrl,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Jumlah uang',
+                border: OutlineInputBorder(),
+              ),
+              validator: (value) {
+                if (value == null ||
+                    value.isEmpty ||
+                    int.tryParse(value) == null) {
+                  return 'Masukkan jumlah yang valid';
+                }
+                return null;
+              },
+            )
+          ]),
         ),
         actions: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-            child: TextButton(
-              style: TextButton.styleFrom(
-                backgroundColor: Colors.grey.shade200,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                foregroundColor: Colors.black,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              ),
-              onPressed: () => Navigator.pop(context),
-              child: const Text(
-                'Tutup',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Batal'),
           ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-            child: ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue.shade600,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context); // Tutup dialog pertama
+              await Future.delayed(Duration(milliseconds: 300));
+              int jumlahuang = int.tryParse(jumlahuangCtrl.text) ?? 0;
+              int kembalian = jumlahuang - totalBayar.toInt();
+              if (jumlahuang < totalBayar) {
+                showDialog(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: Text('Uang Tidak Cukup'),
+                    content: Text('Masukan Uang harus melebihin total bayar.'),
+                    actions: [
+                      TextButton(
+                        child: Text('OK'),
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                    ],
+                  ),
+                );
+                return; // ❌ Jangan lanjut insert
+              }
+              showDialog(
+                context: context,
+                builder: (_) => AlertDialog(
+                  title: const Text('Preview Struk'),
+                  content: SizedBox(
+                    width: 500,
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Center(
+                            child: Column(
+                              children: [
+                                Text('Apotek Segar',
+                                    style:
+                                        TextStyle(fontWeight: FontWeight.bold)),
+                                Text('Jl. S.Parman, Kavaleri 29, No. 24'),
+                                Text(
+                                    'Kec. Langkai Kel. Pahandut Kota Palangka Raya'),
+                                Text('Kalimantan Tengah , 74874'),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Table(
+                            columnWidths: const {
+                              0: IntrinsicColumnWidth(),
+                              1: FlexColumnWidth(),
+                            },
+                            children: [
+                              TableRow(children: [
+                                const Text('No Faktur'),
+                                Text(': ${_nofakturController.text}'),
+                              ]),
+                              TableRow(children: [
+                                const Text('Tanggal'),
+                                Text(': $formattedDateTime'),
+                              ]),
+                              TableRow(children: [
+                                const Text('Kasir'),
+                                Text(': $username'),
+                              ]),
+                            ],
+                          ),
+                          const Divider(),
+                          const SizedBox(height: 4),
+                          Table(
+                            columnWidths: const {
+                              0: FixedColumnWidth(30),
+                              1: FlexColumnWidth(3),
+                              2: FixedColumnWidth(50),
+                              3: FixedColumnWidth(50),
+                            },
+                            children: [
+                              const TableRow(
+                                decoration: BoxDecoration(),
+                                children: [
+                                  Center(
+                                      child: Text('No',
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.bold))),
+                                  Padding(
+                                    padding:
+                                        EdgeInsets.symmetric(horizontal: 4),
+                                    child: Text('Nama Barang',
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold)),
+                                  ),
+                                  Center(
+                                      child: Text('Satuan',
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.bold))),
+                                  Center(
+                                      child: Text('Qty',
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.bold))),
+                                ],
+                              ),
+                              ...items.asMap().entries.map((entry) {
+                                final i = entry.key + 1;
+                                final item = entry.value;
+
+                                final qty = item.jumlahJual ?? 0;
+                                final satuan = item.satuan ?? '';
+
+                                return TableRow(
+                                  children: [
+                                    Center(child: Text('$i')),
+                                    Padding(
+                                      padding: EdgeInsets.symmetric(
+                                          horizontal: 4, vertical: 2),
+                                      child: Text(item.namaBarang ?? ''),
+                                    ),
+                                    Center(child: Text(satuan)),
+                                    Center(child: Text('$qty')),
+                                  ],
+                                );
+                              }).toList(),
+                            ],
+                          ),
+                          const Divider(),
+                          Text(
+                              'Total Harga   : ${formatRupiah.format(totalSebelum)}'),
+                          Text(
+                              'Total Diskon  : ${formatRupiah.format(totalDiskon)}'),
+                          Text(
+                              'Total Dibayar : ${formatRupiah.format(totalBayar)}'),
+                          Text(
+                              'Uang Bayar : ${formatRupiah.format(jumlahuang)}'),
+                          Text('Kembalian : ${formatRupiah.format(kembalian)}'),
+                          const SizedBox(height: 10),
+                          const Divider(),
+                          const Center(
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 8),
+                              child: Text(
+                                'Terima kasih telah berbelanja di Apotek Segar. '
+                                'Untuk keluhan atau pertanyaan terkait obat, silakan hubungi Apoteker kami. '
+                                'Struk ini harap disimpan sebagai bukti pembelian.',
+                                style: TextStyle(
+                                  fontStyle: FontStyle.italic,
+                                  fontSize: 11,
+                                  color: Colors.grey,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  actions: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 6),
+                      child: TextButton(
+                        style: TextButton.styleFrom(
+                          backgroundColor: Colors.grey.shade200,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          foregroundColor: Colors.black,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 12),
+                        ),
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text(
+                          'Tutup',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 6),
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue.shade600,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 20, vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          foregroundColor: Colors.white,
+                          elevation: 5,
+                          shadowColor: Colors.blueAccent.withOpacity(0.6),
+                        ),
+                        icon: const Icon(Icons.payment, size: 20),
+                        label: const Text(
+                          'Bayar & Cetak',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.7,
+                          ),
+                        ),
+                        onPressed: () => bayar(jumlahuang, kembalian),
+                      ),
+                    ),
+                  ],
                 ),
-                foregroundColor: Colors.white,
-                elevation: 5,
-                shadowColor: Colors.blueAccent.withOpacity(0.6),
-              ),
-              icon: const Icon(Icons.payment, size: 20),
-              label: const Text(
-                'Bayar & Cetak',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 0.7,
-                ),
-              ),
-              onPressed: bayar,
-            ),
+              );
+            },
+            child: const Text('Simpan'),
           ),
         ],
       ),
@@ -272,13 +314,19 @@ class _KasirPenjualanScreenState extends State<KasirPenjualanScreen> {
 
   Map<String, List<PenjualanModel>> get groupedByFaktur {
     final map = <String, List<PenjualanModel>>{};
+
     for (final item in menunggu) {
-      map.putIfAbsent(item.noFaktur, () => []).add(item);
+      final nama = item.namaPelanggan?.toLowerCase() ?? '';
+      if (searchQuery.isEmpty || nama.contains(searchQuery)) {
+        map.putIfAbsent(item.noFaktur, () => []).add(item);
+      }
     }
+
     return map;
   }
 
-  Future<void> _printStruk(List<PenjualanModel> items) async {
+  Future<void> _printStruk(
+      List<PenjualanModel> items, int uang, int kembalian) async {
     final doc = pw.Document();
     final formatRupiah =
         NumberFormat.currency(locale: 'id', symbol: 'Rp ', decimalDigits: 0);
@@ -327,27 +375,15 @@ class _KasirPenjualanScreenState extends State<KasirPenjualanScreen> {
                           style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
                   pw.Expanded(
                       flex: 3,
-                      child: pw.Text('Nama',
-                          style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
-                  pw.Expanded(
-                      flex: 2,
-                      child: pw.Text('Harga',
+                      child: pw.Text('Nama Barang',
                           style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
                   pw.Expanded(
                       flex: 1,
-                      child: pw.Text('Stn',
+                      child: pw.Text('Satuan',
                           style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
                   pw.Expanded(
                       flex: 1,
                       child: pw.Text('Qty',
-                          style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
-                  pw.Expanded(
-                      flex: 2,
-                      child: pw.Text('Disc',
-                          style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
-                  pw.Expanded(
-                      flex: 2,
-                      child: pw.Text('Subttl',
                           style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
                 ],
               ),
@@ -358,24 +394,16 @@ class _KasirPenjualanScreenState extends State<KasirPenjualanScreen> {
               ...items.asMap().entries.map((entry) {
                 final i = entry.key + 1;
                 final item = entry.value;
-                final harga = item.hargaJual ?? 0;
-                final diskon = item.jualDiscon ?? 0;
+
                 final qty = item.jumlahJual ?? 0;
                 final satuan = item.satuan ?? '';
-                final subtotal = diskon * qty;
 
                 return pw.Row(
                   children: [
                     pw.Expanded(flex: 1, child: pw.Text('$i')),
                     pw.Expanded(flex: 3, child: pw.Text(item.namaBarang ?? '')),
-                    pw.Expanded(
-                        flex: 2, child: pw.Text(formatRupiah.format(harga))),
                     pw.Expanded(flex: 1, child: pw.Text(satuan)),
                     pw.Expanded(flex: 1, child: pw.Text('$qty')),
-                    pw.Expanded(
-                        flex: 2, child: pw.Text(formatRupiah.format(diskon))),
-                    pw.Expanded(
-                        flex: 2, child: pw.Text(formatRupiah.format(subtotal))),
                   ],
                 );
               }).toList(),
@@ -384,6 +412,8 @@ class _KasirPenjualanScreenState extends State<KasirPenjualanScreen> {
               pw.Text('Total Harga   : ${formatRupiah.format(totalSebelum)}'),
               pw.Text('Total Diskon  : ${formatRupiah.format(totalDiskon)}'),
               pw.Text('Total Dibayar : ${formatRupiah.format(totalBayar)}'),
+              pw.Text('Uang Bayar : ${formatRupiah.format(uang)}'),
+              pw.Text('Kembalian : ${formatRupiah.format(kembalian)}'),
               pw.SizedBox(height: 10),
               pw.Divider(),
               pw.Center(
@@ -419,10 +449,93 @@ class _KasirPenjualanScreenState extends State<KasirPenjualanScreen> {
     );
   }
 
+  void _hapusItem(String id) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Hapus'),
+        actions: [
+          TextButton.icon(
+            onPressed: () => Navigator.pop(context, false),
+            icon: const Icon(Icons.close, color: Colors.grey),
+            label: const Text('Batal', style: TextStyle(color: Colors.grey)),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            ),
+          ),
+          TextButton.icon(
+            onPressed: () => Navigator.pop(context, true),
+            icon: const Icon(Icons.delete, color: Colors.red),
+            label: const Text('Hapus', style: TextStyle(color: Colors.red)),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      final response = await ApiService.deletePenjualan(id);
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        fetchMenungguData();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Barang dipenjualan ini berhasil dihapus')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Gagal menghapus')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(title: const Text('Menu Kasir - Pembayaran')),
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Menu Kasir - Pembayaran',
+                style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: 300, // 👉 ubah ukuran sesuai kebutuhan (misalnya 300)
+                child: TextField(
+                  decoration: InputDecoration(
+                    hintText: 'Cari nama pelanggan...',
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    isDense: true,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.blue),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  style: const TextStyle(fontSize: 14),
+                  onChanged: (value) {
+                    setState(() {
+                      searchQuery = value.toLowerCase();
+                    });
+                  },
+                ),
+              ),
+            ],
+          ),
+          toolbarHeight: 90,
+        ),
         body: isLoading
             ? const Center(child: CircularProgressIndicator())
             : menunggu.isEmpty
@@ -433,6 +546,7 @@ class _KasirPenjualanScreenState extends State<KasirPenjualanScreen> {
                       final faktur = entry.key;
                       final items = entry.value;
                       final status = items.first.status;
+                      final pelanggan = items.first.namaPelanggan;
                       final totalBayar = items.fold<int>(
                           0, (sum, i) => sum + (i.totalHargaSetelahDisc ?? 0));
                       final tanggal = items.first.tanggalPenjualan;
@@ -454,6 +568,7 @@ class _KasirPenjualanScreenState extends State<KasirPenjualanScreen> {
                               Text(
                                   'Tanggal: ${DateFormat('dd-MM-yyyy').format(tanggal)}'),
                               Text('Status: $status'),
+                              Text('Pelaggan: $pelanggan'),
                               const SizedBox(height: 12),
 
                               /// Tabel Header
@@ -466,7 +581,7 @@ class _KasirPenjualanScreenState extends State<KasirPenjualanScreen> {
                                   4: FlexColumnWidth(1),
                                   5: FlexColumnWidth(1),
                                   6: FlexColumnWidth(1.4),
-                                  7: FixedColumnWidth(60),
+                                  7: FixedColumnWidth(90),
                                 },
                                 border: TableBorder.all(
                                     color: Colors.grey.shade300),
@@ -534,12 +649,24 @@ class _KasirPenjualanScreenState extends State<KasirPenjualanScreen> {
                                               'Rp ${formatter.format(item.totalHargaSetelahDisc)}')),
                                       Padding(
                                         padding: const EdgeInsets.all(4),
-                                        child: IconButton(
-                                          icon: const Icon(Icons.edit,
-                                              color: Colors.blue),
-                                          onPressed: () =>
-                                              _showEditDialog(item),
-                                          tooltip: 'Edit item',
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            IconButton(
+                                              icon: const Icon(Icons.edit,
+                                                  color: Colors.blue),
+                                              onPressed: () =>
+                                                  _showEditDialog(item),
+                                              tooltip: 'Edit item',
+                                            ),
+                                            IconButton(
+                                              icon: const Icon(Icons.delete,
+                                                  color: Colors.red),
+                                              onPressed: () => _hapusItem(
+                                                  item.id.toString()),
+                                              tooltip: 'Hapus item',
+                                            ),
+                                          ],
                                         ),
                                       ),
                                     ]);

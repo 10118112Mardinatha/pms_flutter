@@ -975,4 +975,10 @@ class ApiService {
 
     return false;
   }
+
+  static Future<http.Response> deletePenjualan(String id) async {
+    final baseUrl = await _getBaseUrl();
+    final url = Uri.parse('$baseUrl/penjualan/id/$id');
+    return http.delete(url);
+  }
 }

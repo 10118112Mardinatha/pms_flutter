@@ -45,7 +45,7 @@ class _RakScreenState extends State<RakScreen> {
     final response = await ApiService.fetchAllRak();
     if (response.statusCode == 200) {
       final List<dynamic> jsonList = jsonDecode(response.body);
-      print(jsonList);
+
       setState(() {
         allRaks = jsonList.map((json) => RakModel.fromJson(json)).toList();
 
