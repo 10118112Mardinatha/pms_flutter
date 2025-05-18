@@ -368,6 +368,11 @@ class _BarangScreenState extends State<BarangScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.red, // warna teks tombol batal
+              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              textStyle: TextStyle(fontSize: 16),
+            ),
             child: const Text('Batal'),
           ),
           ElevatedButton(
@@ -468,7 +473,22 @@ class _BarangScreenState extends State<BarangScreen> {
                 }
               }
             },
-            child: const Text('Simpan'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue.shade600, // warna tombol simpan
+              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+              textStyle: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              elevation: 3,
+            ),
+            child: const Text(
+              'Simpan',
+              style: TextStyle(color: Colors.white), // tulisannya putih
+            ),
           ),
         ],
       ),
@@ -482,12 +502,22 @@ class _BarangScreenState extends State<BarangScreen> {
         title: const Text('Hapus Dokter'),
         content: const Text('Yakin ingin menghapus supplier ini?'),
         actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Batal')),
-          TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Hapus')),
+          TextButton.icon(
+            onPressed: () => Navigator.pop(context, false),
+            icon: const Icon(Icons.close, color: Colors.grey),
+            label: const Text('Batal', style: TextStyle(color: Colors.grey)),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            ),
+          ),
+          TextButton.icon(
+            onPressed: () => Navigator.pop(context, true),
+            icon: const Icon(Icons.delete, color: Colors.red),
+            label: const Text('Hapus', style: TextStyle(color: Colors.red)),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            ),
+          ),
         ],
       ),
     );

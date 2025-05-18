@@ -1,8 +1,4 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:drift/drift.dart' show Value;
-import 'package:drift/drift.dart' as drift;
-import 'package:excel/excel.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
@@ -12,11 +8,7 @@ import 'package:pms_flutter/models/pelanggan_model.dart';
 import 'package:pms_flutter/models/reseptmp_model.dart';
 import 'package:pms_flutter/models/user_model.dart';
 import 'package:pms_flutter/services/api_service.dart';
-import 'package:printing/printing.dart';
 import '../database/app_database.dart';
-import 'dart:typed_data';
-import 'package:pdf/widgets.dart' as pw;
-import 'package:file_picker/file_picker.dart';
 
 class ResepScreen extends StatefulWidget {
   final UserModel user;
@@ -27,7 +19,9 @@ class ResepScreen extends StatefulWidget {
 }
 
 class _ResepScreenState extends State<ResepScreen> {
-  late AppDatabase db;
+  final currencyFormatter =
+      NumberFormat.currency(locale: 'id_ID', symbol: 'Rp', decimalDigits: 0);
+
   List<ResepTmpModel> allData = [];
   bool iscekumum = true;
   bool iscekpelanggan = false;
@@ -143,7 +137,8 @@ class _ResepScreenState extends State<ResepScreen> {
         if (Navigator.canPop(context)) {
           Navigator.pop(context);
         }
-
+        await ApiService.logActivity(widget.user.id,
+            'Menambah Resep ${noresep} dengan nama ${namapelanggan}');
         _pelangganController.clear();
         _namaDoctorController.clear();
         kodePelanggan = '';
@@ -208,7 +203,9 @@ class _ResepScreenState extends State<ResepScreen> {
   Future<void> ProsesTambahresep() async {
     String namabarang = _barangController.text;
     jumlahjual = int.tryParse(_jumlahbarangController.text) ?? 0;
-    int jualdiscon = int.tryParse(_discController.text) ?? hargajual;
+    int jualdiscon =
+        int.tryParse(_discController.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
+            hargajual;
     totalharga = (hargajual * jumlahjual);
     totalhargastlhdiskon = (jualdiscon * jumlahjual);
     totaldiskon = totalharga - totalhargastlhdiskon;
@@ -276,12 +273,22 @@ class _ResepScreenState extends State<ResepScreen> {
         title: const Text('Hapus'),
         content: const Text('Yakin ingin menghapus data ini?'),
         actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Batal')),
-          TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Hapus')),
+          TextButton.icon(
+            onPressed: () => Navigator.pop(context, false),
+            icon: const Icon(Icons.close, color: Colors.grey),
+            label: const Text('Batal', style: TextStyle(color: Colors.grey)),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            ),
+          ),
+          TextButton.icon(
+            onPressed: () => Navigator.pop(context, true),
+            icon: const Icon(Icons.delete, color: Colors.red),
+            label: const Text('Hapus', style: TextStyle(color: Colors.red)),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            ),
+          ),
         ],
       ),
     );
@@ -305,15 +312,65 @@ class _ResepScreenState extends State<ResepScreen> {
     final formKey = GlobalKey<FormState>();
     final kodebarangCtrl = TextEditingController(text: data?.kodeBarang ?? '');
     final namabarangCtrl = TextEditingController(text: data?.namaBarang ?? '');
-
     final jualdiscCtrl =
         TextEditingController(text: data?.jualDiscon?.toString() ?? '');
     final jumlahCtrl =
         TextEditingController(text: data?.jumlahJual.toString() ?? '');
 
+    final jualdiscFocusNode = FocusNode();
+
     BarangModel? pilihBarang =
         await ApiService.fetchBarangByKodefodiscon(kodebarangCtrl.text);
-    showDialog(
+
+    Future<void> _submitForm() async {
+      print('Submit form triggered');
+      if (formKey.currentState!.validate()) {
+        if (data != null) {
+          int jumlah = int.tryParse(jumlahCtrl.text) ?? 0;
+          int totalhar = data.hargaJual * jumlah;
+          int jualdis = int.tryParse(jualdiscCtrl.text) ?? data.hargaJual;
+          int totalstlhdisc = jualdis * jumlah;
+          int totaldis = totalhar - totalstlhdisc;
+          final dat = {
+            'id': data.id,
+            'username': widget.user.username,
+            'kodeBarang': kodebarangCtrl.text,
+            'namaBarang': namabarangCtrl.text,
+            'kelompok': data.kelompok,
+            'satuan': data.satuan,
+            'hargaBeli': data.hargaBeli,
+            'hargaJual': data.hargaJual,
+            'jualDiscon': int.tryParse(jualdiscCtrl.text),
+            'jumlahJual': int.tryParse(jumlahCtrl.text),
+            'totalHargaSebelumDisc': totalhar,
+            'totalHargaSetelahDisc': totalstlhdisc,
+            'totalDisc': totaldis,
+          };
+
+          try {
+            final update =
+                await ApiService.updateResepTmp(data.id.toString(), dat);
+
+            if (update.statusCode == 200 || update.statusCode == 201) {
+              if (context.mounted) Navigator.pop(context);
+              await _loadResep(); // refresh data
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Gagal menyimpan data')),
+              );
+            }
+          } catch (e) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Error: $e')),
+            );
+          }
+        }
+      } else {
+        print('Validasi gagal');
+      }
+    }
+
+    await showDialog(
       context: context,
       builder: (_) => AlertDialog(
         title: Text(data == null ? 'Tambah' : 'Edit'),
@@ -331,48 +388,54 @@ class _ResepScreenState extends State<ResepScreen> {
                 ),
                 TextFormField(
                   controller: namabarangCtrl,
-                  decoration: InputDecoration(labelText: 'Nama '),
+                  decoration: InputDecoration(labelText: 'Nama'),
                   readOnly: true,
                 ),
                 TypeAheadFormField<Map<String, dynamic>>(
                   textFieldConfiguration: TextFieldConfiguration(
                     controller: jualdiscCtrl,
+                    focusNode: jualdiscFocusNode,
                     decoration: InputDecoration(
                       contentPadding: EdgeInsets.all(5),
                       labelText: 'Jual Diskon',
                     ),
+                    textInputAction: TextInputAction.done,
+                    onSubmitted: (value) async {
+                      print('Enter ditekan di Jual Diskon: $value');
+                      await _submitForm();
+                    },
                   ),
                   suggestionsCallback: (pattern) {
                     if (pilihBarang == null) return [];
 
                     final discs = <Map<String, dynamic>>[];
 
-                    if (pilihBarang!.jualDisc1 != null &&
-                        pilihBarang!.jualDisc1 != 0) {
+                    if (pilihBarang.jualDisc1 != null &&
+                        pilihBarang.jualDisc1 != 0) {
                       discs.add({
                         'label': 'Diskon 1',
-                        'value': pilihBarang!.jualDisc1
+                        'value': pilihBarang.jualDisc1,
                       });
                     }
-                    if (pilihBarang!.jualDisc2 != null &&
-                        pilihBarang!.jualDisc2 != 0) {
+                    if (pilihBarang.jualDisc2 != null &&
+                        pilihBarang.jualDisc2 != 0) {
                       discs.add({
                         'label': 'Diskon 2',
-                        'value': pilihBarang!.jualDisc2
+                        'value': pilihBarang.jualDisc2,
                       });
                     }
-                    if (pilihBarang!.jualDisc3 != null &&
-                        pilihBarang!.jualDisc3 != 0) {
+                    if (pilihBarang.jualDisc3 != null &&
+                        pilihBarang.jualDisc3 != 0) {
                       discs.add({
                         'label': 'Diskon 3',
-                        'value': pilihBarang!.jualDisc3
+                        'value': pilihBarang.jualDisc3,
                       });
                     }
-                    if (pilihBarang!.jualDisc4 != null &&
-                        pilihBarang!.jualDisc4 != 0) {
+                    if (pilihBarang.jualDisc4 != null &&
+                        pilihBarang.jualDisc4 != 0) {
                       discs.add({
                         'label': 'Diskon 4',
-                        'value': pilihBarang!.jualDisc4
+                        'value': pilihBarang.jualDisc4,
                       });
                     }
 
@@ -394,6 +457,7 @@ class _ResepScreenState extends State<ResepScreen> {
                 TextFormField(
                   controller: jumlahCtrl,
                   decoration: InputDecoration(labelText: 'Jumlah jual'),
+                  keyboardType: TextInputType.number,
                   validator: (value) => value == null || value.isEmpty
                       ? 'Wajib diisi tidak boleh kosong'
                       : null,
@@ -405,49 +469,33 @@ class _ResepScreenState extends State<ResepScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.red,
+              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              textStyle: TextStyle(fontSize: 16),
+            ),
             child: const Text('Batal'),
           ),
           ElevatedButton(
             onPressed: () async {
-              if (formKey.currentState!.validate()) {
-                if (data != null) {
-                  int jumlah = int.tryParse(jumlahCtrl.text) ?? 0;
-                  int totalhar = data.hargaJual * jumlah;
-                  int jualdis =
-                      int.tryParse(jualdiscCtrl.text) ?? data.hargaJual;
-                  int totalstlhdisc = jualdis * jumlah;
-                  int totaldis = totalhar - totalstlhdisc;
-                  final dat = {
-                    'id': data.id,
-                    'username': widget.user.username,
-                    'kodeBarang': kodebarangCtrl.text,
-                    'namaBarang': namabarangCtrl.text,
-                    'kelompok': data.kelompok,
-                    'satuan': data.satuan,
-                    'hargaBeli': data.hargaBeli,
-                    'hargaJual': data.hargaJual,
-                    'jualDiscon': int.tryParse(jualdiscCtrl.text),
-                    'jumlahJual': int.tryParse(jumlahCtrl.text),
-                    'totalHargaSebelumDisc': totalhar,
-                    'totalHargaSetelahDisc': totalstlhdisc,
-                    'totalDisc': totaldis,
-                  };
-                  late http.Response update;
-                  update =
-                      await ApiService.updateResepTmp(data.id.toString(), dat);
-
-                  if (update.statusCode == 200 || update.statusCode == 201) {
-                    if (context.mounted) Navigator.pop(context);
-                    await _loadResep(); // refresh data
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Gagal menyimpan data')),
-                    );
-                  }
-                }
-              }
+              await _submitForm();
             },
-            child: const Text('Simpan'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue.shade600,
+              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+              textStyle: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              elevation: 3,
+            ),
+            child: const Text(
+              'Simpan',
+              style: TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),
@@ -472,25 +520,60 @@ class _ResepScreenState extends State<ResepScreen> {
                       fontWeight: FontWeight.w600,
                       color: Colors.grey[800]),
                 ),
-                Row(children: [
-                  ElevatedButton.icon(
-                    onPressed: prosesbatal,
-                    icon: const Icon(Icons.close),
-                    label: const Text('Batal'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors
-                          .red, // Mengatur warna latar belakang menjadi merah
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    ElevatedButton.icon(
+                      onPressed: prosesbatal,
+                      icon: const Icon(Icons.close,
+                          color: Colors.white, size: 20),
+                      label: const Text(
+                        'Batal',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                          color: Colors.white,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red.shade600,
+                        minimumSize: const Size(100, 40),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        elevation: 4,
+                        shadowColor: Colors.redAccent.withOpacity(0.4),
+                      ),
                     ),
-                  ),
-                  SizedBox(
-                    width: 15,
-                  ),
-                  ElevatedButton.icon(
-                    onPressed: prosesSimpan,
-                    icon: const Icon(Icons.save),
-                    label: const Text('Simpan/Bayar'),
-                  ),
-                ])
+                    const SizedBox(width: 15),
+                    ElevatedButton.icon(
+                      onPressed: prosesSimpan,
+                      icon:
+                          const Icon(Icons.save, color: Colors.white, size: 20),
+                      label: const Text(
+                        'Simpan',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                          color: Colors.white,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue.shade600,
+                        minimumSize: const Size(130, 40),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 8,
+                        shadowColor: Colors.blueAccent.withOpacity(0.5),
+                      ),
+                    ),
+                  ],
+                )
               ],
             ),
             Divider(
@@ -820,26 +903,47 @@ class _ResepScreenState extends State<ResepScreen> {
                           (d) => d['value'].toString().contains(pattern));
                     },
                     itemBuilder: (context, suggestion) {
+                      final formatted =
+                          currencyFormatter.format(suggestion['value']);
                       return ListTile(
-                        title: Text(suggestion['value'].toString()),
+                        title: Text(formatted),
                         subtitle: Text(suggestion['label']),
                       );
                     },
                     onSuggestionSelected: (suggestion) {
-                      _discController.text = suggestion['value'].toString();
+                      _discController.text =
+                          currencyFormatter.format(suggestion['value']);
                     },
                     noItemsFoundBuilder: (context) =>
                         Text('Diskon tidak tersedia'),
                   ),
                 ),
                 SizedBox(
-                  width: 50,
+                  width: 20,
                 ),
                 ElevatedButton.icon(
                   onPressed: ProsesTambahresep,
-                  icon: const Icon(Icons.add),
-                  label: const Text('Tambah'),
-                ),
+                  icon: const Icon(Icons.add, color: Colors.white, size: 20),
+                  label: const Text(
+                    'Tambah',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                      color: Colors.white,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.teal,
+                    minimumSize: const Size(100, 40), // ukuran lebih compact
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    elevation: 4,
+                    shadowColor: Colors.greenAccent.withOpacity(0.4),
+                  ),
+                )
               ],
             ),
             SizedBox(height: 15),

@@ -13,6 +13,8 @@ class RiwayatUserScreen extends StatefulWidget {
 
 class _RiwayatUserScreenState extends State<RiwayatUserScreen> {
   List<LogActivity> logs = [];
+  List<LogActivity> paginatedLogs = [];
+
   bool isLoading = true;
   String? usernameFilter;
   DateTime? dateFilter;
@@ -20,10 +22,14 @@ class _RiwayatUserScreenState extends State<RiwayatUserScreen> {
   final _usernameController = TextEditingController();
   Timer? _debounce;
 
+  int currentPage = 1;
+  int rowsPerPage = 10;
+  int totalPages = 1;
+
   @override
   void initState() {
     super.initState();
-    dateFilter = DateTime.now(); // default: hari ini saja
+    dateFilter = DateTime.now(); // default: hari ini
     loadLogs();
   }
 
@@ -32,7 +38,7 @@ class _RiwayatUserScreenState extends State<RiwayatUserScreen> {
     _debounce = Timer(const Duration(milliseconds: 300), () {
       setState(() => isLoading = true);
       Future.delayed(const Duration(milliseconds: 400), () {
-        setState(() => isLoading = false);
+        loadLogs();
       });
     });
   }
@@ -44,12 +50,25 @@ class _RiwayatUserScreenState extends State<RiwayatUserScreen> {
             usernameFilter?.trim().isEmpty == true ? null : usernameFilter,
         date: dateFilter,
       );
-      if (mounted) setState(() => logs = data);
+      if (mounted) {
+        setState(() {
+          logs = data;
+          currentPage = 1;
+          totalPages = (logs.length / rowsPerPage).ceil();
+          _paginate();
+        });
+      }
     } catch (e) {
       debugPrint('Gagal memuat log: $e');
     } finally {
       if (mounted) setState(() => isLoading = false);
     }
+  }
+
+  void _paginate() {
+    final start = (currentPage - 1) * rowsPerPage;
+    final end = (start + rowsPerPage).clamp(0, logs.length);
+    paginatedLogs = logs.sublist(start, end);
   }
 
   Future<void> _selectDate() async {
@@ -71,7 +90,7 @@ class _RiwayatUserScreenState extends State<RiwayatUserScreen> {
 
     setState(() {
       usernameFilter = null;
-      dateFilter = DateTime.now(); // reset ke hari ini
+      dateFilter = DateTime.now();
     });
 
     if (shouldReload) triggerSearchWithLoading();
@@ -139,7 +158,7 @@ class _RiwayatUserScreenState extends State<RiwayatUserScreen> {
             DataColumn(label: Text('Username')),
             DataColumn(label: Text('Aktivitas')),
           ],
-          rows: logs
+          rows: paginatedLogs
               .map(
                 (log) => DataRow(cells: [
                   DataCell(Text(
@@ -150,6 +169,67 @@ class _RiwayatUserScreenState extends State<RiwayatUserScreen> {
               )
               .toList(),
         ),
+      ),
+    );
+  }
+
+  Widget _buildPaginationControls() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              const Text('Tampilkan: '),
+              DropdownButton<int>(
+                value: rowsPerPage,
+                items: [10, 20, 50]
+                    .map((val) =>
+                        DropdownMenuItem(value: val, child: Text('$val')))
+                    .toList(),
+                onChanged: (val) {
+                  if (val != null) {
+                    setState(() {
+                      rowsPerPage = val;
+                      currentPage = 1;
+                      totalPages = (logs.length / rowsPerPage).ceil();
+                      _paginate();
+                    });
+                  }
+                },
+              ),
+              const Text(' baris per halaman'),
+            ],
+          ),
+          Row(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.chevron_left),
+                onPressed: currentPage > 1
+                    ? () {
+                        setState(() {
+                          currentPage--;
+                          _paginate();
+                        });
+                      }
+                    : null,
+              ),
+              Text('Halaman $currentPage dari $totalPages'),
+              IconButton(
+                icon: const Icon(Icons.chevron_right),
+                onPressed: currentPage < totalPages
+                    ? () {
+                        setState(() {
+                          currentPage++;
+                          _paginate();
+                        });
+                      }
+                    : null,
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -175,10 +255,9 @@ class _RiwayatUserScreenState extends State<RiwayatUserScreen> {
                 : logs.isEmpty
                     ? const Center(
                         child: Text('Tidak ada data log untuk hari ini'))
-                    : SingleChildScrollView(
-                        child: _buildTable(),
-                      ),
+                    : SingleChildScrollView(child: _buildTable()),
           ),
+          if (!isLoading && logs.isNotEmpty) _buildPaginationControls(),
         ],
       ),
     );

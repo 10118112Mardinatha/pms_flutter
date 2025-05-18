@@ -24,6 +24,8 @@ class _KasirPenjualanScreenState extends State<KasirPenjualanScreen> {
   final _nofakturController = TextEditingController();
   final formatter =
       NumberFormat.decimalPattern('id'); // atau: NumberFormat("#,##0", "id_ID")
+  final currencyFormatter =
+      NumberFormat.currency(locale: 'id_ID', symbol: 'Rp', decimalDigits: 0);
   @override
   void initState() {
     super.initState();
@@ -42,32 +44,41 @@ class _KasirPenjualanScreenState extends State<KasirPenjualanScreen> {
   }
 
   void _showStrukPreview(List<PenjualanModel> items) {
+    final formatRupiah =
+        NumberFormat.currency(locale: 'id', symbol: 'Rp ', decimalDigits: 0);
+
     final totalSebelum = items.fold<double>(
         0, (sum, item) => sum + (item.totalHargaSebelumDisc ?? 0));
-
     final totalBayar = items.fold<double>(
         0, (sum, item) => sum + (item.totalHargaSetelahDisc ?? 0));
     final totalDiskon = totalSebelum - totalBayar;
+
     final now = DateTime.now();
     final formattedDateTime = DateFormat('dd-MM-yyyy HH:mm:ss').format(now);
-
     final username = widget.user.username;
     _nofakturController.text = items.first.noFaktur;
+
+    Future<void> bayar() async {
+      await ApiService.updateStatusPenjualan(items.first.noFaktur, 'lunas');
+      await _printStruk(items);
+      if (context.mounted) Navigator.pop(context);
+      fetchMenungguData();
+    }
 
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('Preview Struk'),
         content: SizedBox(
-          width: 400,
+          width: 500,
           child: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Center(
+                const Center(
                   child: Column(
-                    children: const [
-                      Text('Apotek Segar ',
+                    children: [
+                      Text('Apotek Segar',
                           style: TextStyle(fontWeight: FontWeight.bold)),
                       Text('Jl. S.Parman, Kavaleri 29, No. 24'),
                       Text('Kec. Langkai Kel. Pahandut Kota Palangka Raya'),
@@ -76,31 +87,129 @@ class _KasirPenjualanScreenState extends State<KasirPenjualanScreen> {
                   ),
                 ),
                 const SizedBox(height: 10),
-                Text('No Faktur : ${_nofakturController.text}'),
-                Text('Tanggal   : $formattedDateTime'),
-                Text('Kasir     : $username'),
+                Table(
+                  columnWidths: const {
+                    0: IntrinsicColumnWidth(),
+                    1: FlexColumnWidth(),
+                  },
+                  children: [
+                    TableRow(children: [
+                      const Text('No Faktur'),
+                      Text(': ${_nofakturController.text}'),
+                    ]),
+                    TableRow(children: [
+                      const Text('Tanggal'),
+                      Text(': $formattedDateTime'),
+                    ]),
+                    TableRow(children: [
+                      const Text('Kasir'),
+                      Text(': $username'),
+                    ]),
+                  ],
+                ),
                 const Divider(),
-                ...items.asMap().entries.map((entry) {
-                  final i = entry.key + 1;
-                  final item = entry.value;
-                  return Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(child: Text('$i. ${item.namaBarang}')),
-                      Text('${item.satuan} | x${item.jumlahJual}'),
-                    ],
-                  );
-                }),
+                const SizedBox(height: 4),
+                Table(
+                  columnWidths: const {
+                    0: FixedColumnWidth(30),
+                    1: FlexColumnWidth(3),
+                    2: FlexColumnWidth(2),
+                    3: FixedColumnWidth(50),
+                    4: FixedColumnWidth(50),
+                    5: FlexColumnWidth(2),
+                    6: FlexColumnWidth(3),
+                  },
+                  children: [
+                    const TableRow(
+                      decoration: BoxDecoration(),
+                      children: [
+                        Center(
+                            child: Text('No',
+                                style: TextStyle(fontWeight: FontWeight.bold))),
+                        Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 4),
+                          child: Text('Nama',
+                              style: TextStyle(fontWeight: FontWeight.bold)),
+                        ),
+                        Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 4),
+                          child: Text('Harga',
+                              style: TextStyle(fontWeight: FontWeight.bold)),
+                        ),
+                        Center(
+                            child: Text('Satuan',
+                                style: TextStyle(fontWeight: FontWeight.bold))),
+                        Center(
+                            child: Text('Qty',
+                                style: TextStyle(fontWeight: FontWeight.bold))),
+                        Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 4),
+                          child: Text('Harga Diskon',
+                              style: TextStyle(fontWeight: FontWeight.bold)),
+                        ),
+                        Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 4),
+                          child: Text('Subtotal',
+                              style: TextStyle(fontWeight: FontWeight.bold)),
+                        ),
+                      ],
+                    ),
+                    ...items.asMap().entries.map((entry) {
+                      final i = entry.key + 1;
+                      final item = entry.value;
+                      final harga = item.hargaJual ?? 0;
+                      final diskon = item.jualDiscon ?? 0;
+                      final qty = item.jumlahJual ?? 0;
+                      final satuan = item.satuan ?? '';
+                      final subtotal = diskon * qty;
+
+                      return TableRow(
+                        children: [
+                          Center(child: Text('$i')),
+                          Padding(
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 4, vertical: 2),
+                            child: Text(item.namaBarang ?? ''),
+                          ),
+                          Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 4),
+                            child: Text(formatRupiah.format(harga)),
+                          ),
+                          Center(child: Text(satuan)),
+                          Center(child: Text('$qty')),
+                          Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 4),
+                            child: Text(formatRupiah.format(diskon)),
+                          ),
+                          Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 4),
+                            child: Text(formatRupiah.format(subtotal)),
+                          ),
+                        ],
+                      );
+                    }).toList(),
+                  ],
+                ),
                 const Divider(),
-                Text('Total Harga   : Rp ${totalSebelum.toStringAsFixed(0)}'),
-                Text('Total Diskon  : Rp $totalDiskon'),
-                Text('Total Dibayar : Rp ${totalBayar.toStringAsFixed(0)}'),
+                Text('Total Harga   : ${formatRupiah.format(totalSebelum)}'),
+                Text('Total Diskon  : ${formatRupiah.format(totalDiskon)}'),
+                Text('Total Dibayar : ${formatRupiah.format(totalBayar)}'),
                 const SizedBox(height: 10),
                 const Divider(),
                 const Center(
-                  child: Text(
-                    'Terima kasih atas kunjungannya',
-                    style: TextStyle(fontStyle: FontStyle.italic),
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 8),
+                    child: Text(
+                      'Terima kasih telah berbelanja di Apotek Segar. '
+                      'Untuk keluhan atau pertanyaan terkait obat, silakan hubungi Apoteker kami. '
+                      'Struk ini harap disimpan sebagai bukti pembelian.',
+                      style: TextStyle(
+                        fontStyle: FontStyle.italic,
+                        fontSize: 11,
+                        color: Colors.grey,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
                   ),
                 ),
               ],
@@ -108,21 +217,53 @@ class _KasirPenjualanScreenState extends State<KasirPenjualanScreen> {
           ),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Tutup'),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            child: TextButton(
+              style: TextButton.styleFrom(
+                backgroundColor: Colors.grey.shade200,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                foregroundColor: Colors.black,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              ),
+              onPressed: () => Navigator.pop(context),
+              child: const Text(
+                'Tutup',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
           ),
-          ElevatedButton(
-            onPressed: () async {
-              await ApiService.updateStatusPenjualan(
-                items.first.noFaktur,
-                'lunas',
-              );
-              await _printStruk(items);
-              if (context.mounted) Navigator.pop(context);
-              fetchMenungguData();
-            },
-            child: const Text('Bayar & Cetak'),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue.shade600,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                foregroundColor: Colors.white,
+                elevation: 5,
+                shadowColor: Colors.blueAccent.withOpacity(0.6),
+              ),
+              icon: const Icon(Icons.payment, size: 20),
+              label: const Text(
+                'Bayar & Cetak',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.7,
+                ),
+              ),
+              onPressed: bayar,
+            ),
           ),
         ],
       ),
@@ -139,17 +280,19 @@ class _KasirPenjualanScreenState extends State<KasirPenjualanScreen> {
 
   Future<void> _printStruk(List<PenjualanModel> items) async {
     final doc = pw.Document();
+    final formatRupiah =
+        NumberFormat.currency(locale: 'id', symbol: 'Rp ', decimalDigits: 0);
 
     final totalSebelum = items.fold<double>(
         0, (sum, item) => sum + (item.totalHargaSebelumDisc ?? 0));
-
     final totalBayar = items.fold<double>(
         0, (sum, item) => sum + (item.totalHargaSetelahDisc ?? 0));
     final totalDiskon = totalSebelum - totalBayar;
 
     final now = DateTime.now();
     final formattedDateTime = DateFormat('dd-MM-yyyy HH:mm:ss').format(now);
-    final username = items.first.kodePelanggan;
+    final username = widget.user.username;
+    final noFaktur = _nofakturController.text = items.first.noFaktur;
 
     doc.addPage(
       pw.Page(
@@ -161,7 +304,7 @@ class _KasirPenjualanScreenState extends State<KasirPenjualanScreen> {
               pw.Center(
                 child: pw.Column(
                   children: [
-                    pw.Text('Apotek Segar ',
+                    pw.Text('Apotek Segar',
                         style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
                     pw.Text('Jl. S.Parman, Kavaleri 29, No. 24'),
                     pw.Text('Kec. Langkai Kel. Pahandut Kota Palangka Raya'),
@@ -169,39 +312,106 @@ class _KasirPenjualanScreenState extends State<KasirPenjualanScreen> {
                   ],
                 ),
               ),
-              pw.SizedBox(height: 10),
-              pw.Text('No Faktur : ${_nofakturController.text}'),
+              pw.SizedBox(height: 8),
+              pw.Text('No Faktur : $noFaktur'),
               pw.Text('Tanggal   : $formattedDateTime'),
               pw.Text('Kasir     : $username'),
               pw.Divider(),
+
+              // Tabel header
+              pw.Row(
+                children: [
+                  pw.Expanded(
+                      flex: 1,
+                      child: pw.Text('No',
+                          style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
+                  pw.Expanded(
+                      flex: 3,
+                      child: pw.Text('Nama',
+                          style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
+                  pw.Expanded(
+                      flex: 2,
+                      child: pw.Text('Harga',
+                          style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
+                  pw.Expanded(
+                      flex: 1,
+                      child: pw.Text('Stn',
+                          style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
+                  pw.Expanded(
+                      flex: 1,
+                      child: pw.Text('Qty',
+                          style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
+                  pw.Expanded(
+                      flex: 2,
+                      child: pw.Text('Disc',
+                          style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
+                  pw.Expanded(
+                      flex: 2,
+                      child: pw.Text('Subttl',
+                          style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
+                ],
+              ),
+
+              pw.SizedBox(height: 4),
+
+              // Tabel isi
               ...items.asMap().entries.map((entry) {
                 final i = entry.key + 1;
                 final item = entry.value;
+                final harga = item.hargaJual ?? 0;
+                final diskon = item.jualDiscon ?? 0;
+                final qty = item.jumlahJual ?? 0;
+                final satuan = item.satuan ?? '';
+                final subtotal = diskon * qty;
+
                 return pw.Row(
-                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                   children: [
-                    pw.Expanded(child: pw.Text('$i. ${item.namaBarang}')),
-                    pw.Text('${item.satuan} | x${item.jumlahJual}'),
+                    pw.Expanded(flex: 1, child: pw.Text('$i')),
+                    pw.Expanded(flex: 3, child: pw.Text(item.namaBarang ?? '')),
+                    pw.Expanded(
+                        flex: 2, child: pw.Text(formatRupiah.format(harga))),
+                    pw.Expanded(flex: 1, child: pw.Text(satuan)),
+                    pw.Expanded(flex: 1, child: pw.Text('$qty')),
+                    pw.Expanded(
+                        flex: 2, child: pw.Text(formatRupiah.format(diskon))),
+                    pw.Expanded(
+                        flex: 2, child: pw.Text(formatRupiah.format(subtotal))),
                   ],
                 );
-              }),
+              }).toList(),
+
               pw.Divider(),
-              pw.Text('Total Harga   : Rp ${totalSebelum.toStringAsFixed(0)}'),
-              pw.Text('Total Diskon  : Rp $totalDiskon'),
-              pw.Text('Total Dibayar : Rp ${totalBayar.toStringAsFixed(0)}'),
+              pw.Text('Total Harga   : ${formatRupiah.format(totalSebelum)}'),
+              pw.Text('Total Diskon  : ${formatRupiah.format(totalDiskon)}'),
+              pw.Text('Total Dibayar : ${formatRupiah.format(totalBayar)}'),
               pw.SizedBox(height: 10),
               pw.Divider(),
               pw.Center(
-                child: pw.Text(
-                  'Terima kasih atas kunjungannya',
-                  style: pw.TextStyle(fontStyle: pw.FontStyle.italic),
+                child: pw.Padding(
+                  padding: const pw.EdgeInsets.symmetric(horizontal: 8),
+                  child: pw.Text(
+                    'Terima kasih telah berbelanja di Apotek Segar. '
+                    'Untuk keluhan atau pertanyaan terkait obat, silakan hubungi Apoteker kami. '
+                    'Struk ini harap disimpan sebagai bukti pembelian.',
+                    style: pw.TextStyle(
+                      fontStyle: pw.FontStyle.italic,
+                      fontSize:
+                          9, // bisa kecilkan font supaya tidak terlalu dominan
+                      color: PdfColors.grey600, // warna abu abu agak redup
+                    ),
+                    textAlign: pw.TextAlign.center,
+                  ),
                 ),
-              ),
+              )
             ],
           );
         },
       ),
     );
+
+    // Logging aktivitas & cetak
+    await ApiService.logActivity(
+        widget.user.id, 'Melakukan pembayaran $noFaktur');
 
     await Printing.layoutPdf(
       onLayout: (PdfPageFormat format) async => doc.save(),
@@ -249,13 +459,14 @@ class _KasirPenjualanScreenState extends State<KasirPenjualanScreen> {
                               /// Tabel Header
                               Table(
                                 columnWidths: const {
-                                  0: FixedColumnWidth(28),
+                                  0: FixedColumnWidth(40),
                                   1: FlexColumnWidth(2),
                                   2: FlexColumnWidth(1.2),
                                   3: FlexColumnWidth(1),
                                   4: FlexColumnWidth(1),
-                                  5: FlexColumnWidth(1.4),
-                                  6: FixedColumnWidth(60),
+                                  5: FlexColumnWidth(1),
+                                  6: FlexColumnWidth(1.4),
+                                  7: FixedColumnWidth(60),
                                 },
                                 border: TableBorder.all(
                                     color: Colors.grey.shade300),
@@ -275,6 +486,9 @@ class _KasirPenjualanScreenState extends State<KasirPenjualanScreen> {
                                       Padding(
                                           padding: EdgeInsets.all(6),
                                           child: Text('Harga Jual')),
+                                      Padding(
+                                          padding: EdgeInsets.all(6),
+                                          child: Text('Satuan')),
                                       Padding(
                                           padding: EdgeInsets.all(6),
                                           child: Text('Qty')),
@@ -303,6 +517,9 @@ class _KasirPenjualanScreenState extends State<KasirPenjualanScreen> {
                                           padding: const EdgeInsets.all(6),
                                           child: Text(
                                               'Rp ${formatter.format(item.hargaJual)}')),
+                                      Padding(
+                                          padding: const EdgeInsets.all(6),
+                                          child: Text('${item.satuan ?? ''}')),
                                       Padding(
                                           padding: const EdgeInsets.all(6),
                                           child:
@@ -353,7 +570,7 @@ class _KasirPenjualanScreenState extends State<KasirPenjualanScreen> {
                                     ),
                                   ),
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.deepPurple,
+                                    backgroundColor: Colors.blue.shade600,
                                     foregroundColor: Colors.white,
                                     shape: RoundedRectangleBorder(
                                         borderRadius:
@@ -451,13 +668,16 @@ class _KasirPenjualanScreenState extends State<KasirPenjualanScreen> {
                         .where((d) => d['value'].toString().contains(pattern));
                   },
                   itemBuilder: (context, suggestion) {
+                    final formatted =
+                        currencyFormatter.format(suggestion['value']);
                     return ListTile(
-                      title: Text(suggestion['value'].toString()),
+                      title: Text(formatted),
                       subtitle: Text(suggestion['label']),
                     );
                   },
                   onSuggestionSelected: (suggestion) {
-                    diskonCtrl.text = suggestion['value'].toString();
+                    diskonCtrl.text =
+                        currencyFormatter.format(suggestion['value']);
                   },
                   noItemsFoundBuilder: (context) =>
                       Text('Diskon tidak tersedia'),
@@ -509,6 +729,8 @@ class _KasirPenjualanScreenState extends State<KasirPenjualanScreen> {
                 penjualan.id.toString(),
                 payload,
               );
+              await ApiService.logActivity(
+                  widget.user.id, 'Melakukan edit pembayaran ${totalDics}');
 
               if (context.mounted) Navigator.pop(context);
               fetchMenungguData();

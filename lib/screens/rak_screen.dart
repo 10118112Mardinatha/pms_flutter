@@ -7,6 +7,7 @@ import 'package:drift/drift.dart' as drift;
 import 'package:excel/excel.dart';
 import 'package:http/http.dart' as http;
 import 'package:pms_flutter/models/rak_model.dart';
+import 'package:pms_flutter/models/user_model.dart';
 import 'package:pms_flutter/services/api_service.dart';
 import 'package:printing/printing.dart';
 import '../database/app_database.dart';
@@ -15,16 +16,15 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:file_picker/file_picker.dart';
 
 class RakScreen extends StatefulWidget {
-  final AppDatabase database;
+  final UserModel user;
 
-  const RakScreen({super.key, required this.database});
+  const RakScreen({super.key, required this.user});
 
   @override
   State<RakScreen> createState() => _RakScreenState();
 }
 
 class _RakScreenState extends State<RakScreen> {
-  late AppDatabase db;
   List<RakModel> allRaks = [];
   List<RakModel> filteredRaks = [];
   String searchField = 'Nama';
@@ -37,7 +37,7 @@ class _RakScreenState extends State<RakScreen> {
   @override
   void initState() {
     super.initState();
-    db = widget.database;
+    widget.user.id;
     _loadRaks();
   }
 
@@ -109,7 +109,43 @@ class _RakScreenState extends State<RakScreen> {
     final namaCtrl = TextEditingController(text: Rak?.namaRak ?? '');
     final lokasiCtrl = TextEditingController(text: Rak?.lokasi ?? '');
     final ketCtrl = TextEditingController(text: Rak?.keterangan ?? '');
-    ;
+
+    Future<void> _submitForm() async {
+      if (formKey.currentState!.validate()) {
+        final data = {
+          'kodeRak': kodeCtrl.text,
+          'namaRak': namaCtrl.text,
+          'lokasi': lokasiCtrl.text,
+          'keterangan': ketCtrl.text,
+        };
+
+        late http.Response response;
+
+        if (Rak == null) {
+          // TAMBAH SUPPLIER
+          response = await ApiService.postRak(data);
+          await ApiService.logActivity(
+              widget.user.id, 'Menambah Supplier ${namaCtrl.text}');
+        } else {
+          // EDIT SUPPLIER
+          response = await ApiService.updateRak(
+            Rak.kodeRak,
+            data,
+          );
+          await ApiService.logActivity(
+              widget.user.id, 'Mengubah Supplier ${kodeCtrl.text}');
+        }
+
+        if (response.statusCode == 200 || response.statusCode == 201) {
+          if (context.mounted) Navigator.pop(context);
+          await _loadRaks();
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Gagal menyimpan data')),
+          );
+        }
+      }
+    }
 
     showDialog(
       context: context,
@@ -125,9 +161,11 @@ class _RakScreenState extends State<RakScreen> {
                 TextFormField(
                   controller: kodeCtrl,
                   decoration: InputDecoration(labelText: 'Kode Rak'),
+                  onFieldSubmitted: (_) => _submitForm(),
                   validator: (value) {
-                    if (value == null || value.isEmpty)
+                    if (value == null || value.isEmpty) {
                       return 'Wajib diisi tidak boleh kosong';
+                    }
                     final exists = allRaks.any((s) =>
                         s.kodeRak == value && (Rak == null || s.id != Rak.id));
                     if (exists) return 'Kode sudah digunakan';
@@ -137,6 +175,7 @@ class _RakScreenState extends State<RakScreen> {
                 TextFormField(
                   controller: namaCtrl,
                   decoration: InputDecoration(labelText: 'Nama Rak'),
+                  onFieldSubmitted: (_) => _submitForm(),
                   validator: (value) => value == null || value.isEmpty
                       ? 'Wajib diisi tidak boleh kosong'
                       : null,
@@ -144,6 +183,7 @@ class _RakScreenState extends State<RakScreen> {
                 TextFormField(
                   controller: lokasiCtrl,
                   decoration: InputDecoration(labelText: 'Lokasi'),
+                  onFieldSubmitted: (_) => _submitForm(),
                   validator: (value) => value == null || value.isEmpty
                       ? 'Wajib diisi tidak boleh kosong'
                       : null,
@@ -151,6 +191,7 @@ class _RakScreenState extends State<RakScreen> {
                 TextFormField(
                   controller: ketCtrl,
                   decoration: InputDecoration(labelText: 'Keterangan'),
+                  onFieldSubmitted: (_) => _submitForm(),
                   validator: (value) => value == null || value.isEmpty
                       ? 'Wajib diisi tidak boleh kosong'
                       : null,
@@ -162,42 +203,32 @@ class _RakScreenState extends State<RakScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.red,
+              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              textStyle: TextStyle(fontSize: 16),
+            ),
             child: const Text('Batal'),
           ),
           ElevatedButton(
-            onPressed: () async {
-              if (formKey.currentState!.validate()) {
-                final data = {
-                  'kodeRak': kodeCtrl.text,
-                  'namaRak': namaCtrl.text,
-                  'lokasi': lokasiCtrl.text,
-                  'keterangan': ketCtrl.text,
-                };
-
-                late http.Response response;
-
-                if (Rak == null) {
-                  // TAMBAH SUPPLIER
-                  response = await ApiService.postRak(data);
-                } else {
-                  // EDIT SUPPLIER
-                  response = await ApiService.updateRak(
-                    Rak.kodeRak, // Ganti dari supplier.id
-                    data,
-                  );
-                }
-
-                if (response.statusCode == 200 || response.statusCode == 201) {
-                  if (context.mounted) Navigator.pop(context);
-                  await _loadRaks(); // refresh table
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Gagal menyimpan data')),
-                  );
-                }
-              }
-            },
-            child: const Text('Simpan'),
+            onPressed: _submitForm,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue.shade600,
+              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+              textStyle: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              elevation: 3,
+            ),
+            child: const Text(
+              'Simpan',
+              style: TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),
@@ -209,14 +240,24 @@ class _RakScreenState extends State<RakScreen> {
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('Hapus Supplier'),
-        content: const Text('Yakin ingin menghapus supplier ini?'),
+        content: const Text('Yakin ingin menghapus rak ini?'),
         actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Batal')),
-          TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Hapus')),
+          TextButton.icon(
+            onPressed: () => Navigator.pop(context, false),
+            icon: const Icon(Icons.close, color: Colors.grey),
+            label: const Text('Batal', style: TextStyle(color: Colors.grey)),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            ),
+          ),
+          TextButton.icon(
+            onPressed: () => Navigator.pop(context, true),
+            icon: const Icon(Icons.delete, color: Colors.red),
+            label: const Text('Hapus', style: TextStyle(color: Colors.red)),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            ),
+          ),
         ],
       ),
     );
@@ -225,13 +266,15 @@ class _RakScreenState extends State<RakScreen> {
       final response = await ApiService.deleteRak(kode); // <--- ganti ini
 
       if (response.statusCode == 200) {
+        await ApiService.logActivity(
+            widget.user.id, 'Melakukan delete Rak ${kode}');
         await _loadRaks(); // refresh data dari server
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Supplier berhasil dihapus')),
+          const SnackBar(content: Text('Rak berhasil dihapus')),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Gagal menghapus supplier')),
+          const SnackBar(content: Text('Gagal menghapus rak')),
         );
       }
     }

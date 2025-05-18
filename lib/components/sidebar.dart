@@ -4,13 +4,12 @@ import 'package:pms_flutter/database/app_database.dart';
 
 class Sidebar extends StatefulWidget {
   final Function(String) onMenuTap;
-  final AppDatabase database;
+
   final String? role;
 
   const Sidebar({
     super.key,
     required this.onMenuTap,
-    required this.database,
     required this.role,
   });
 
@@ -186,7 +185,7 @@ class _SidebarState extends State<Sidebar> {
 
   Widget _buildAppHeader() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 13.5),
       child: GestureDetector(
         onTap: () => setState(() {
           _isCollapsed = !_isCollapsed;
@@ -195,24 +194,27 @@ class _SidebarState extends State<Sidebar> {
           }
         }),
         child: Focus(
-          focusNode: _logoFocusNode,
-          child: Row(
-            children: [
-              const Icon(Icons.menu, size: 28, color: Colors.black),
-              if (!_isCollapsed) ...[
-                const SizedBox(width: 5),
-                Text(
-                  'Apotek Segar',
-                  style: GoogleFonts.poppins(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blue[900],
+            focusNode: _logoFocusNode,
+            child: Row(
+              children: [
+                const Icon(Icons.menu, size: 28, color: Colors.black),
+                if (!_isCollapsed) ...[
+                  const SizedBox(width: 5),
+                  Expanded(
+                    // Tambahkan ini
+                    child: Text(
+                      'Apotek Segar',
+                      overflow: TextOverflow.ellipsis, // Hindari overflow teks
+                      style: GoogleFonts.poppins(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue[900],
+                      ),
+                    ),
                   ),
-                ),
+                ],
               ],
-            ],
-          ),
-        ),
+            )),
       ),
     );
   }

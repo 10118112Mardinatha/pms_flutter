@@ -1,13 +1,13 @@
 import 'dart:io';
 import 'dart:convert';
+
 import 'package:flutter/material.dart';
-import 'package:drift/drift.dart' show Value;
-import 'package:drift/drift.dart' as drift;
 import 'package:excel/excel.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:pms_flutter/models/doctor_model.dart';
+import 'package:pms_flutter/models/user_model.dart';
 import 'package:pms_flutter/services/api_service.dart';
 import 'package:printing/printing.dart';
 import '../database/app_database.dart';
@@ -16,9 +16,9 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:file_picker/file_picker.dart';
 
 class DoctorScreen extends StatefulWidget {
-  final AppDatabase database;
+  final UserModel user;
 
-  const DoctorScreen({super.key, required this.database});
+  const DoctorScreen({super.key, required this.user});
 
   @override
   State<DoctorScreen> createState() => _DoctorScreenState();
@@ -41,7 +41,7 @@ class _DoctorScreenState extends State<DoctorScreen> {
   @override
   void initState() {
     super.initState();
-    db = widget.database;
+    widget.user.id;
     _loadDoctors();
   }
 
@@ -107,6 +107,44 @@ class _DoctorScreenState extends State<DoctorScreen> {
     final formatter =
         NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
 
+    Future<void> _submit() async {
+      if (formKey.currentState!.validate()) {
+        final data = {
+          'kodeDoctor': kodeCtrl.text,
+          'namaDoctor': namaCtrl.text,
+          'alamat': alamatCtrl.text,
+          'telepon': teleponCtrl.text,
+          'nilaipenjualan': int.tryParse(
+                  nilaipenjualanCtrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
+              0,
+        };
+        print(jsonEncode(data));
+        late http.Response response;
+
+        if (doctor == null) {
+          response = await ApiService.postDokter(data);
+          await ApiService.logActivity(
+              widget.user.id, 'Tambah Doctor ${namaCtrl.text}');
+        } else {
+          response = await ApiService.updateDokter(
+            doctor.kodeDoctor,
+            data,
+          );
+          await ApiService.logActivity(
+              widget.user.id, 'Edit Doctor ${kodeCtrl.text}');
+        }
+
+        if (response.statusCode == 200 || response.statusCode == 201) {
+          if (context.mounted) Navigator.pop(context);
+          await _loadDoctors();
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Gagal menyimpan data')),
+          );
+        }
+      }
+    }
+
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
@@ -115,111 +153,102 @@ class _DoctorScreenState extends State<DoctorScreen> {
           width: 400,
           child: Form(
             key: formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextFormField(
-                  controller: kodeCtrl,
-                  decoration: InputDecoration(labelText: 'Kode Dokter'),
-                  validator: (value) {
-                    if (value == null || value.isEmpty)
-                      return 'Wajib diisi tidak boleh kosong';
-                    final exists = doctors.any((s) =>
-                        s.kodeDoctor == value &&
-                        (doctor == null || s.id != doctor.id));
-                    if (exists) return 'Kode sudah digunakan';
-                    return null;
-                  },
-                ),
-                TextFormField(
-                  controller: namaCtrl,
-                  decoration: InputDecoration(labelText: 'Nama Doktor'),
-                  validator: (value) => value == null || value.isEmpty
-                      ? 'Wajib diisi tidak boleh kosong'
-                      : null,
-                ),
-                TextFormField(
-                  controller: alamatCtrl,
-                  decoration: InputDecoration(labelText: 'Alamat'),
-                  validator: (value) => value == null || value.isEmpty
-                      ? 'Wajib diisi tidak boleh kosong'
-                      : null,
-                ),
-                TextFormField(
-                  controller: teleponCtrl,
-                  decoration: InputDecoration(labelText: 'Telepon'),
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  validator: (value) => value == null || value.isEmpty
-                      ? 'Wajib diisi tidak boleh kosong dan berupa angka'
-                      : null,
-                ),
-                TextFormField(
-                  controller: nilaipenjualanCtrl,
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  decoration: InputDecoration(labelText: ' Nilai Penjualan'),
-                  onChanged: (value) {
-                    if (value.isEmpty) return;
-                    final number = int.parse(value.replaceAll('.', ''));
-                    final newText =
-                        formatter.format(number).replaceAll(',00', '');
-                    nilaipenjualanCtrl.value = TextEditingValue(
-                      text: newText,
-                      selection:
-                          TextSelection.collapsed(offset: newText.length),
-                    );
-                  },
-                  validator: (value) => value == null || value.isEmpty
-                      ? 'Wajib diisi tidak boleh kosong'
-                      : null,
-                ),
-              ],
+            child: FocusScope(
+              node: FocusScopeNode(),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextFormField(
+                    controller: kodeCtrl,
+                    decoration: InputDecoration(labelText: 'Kode Dokter'),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Wajib diisi tidak boleh kosong';
+                      }
+                      final exists = doctors.any((s) =>
+                          s.kodeDoctor == value &&
+                          (doctor == null || s.id != doctor.id));
+                      if (exists) return 'Kode sudah digunakan';
+                      return null;
+                    },
+                  ),
+                  TextFormField(
+                    controller: namaCtrl,
+                    decoration: InputDecoration(labelText: 'Nama Doktor'),
+                    validator: (value) => value == null || value.isEmpty
+                        ? 'Wajib diisi tidak boleh kosong'
+                        : null,
+                  ),
+                  TextFormField(
+                    controller: alamatCtrl,
+                    decoration: InputDecoration(labelText: 'Alamat'),
+                    validator: (value) => value == null || value.isEmpty
+                        ? 'Wajib diisi tidak boleh kosong'
+                        : null,
+                  ),
+                  TextFormField(
+                    controller: teleponCtrl,
+                    decoration: InputDecoration(labelText: 'Telepon'),
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    validator: (value) => value == null || value.isEmpty
+                        ? 'Wajib diisi tidak boleh kosong dan berupa angka'
+                        : null,
+                  ),
+                  TextFormField(
+                    controller: nilaipenjualanCtrl,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    decoration: InputDecoration(labelText: ' Nilai Penjualan'),
+                    onChanged: (value) {
+                      if (value.isEmpty) return;
+                      final number = int.parse(value.replaceAll('.', ''));
+                      final newText =
+                          formatter.format(number).replaceAll(',00', '');
+                      nilaipenjualanCtrl.value = TextEditingValue(
+                        text: newText,
+                        selection:
+                            TextSelection.collapsed(offset: newText.length),
+                      );
+                    },
+                    onFieldSubmitted: (_) =>
+                        _submit(), // Trigger submit via Enter
+                    validator: (value) => value == null || value.isEmpty
+                        ? 'Wajib diisi tidak boleh kosong'
+                        : null,
+                  ),
+                ],
+              ),
             ),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.red,
+              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              textStyle: TextStyle(fontSize: 16),
+            ),
             child: const Text('Batal'),
           ),
           ElevatedButton(
-            onPressed: () async {
-              if (formKey.currentState!.validate()) {
-                final data = {
-                  'kodeDoctor': kodeCtrl.text,
-                  'namaDoctor': namaCtrl.text,
-                  'alamat': alamatCtrl.text,
-                  'telepon': teleponCtrl.text,
-                  'nilaipenjualan': int.tryParse(nilaipenjualanCtrl.text
-                          .replaceAll(RegExp(r'[^0-9]'), '')) ??
-                      0,
-                };
-                print(jsonEncode(data));
-                late http.Response response;
-
-                if (doctor == null) {
-                  // TAMBAH SUPPLIER
-                  response = await ApiService.postDokter(data);
-                } else {
-                  // EDIT SUPPLIER
-                  response = await ApiService.updateDokter(
-                    doctor.kodeDoctor, // Ganti dari supplier.id
-                    data,
-                  );
-                }
-
-                if (response.statusCode == 200 || response.statusCode == 201) {
-                  if (context.mounted) Navigator.pop(context);
-                  await _loadDoctors(); // refresh table
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Gagal menyimpan data')),
-                  );
-                }
-              }
-            },
-            child: const Text('Simpan'),
+            onPressed: _submit,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue.shade600,
+              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+              textStyle: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
+              elevation: 3,
+            ),
+            child: const Text(
+              'Simpan',
+              style: TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),
@@ -245,14 +274,24 @@ class _DoctorScreenState extends State<DoctorScreen> {
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('Hapus Dokter'),
-        content: const Text('Yakin ingin menghapus supplier ini?'),
+        content: const Text('Yakin ingin menghapus Dokter ini?'),
         actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Batal')),
-          TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Hapus')),
+          TextButton.icon(
+            onPressed: () => Navigator.pop(context, false),
+            icon: const Icon(Icons.close, color: Colors.grey),
+            label: const Text('Batal', style: TextStyle(color: Colors.grey)),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            ),
+          ),
+          TextButton.icon(
+            onPressed: () => Navigator.pop(context, true),
+            icon: const Icon(Icons.delete, color: Colors.red),
+            label: const Text('Hapus', style: TextStyle(color: Colors.red)),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            ),
+          ),
         ],
       ),
     );
@@ -261,13 +300,14 @@ class _DoctorScreenState extends State<DoctorScreen> {
       final response = await ApiService.deleteDokter(kode); // <--- ganti ini
 
       if (response.statusCode == 200) {
+        await ApiService.logActivity(widget.user.id, 'Delete Dokter ${kode}');
         await _loadDoctors(); // refresh data dari server
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Supplier berhasil dihapus')),
+          const SnackBar(content: Text('Dokter berhasil dihapus')),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Gagal menghapus supplier')),
+          const SnackBar(content: Text('Gagal menghapus dokter')),
         );
       }
     }

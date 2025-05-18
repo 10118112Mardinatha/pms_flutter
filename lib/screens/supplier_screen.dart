@@ -2,30 +2,28 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:drift/drift.dart' show Value;
-import 'package:drift/drift.dart' as drift;
+
 import 'package:excel/excel.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:pms_flutter/models/supplier_model.dart';
+import 'package:pms_flutter/models/user_model.dart';
 import 'package:pms_flutter/services/api_service.dart';
 import 'package:printing/printing.dart';
-import '../database/app_database.dart';
 import 'dart:typed_data';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:file_picker/file_picker.dart';
 
 class SupplierScreen extends StatefulWidget {
-  final AppDatabase database;
+  final UserModel user;
 
-  const SupplierScreen({super.key, required this.database});
+  const SupplierScreen({super.key, required this.user});
 
   @override
   State<SupplierScreen> createState() => _SupplierScreenState();
 }
 
 class _SupplierScreenState extends State<SupplierScreen> {
-  late AppDatabase db;
   String searchField = 'Nama';
   String searchText = '';
   final TextEditingController _searchController = TextEditingController();
@@ -37,7 +35,7 @@ class _SupplierScreenState extends State<SupplierScreen> {
   @override
   void initState() {
     super.initState();
-    db = widget.database;
+    widget.user.id;
     _loadSuppliers();
   }
 
@@ -102,112 +100,154 @@ class _SupplierScreenState extends State<SupplierScreen> {
     final keteranganCtrl =
         TextEditingController(text: supplier?.keterangan ?? '');
 
+    Future<void> simpanData() async {
+      if (formKey.currentState!.validate()) {
+        final data = {
+          'kodeSupplier': kodeCtrl.text,
+          'namaSupplier': namaCtrl.text,
+          'alamat': alamatCtrl.text,
+          'telepon': teleponCtrl.text,
+          'keterangan': keteranganCtrl.text,
+        };
+
+        late http.Response response;
+
+        if (supplier == null) {
+          response = await ApiService.postSupplier(data);
+          await ApiService.logActivity(
+              widget.user.id, 'Menambah Supplier ${namaCtrl.text}');
+        } else {
+          response = await ApiService.updateSupplier(
+            supplier.kodeSupplier,
+            data,
+          );
+          await ApiService.logActivity(
+              widget.user.id, 'Melakukan edit Supplier ${namaCtrl.text}');
+        }
+
+        if (response.statusCode == 409) {
+          final msg = jsonDecode(response.body)['error'];
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(msg), backgroundColor: Colors.red),
+          );
+          return;
+        }
+
+        if (response.statusCode == 200 || response.statusCode == 201) {
+          if (context.mounted) Navigator.pop(context);
+          await _loadSuppliers(); // refresh data
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Gagal menyimpan data')),
+          );
+        }
+      }
+    }
+
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        title: Text(supplier == null ? 'Tambah Supplier' : 'Edit Supplier'),
-        content: SizedBox(
-          width: 400,
-          child: Form(
-            key: formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextFormField(
-                  controller: kodeCtrl,
-                  decoration: InputDecoration(labelText: 'Kode Supplier'),
-                  validator: (value) {
-                    if (value == null || value.isEmpty)
-                      return 'Wajib diisi tidak boleh kosong';
-                    final exists = suppliers.any((s) =>
-                        s.kodeSupplier == value &&
-                        (supplier == null || s.id != supplier.id));
-                    if (exists) return 'Kode sudah digunakan';
-                    return null;
-                  },
-                ),
-                TextFormField(
-                  controller: namaCtrl,
-                  decoration: InputDecoration(labelText: 'Nama Supplier'),
-                  validator: (value) => value == null || value.isEmpty
-                      ? 'Wajib diisi tidak boleh kosong'
-                      : null,
-                ),
-                TextFormField(
-                  controller: alamatCtrl,
-                  decoration: InputDecoration(labelText: 'Alamat'),
-                  validator: (value) => value == null || value.isEmpty
-                      ? 'Wajib diisi tidak boleh kosong'
-                      : null,
-                ),
-                TextFormField(
-                  controller: teleponCtrl,
-                  decoration: InputDecoration(labelText: 'Telepon'),
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  validator: (value) => value == null || value.isEmpty
-                      ? 'Wajib diisi tidak boleh kosong dan berupa angka'
-                      : null,
-                ),
-                TextFormField(
-                  controller: keteranganCtrl,
-                  decoration: InputDecoration(labelText: 'Keterangan'),
-                  validator: (value) => value == null || value.isEmpty
-                      ? 'Wajib diisi tidak boleh kosong'
-                      : null,
-                ),
-              ],
+      builder: (_) => Shortcuts(
+        shortcuts: {
+          LogicalKeySet(LogicalKeyboardKey.enter): const ActivateIntent(),
+        },
+        child: Actions(
+          actions: {
+            ActivateIntent: CallbackAction<ActivateIntent>(
+              onInvoke: (_) {
+                simpanData();
+                return null;
+              },
             ),
+          },
+          child: AlertDialog(
+            title: Text(supplier == null ? 'Tambah Supplier' : 'Edit Supplier'),
+            content: SizedBox(
+              width: 400,
+              child: Form(
+                key: formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextFormField(
+                      controller: kodeCtrl,
+                      decoration: InputDecoration(labelText: 'Kode Supplier'),
+                      validator: (value) {
+                        if (value == null || value.isEmpty)
+                          return 'Wajib diisi tidak boleh kosong';
+                        final exists = suppliers.any((s) =>
+                            s.kodeSupplier == value &&
+                            (supplier == null || s.id != supplier.id));
+                        if (exists) return 'Kode sudah digunakan';
+                        return null;
+                      },
+                    ),
+                    TextFormField(
+                      controller: namaCtrl,
+                      decoration: InputDecoration(labelText: 'Nama Supplier'),
+                      validator: (value) => value == null || value.isEmpty
+                          ? 'Wajib diisi tidak boleh kosong'
+                          : null,
+                    ),
+                    TextFormField(
+                      controller: alamatCtrl,
+                      decoration: InputDecoration(labelText: 'Alamat'),
+                      validator: (value) => value == null || value.isEmpty
+                          ? 'Wajib diisi tidak boleh kosong'
+                          : null,
+                    ),
+                    TextFormField(
+                      controller: teleponCtrl,
+                      decoration: InputDecoration(labelText: 'Telepon'),
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      validator: (value) => value == null || value.isEmpty
+                          ? 'Wajib diisi tidak boleh kosong dan berupa angka'
+                          : null,
+                    ),
+                    TextFormField(
+                      controller: keteranganCtrl,
+                      decoration: InputDecoration(labelText: 'Keterangan'),
+                      validator: (value) => value == null || value.isEmpty
+                          ? 'Wajib diisi tidak boleh kosong'
+                          : null,
+                      onFieldSubmitted: (_) => simpanData(),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.red,
+                  padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  textStyle: TextStyle(fontSize: 16),
+                ),
+                child: const Text('Batal'),
+              ),
+              ElevatedButton(
+                onPressed: simpanData,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue.shade600,
+                  padding: EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                  textStyle: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  elevation: 3,
+                ),
+                child: const Text(
+                  'Simpan',
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+            ],
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Batal'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (formKey.currentState!.validate()) {
-                final data = {
-                  'kodeSupplier': kodeCtrl.text,
-                  'namaSupplier': namaCtrl.text,
-                  'alamat': alamatCtrl.text,
-                  'telepon': teleponCtrl.text,
-                  'keterangan': keteranganCtrl.text,
-                };
-
-                late http.Response response;
-
-                if (supplier == null) {
-                  // TAMBAH SUPPLIER
-                  response = await ApiService.postSupplier(data);
-                } else {
-                  // EDIT SUPPLIER
-                  response = await ApiService.updateSupplier(
-                    supplier.kodeSupplier, // Ganti dari supplier.id
-                    data,
-                  );
-                }
-                if (response.statusCode == 409) {
-                  final msg = jsonDecode(response.body)['error'];
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(msg), backgroundColor: Colors.red),
-                  );
-                  return;
-                }
-                if (response.statusCode == 200 || response.statusCode == 201) {
-                  if (context.mounted) Navigator.pop(context);
-                  await _loadSuppliers(); // refresh table
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Gagal menyimpan data')),
-                  );
-                }
-              }
-            },
-            child: const Text('Simpan'),
-          ),
-        ],
       ),
     );
   }
@@ -219,12 +259,22 @@ class _SupplierScreenState extends State<SupplierScreen> {
         title: const Text('Hapus Supplier'),
         content: const Text('Yakin ingin menghapus supplier ini?'),
         actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Batal')),
-          TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Hapus')),
+          TextButton.icon(
+            onPressed: () => Navigator.pop(context, false),
+            icon: const Icon(Icons.close, color: Colors.grey),
+            label: const Text('Batal', style: TextStyle(color: Colors.grey)),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            ),
+          ),
+          TextButton.icon(
+            onPressed: () => Navigator.pop(context, true),
+            icon: const Icon(Icons.delete, color: Colors.red),
+            label: const Text('Hapus', style: TextStyle(color: Colors.red)),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            ),
+          ),
         ],
       ),
     );
@@ -233,6 +283,10 @@ class _SupplierScreenState extends State<SupplierScreen> {
       final response = await ApiService.deleteSupplier(kode); // <--- ganti ini
 
       if (response.statusCode == 200) {
+        await ApiService.logActivity(
+            widget.user.id, 'Melakukan delete supplier${kode}');
+        await ApiService.logActivity(
+            widget.user.id, 'Melakukan delete ${kode}');
         await _loadSuppliers(); // refresh data dari server
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Supplier berhasil dihapus')),

@@ -191,10 +191,10 @@ class ApiService {
     return null;
   }
 
-  static Future<bool> deleteUser(int id) async {
+  static Future<http.Response> deleteUser(int id) async {
     final baseUrl = await _getBaseUrl();
-    final res = await http.delete(Uri.parse('$baseUrl/user/$id'));
-    return res.statusCode == 200;
+    final res = Uri.parse('$baseUrl/user/$id');
+    return http.delete(res);
   }
 
   static Future<UserModel?> getUserById(String id) async {

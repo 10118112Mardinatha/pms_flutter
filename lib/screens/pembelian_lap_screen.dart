@@ -3,16 +3,14 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:excel/excel.dart';
-import 'package:pms_flutter/database/app_database.dart';
+
 import 'package:pms_flutter/models/pembelian_model.dart';
 import 'package:pms_flutter/services/api_service.dart';
 import 'package:printing/printing.dart';
 import 'dart:typed_data';
 
 class LaporanPembelianScreen extends StatefulWidget {
-  final AppDatabase database;
-
-  const LaporanPembelianScreen({super.key, required this.database});
+  const LaporanPembelianScreen({super.key});
 
   @override
   State<LaporanPembelianScreen> createState() => _LaporanPembelianScreenState();

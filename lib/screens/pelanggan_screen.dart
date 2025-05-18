@@ -8,6 +8,7 @@ import 'package:excel/excel.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:pms_flutter/models/pelanggan_model.dart';
+import 'package:pms_flutter/models/user_model.dart';
 import 'package:pms_flutter/services/api_service.dart';
 import 'package:printing/printing.dart';
 import '../database/app_database.dart';
@@ -16,9 +17,9 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:file_picker/file_picker.dart';
 
 class PelangganScreen extends StatefulWidget {
-  final AppDatabase database;
+  final UserModel user;
 
-  const PelangganScreen({super.key, required this.database});
+  const PelangganScreen({super.key, required this.user});
 
   @override
   State<PelangganScreen> createState() => _PelangganScreenState();
@@ -38,7 +39,7 @@ class _PelangganScreenState extends State<PelangganScreen> {
   @override
   void initState() {
     super.initState();
-    db = widget.database;
+    widget.user.id;
     _loadPelanggan();
   }
 
@@ -113,77 +114,114 @@ class _PelangganScreenState extends State<PelangganScreen> {
         TextEditingController(text: Pelanggan?.namaPelanggan ?? '');
     final usiaCtrl =
         TextEditingController(text: Pelanggan?.usia?.toString() ?? '');
-
     final teleponCtrl = TextEditingController(text: Pelanggan?.telepon ?? '');
-
     final alamatCtrl = TextEditingController(text: Pelanggan?.alamat ?? '');
     final kelompokCtrl = TextEditingController(text: Pelanggan?.kelompok ?? '');
+
+    void submitForm() async {
+      if (formKey.currentState!.validate()) {
+        final data = {
+          'kodePelanggan': kodeCtrl.text,
+          'namaPelanggan': namaCtrl.text,
+          'telepon': teleponCtrl.text,
+          'usia': int.tryParse(usiaCtrl.text) ?? 0,
+          'alamat': alamatCtrl.text,
+          'kelompok': kelompokCtrl.text
+        };
+
+        late http.Response response;
+        if (Pelanggan == null) {
+          response = await ApiService.postPelanggan(data);
+          await ApiService.logActivity(
+              widget.user.id, 'Tambah Pelanggan ${namaCtrl.text}');
+        } else {
+          response = await ApiService.updatePelanggan(
+            Pelanggan.kodePelanggan,
+            data,
+          );
+          await ApiService.logActivity(
+              widget.user.id, 'Edit Pelanggan ${namaCtrl.text}');
+        }
+
+        if (response.statusCode == 200 || response.statusCode == 201) {
+          if (context.mounted) Navigator.pop(context);
+          await _loadPelanggan();
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Gagal menyimpan data')),
+          );
+        }
+      }
+    }
 
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: Text(
-            PelangganScreen == null ? 'Tambah Pelanggan' : 'Edit Pelanggan'),
+        title: Text(Pelanggan == null ? 'Tambah Pelanggan' : 'Edit Pelanggan'),
         content: SizedBox(
           width: 400,
-          child: Form(
-            key: formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextFormField(
-                  controller: kodeCtrl,
-                  decoration: InputDecoration(labelText: 'Kode Pelanggan'),
-                  validator: (value) {
-                    if (value == null || value.isEmpty)
-                      return 'Wajib diisi tidak boleh kosong';
-                    final exists = allPelanggan.any((s) =>
-                        s.kodePelanggan == value &&
-                        (Pelanggan == null || s.id != Pelanggan.id));
-                    if (exists) return 'Kode sudah digunakan';
-                    return null;
-                  },
-                ),
-                TextFormField(
-                  controller: namaCtrl,
-                  decoration: InputDecoration(labelText: 'Nama '),
-                  validator: (value) => value == null || value.isEmpty
-                      ? 'Wajib diisi tidak boleh kosong'
-                      : null,
-                ),
-                TextFormField(
-                  controller: usiaCtrl,
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  decoration: InputDecoration(labelText: 'Usia'),
-                  validator: (value) => value == null || value.isEmpty
-                      ? 'Wajib diisi tidak boleh kosong dan berupa angka'
-                      : null,
-                ),
-                TextFormField(
-                  controller: teleponCtrl,
-                  decoration: InputDecoration(labelText: 'Telepon'),
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  validator: (value) => value == null || value.isEmpty
-                      ? 'Wajib diisi tidak boleh kosong dan berupa angka'
-                      : null,
-                ),
-                TextFormField(
-                  controller: alamatCtrl,
-                  decoration: InputDecoration(labelText: 'Alamat'),
-                  validator: (value) => value == null || value.isEmpty
-                      ? 'Wajib diisi tidak boleh kosong'
-                      : null,
-                ),
-                TextFormField(
-                  controller: kelompokCtrl,
-                  decoration: InputDecoration(labelText: 'Kelompok'),
-                  validator: (value) => value == null || value.isEmpty
-                      ? 'Wajib diisi tidak boleh kosong'
-                      : null,
-                ),
-              ],
+          child: RawKeyboardListener(
+            focusNode: FocusNode(), // penting agar bisa terdeteksi
+            autofocus: true,
+            onKey: (event) {
+              if (event.isKeyPressed(LogicalKeyboardKey.enter)) {
+                submitForm();
+              }
+            },
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextFormField(
+                    controller: kodeCtrl,
+                    decoration: InputDecoration(labelText: 'Kode Pelanggan'),
+                    validator: (value) {
+                      if (value == null || value.isEmpty)
+                        return 'Wajib diisi tidak boleh kosong';
+                      final exists = allPelanggan.any((s) =>
+                          s.kodePelanggan == value &&
+                          (Pelanggan == null || s.id != Pelanggan.id));
+                      if (exists) return 'Kode sudah digunakan';
+                      return null;
+                    },
+                  ),
+                  TextFormField(
+                    controller: namaCtrl,
+                    decoration: InputDecoration(labelText: 'Nama'),
+                    validator: (value) =>
+                        value == null || value.isEmpty ? 'Wajib diisi' : null,
+                  ),
+                  TextFormField(
+                    controller: usiaCtrl,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    decoration: InputDecoration(labelText: 'Usia'),
+                    validator: (value) =>
+                        value == null || value.isEmpty ? 'Wajib diisi' : null,
+                  ),
+                  TextFormField(
+                    controller: teleponCtrl,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    decoration: InputDecoration(labelText: 'Telepon'),
+                    validator: (value) =>
+                        value == null || value.isEmpty ? 'Wajib diisi' : null,
+                  ),
+                  TextFormField(
+                    controller: alamatCtrl,
+                    decoration: InputDecoration(labelText: 'Alamat'),
+                    validator: (value) =>
+                        value == null || value.isEmpty ? 'Wajib diisi' : null,
+                  ),
+                  TextFormField(
+                    controller: kelompokCtrl,
+                    decoration: InputDecoration(labelText: 'Kelompok'),
+                    validator: (value) =>
+                        value == null || value.isEmpty ? 'Wajib diisi' : null,
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -193,40 +231,7 @@ class _PelangganScreenState extends State<PelangganScreen> {
             child: const Text('Batal'),
           ),
           ElevatedButton(
-            onPressed: () async {
-              if (formKey.currentState!.validate()) {
-                final data = {
-                  'kodePelanggan': kodeCtrl.text,
-                  'namaPelanggan': namaCtrl.text,
-                  'telepon': teleponCtrl.text,
-                  'usia': int.tryParse(usiaCtrl.text) ?? 0,
-                  'alamat': alamatCtrl.text,
-                  'kelompok': kelompokCtrl.text
-                };
-                print(jsonEncode(data));
-                late http.Response response;
-
-                if (Pelanggan == null) {
-                  // TAMBAH SUPPLIER
-                  response = await ApiService.postPelanggan(data);
-                } else {
-                  // EDIT SUPPLIER
-                  response = await ApiService.updatePelanggan(
-                    Pelanggan.kodePelanggan, // Ganti dari supplier.id
-                    data,
-                  );
-                }
-
-                if (response.statusCode == 200 || response.statusCode == 201) {
-                  if (context.mounted) Navigator.pop(context);
-                  await _loadPelanggan(); // refresh table
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Gagal menyimpan data')),
-                  );
-                }
-              }
-            },
+            onPressed: submitForm,
             child: const Text('Simpan'),
           ),
         ],
@@ -239,14 +244,24 @@ class _PelangganScreenState extends State<PelangganScreen> {
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('Hapus Dokter'),
-        content: const Text('Yakin ingin menghapus supplier ini?'),
+        content: const Text('Yakin ingin menghapus pelanggan ini?'),
         actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Batal')),
-          TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Hapus')),
+          TextButton.icon(
+            onPressed: () => Navigator.pop(context, false),
+            icon: const Icon(Icons.close, color: Colors.grey),
+            label: const Text('Batal', style: TextStyle(color: Colors.grey)),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            ),
+          ),
+          TextButton.icon(
+            onPressed: () => Navigator.pop(context, true),
+            icon: const Icon(Icons.delete, color: Colors.red),
+            label: const Text('Hapus', style: TextStyle(color: Colors.red)),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            ),
+          ),
         ],
       ),
     );
@@ -255,13 +270,15 @@ class _PelangganScreenState extends State<PelangganScreen> {
       final response = await ApiService.deletePelanggan(kode); // <--- ganti ini
 
       if (response.statusCode == 200) {
+        await ApiService.logActivity(
+            widget.user.id, 'Delete data pelanggan ${kode}');
         await _loadPelanggan(); // refresh data dari server
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Supplier berhasil dihapus')),
+          const SnackBar(content: Text('Pelanggan berhasil dihapus')),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Gagal menghapus supplier')),
+          const SnackBar(content: Text('Gagal menghapus pelanggan')),
         );
       }
     }

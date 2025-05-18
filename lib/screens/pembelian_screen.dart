@@ -1,9 +1,4 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
-import 'package:drift/drift.dart' show OrderingMode, OrderingTerm, Value;
-import 'package:drift/drift.dart' as drift;
-import 'package:excel/excel.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
@@ -11,7 +6,6 @@ import 'package:pms_flutter/models/supplier_model.dart';
 import 'package:pms_flutter/models/user_model.dart';
 import 'package:pms_flutter/services/api_service.dart';
 import '../database/app_database.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:pms_flutter/models/barang_model.dart';
 import 'package:pms_flutter/models/pembeliantmp_model.dart';
@@ -25,7 +19,6 @@ class PembelianScreen extends StatefulWidget {
 }
 
 class _PembelianScreenState extends State<PembelianScreen> {
-  late AppDatabase db;
   List<PembelianTmpModel> allPembeliantmp = [];
   bool _isSelectingSupplier = false;
   String searchField = 'Nama';
@@ -122,7 +115,8 @@ class _PembelianScreenState extends State<PembelianScreen> {
         if (Navigator.canPop(context)) {
           Navigator.pop(context);
         }
-
+        await ApiService.logActivity(
+            widget.user.id, 'Menambahkan pembelian ${noFaktur}');
         await _loadPembelians();
         _nofaktur.clear();
         _kodeSupplierController.clear();
@@ -558,6 +552,11 @@ class _PembelianScreenState extends State<PembelianScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.red, // warna teks tombol batal
+              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              textStyle: TextStyle(fontSize: 16),
+            ),
             child: const Text('Batal'),
           ),
           ElevatedButton(
@@ -713,7 +712,22 @@ class _PembelianScreenState extends State<PembelianScreen> {
                 updateTotalSeluruh();
               }
             },
-            child: const Text('Simpan'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue.shade600, // warna tombol simpan
+              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+              textStyle: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              elevation: 3,
+            ),
+            child: const Text(
+              'Simpan',
+              style: TextStyle(color: Colors.white), // tulisannya putih
+            ),
           ),
         ],
       ),
@@ -736,14 +750,23 @@ class _PembelianScreenState extends State<PembelianScreen> {
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('Hapus'),
-        content: const Text('Yakin ingin menghapus ini?'),
         actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Batal')),
-          TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Hapus')),
+          TextButton.icon(
+            onPressed: () => Navigator.pop(context, false),
+            icon: const Icon(Icons.close, color: Colors.grey),
+            label: const Text('Batal', style: TextStyle(color: Colors.grey)),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            ),
+          ),
+          TextButton.icon(
+            onPressed: () => Navigator.pop(context, true),
+            icon: const Icon(Icons.delete, color: Colors.red),
+            label: const Text('Hapus', style: TextStyle(color: Colors.red)),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            ),
+          ),
         ],
       ),
     );
@@ -788,25 +811,60 @@ class _PembelianScreenState extends State<PembelianScreen> {
                       fontWeight: FontWeight.w600,
                       color: Colors.grey[800]),
                 ),
-                Row(children: [
-                  ElevatedButton.icon(
-                    onPressed: prosesbatal,
-                    icon: const Icon(Icons.close),
-                    label: const Text('Batal'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors
-                          .red, // Mengatur warna latar belakang menjadi merah
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    ElevatedButton.icon(
+                      onPressed: prosesbatal,
+                      icon: const Icon(Icons.close,
+                          color: Colors.white, size: 20),
+                      label: const Text(
+                        'Batal',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                          color: Colors.white,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red.shade600,
+                        minimumSize: const Size(100, 40),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        elevation: 4,
+                        shadowColor: Colors.redAccent.withOpacity(0.4),
+                      ),
                     ),
-                  ),
-                  SizedBox(
-                    width: 15,
-                  ),
-                  ElevatedButton.icon(
-                    onPressed: prosesPembelian,
-                    icon: const Icon(Icons.save),
-                    label: const Text('Simpan'),
-                  ),
-                ])
+                    const SizedBox(width: 15),
+                    ElevatedButton.icon(
+                      onPressed: prosesPembelian,
+                      icon:
+                          const Icon(Icons.save, color: Colors.white, size: 20),
+                      label: const Text(
+                        'Simpan',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                          color: Colors.white,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue.shade600,
+                        minimumSize: const Size(130, 40),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 8,
+                        shadowColor: Colors.blueAccent.withOpacity(0.5),
+                      ),
+                    ),
+                  ],
+                )
               ],
             ),
 
@@ -828,11 +886,36 @@ class _PembelianScreenState extends State<PembelianScreen> {
                 ),
                 SizedBox(width: 25),
                 SizedBox(
-                  height: 35,
-                  width: 125,
+                  height: 32,
+                  width: 120,
                   child: ElevatedButton.icon(
                     onPressed: setNofaktur,
-                    label: const Text('Otomatis'),
+                    icon: const Icon(
+                      Icons.autorenew,
+                      size: 16,
+                      color: Colors.white,
+                    ),
+                    label: const Text(
+                      'Otomatis',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.white,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.teal, // warna fresh & profesional
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
+                      shadowColor: Colors.teal.withOpacity(0.3),
+                      minimumSize: Size.zero, // penting biar kecil beneran
+                      tapTargetSize:
+                          MaterialTapTargetSize.shrinkWrap, // hapus area kosong
+                    ),
                   ),
                 ),
                 SizedBox(width: 100), // Spacing between the text fields
@@ -957,11 +1040,32 @@ class _PembelianScreenState extends State<PembelianScreen> {
                   ),
                 ),
                 SizedBox(width: 30), // Spacing between the text fields
+                SizedBox(
+                  width: 20,
+                ),
                 ElevatedButton.icon(
                   onPressed: () => showFormPembelianstmp(),
-                  icon: const Icon(Icons.add),
-                  label: const Text('Tambah'),
-                ),
+                  icon: const Icon(Icons.add, color: Colors.white, size: 20),
+                  label: const Text(
+                    'Tambah',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                      color: Colors.white,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.teal,
+                    minimumSize: const Size(100, 40), // ukuran lebih compact
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    elevation: 4,
+                    shadowColor: Colors.greenAccent.withOpacity(0.4),
+                  ),
+                )
               ],
             ),
 

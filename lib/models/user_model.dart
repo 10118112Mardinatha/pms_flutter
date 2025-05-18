@@ -3,7 +3,7 @@ class UserModel {
   final String username;
   final String? password;
   final String role;
-  final bool aktif;
+  bool aktif;
   final String? avatar;
 
   UserModel({

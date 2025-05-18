@@ -42,7 +42,7 @@ class _TambahUserScreenState extends State<TambahUserScreen> {
   Future<void> _loadSavedIp() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      _ipAddress = prefs.getString('saved_ip');
+      _ipAddress = prefs.getString('ip');
     });
   }
 
@@ -77,6 +77,8 @@ class _TambahUserScreenState extends State<TambahUserScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('User berhasil ditambahkan')),
         );
+        await ApiService.logActivity(
+            widget.currentUserId, 'Menambah Userr ${_usernameController.text}');
         _formKey.currentState!.reset();
         _usernameController.clear();
         _passwordController.clear();
@@ -96,10 +98,9 @@ class _TambahUserScreenState extends State<TambahUserScreen> {
   }
 
   Future<void> _showUserDialog() async {
-    if (users.isEmpty) {
-      users = await ApiService.fetchUsers();
-    }
-
+    users = await ApiService.fetchUsers();
+    final prefs = await SharedPreferences.getInstance();
+    String? ip = prefs.getString('ip');
     showDialog(
       context: context,
       builder: (context) {
@@ -146,7 +147,7 @@ class _TambahUserScreenState extends State<TambahUserScreen> {
                                           final updatedAktif = !user.aktif;
                                           final response = await http.put(
                                             Uri.parse(
-                                                'http://${_ipAddress}:8080//users/${user.id}'),
+                                                'http://${ip}:8080/user/${user.id}'),
                                             headers: {
                                               'Content-Type': 'application/json'
                                             },
@@ -154,7 +155,10 @@ class _TambahUserScreenState extends State<TambahUserScreen> {
                                                 {'aktif': updatedAktif}),
                                           );
                                           if (response.statusCode == 200) {
-                                            setState(() {});
+                                            await ApiService.logActivity(
+                                              widget.currentUserId,
+                                              'Mengubah status user ${user.username} menjadi ${updatedAktif ? 'Aktif' : 'Nonaktif'}',
+                                            );
                                             Navigator.pop(context);
                                             _showUserDialog();
                                           } else {
@@ -180,29 +184,35 @@ class _TambahUserScreenState extends State<TambahUserScreen> {
                               onChanged: user.id == widget.currentUserId
                                   ? null
                                   : (newRole) async {
-                                      final response = await http.put(
-                                        Uri.parse(
-                                            'http://${_ipAddress}:8080/user/${user.id}'),
-                                        headers: {
-                                          'Content-Type': 'application/json'
-                                        },
-                                        body: jsonEncode({
-                                          'role': newRole,
-                                          'aktif': user.aktif
-                                        }),
-                                      );
-
-                                      if (response.statusCode == 200) {
-                                        setState(() {});
-                                        Navigator.pop(context);
-                                        _showUserDialog();
-                                      } else {
-                                        ScaffoldMessenger.of(context)
-                                            .showSnackBar(
-                                          const SnackBar(
-                                              content:
-                                                  Text('Gagal mengubah role')),
+                                      if (newRole != null &&
+                                          newRole != user.role) {
+                                        final response = await http.put(
+                                          Uri.parse(
+                                              'http://${ip}:8080/user/${user.id}'),
+                                          headers: {
+                                            'Content-Type': 'application/json'
+                                          },
+                                          body: jsonEncode({
+                                            'role': newRole,
+                                            'aktif': user.aktif,
+                                          }),
                                         );
+
+                                        if (response.statusCode == 200) {
+                                          await ApiService.logActivity(
+                                            widget.currentUserId,
+                                            'Mengubah role user ${user.username} menjadi $newRole',
+                                          );
+                                          Navigator.pop(context);
+                                          _showUserDialog();
+                                        } else {
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(
+                                            const SnackBar(
+                                                content: Text(
+                                                    'Gagal mengubah role')),
+                                          );
+                                        }
                                       }
                                     },
                             ),
@@ -222,30 +232,75 @@ class _TambahUserScreenState extends State<TambahUserScreen> {
                                           content: const Text(
                                               'Yakin ingin menghapus user ini?'),
                                           actions: [
-                                            TextButton(
-                                              onPressed: () =>
-                                                  Navigator.pop(ctx, false),
-                                              child: const Text('Batal'),
-                                            ),
-                                            ElevatedButton(
-                                              onPressed: () =>
-                                                  Navigator.pop(ctx, true),
-                                              child: const Text('Hapus'),
-                                            ),
+                                            Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.end,
+                                              children: [
+                                                TextButton.icon(
+                                                  onPressed: () =>
+                                                      Navigator.pop(ctx, false),
+                                                  icon: const Icon(Icons.cancel,
+                                                      color: Colors.blueGrey),
+                                                  label: const Text(
+                                                    'Batal',
+                                                    style: TextStyle(
+                                                        color: Colors.blueGrey),
+                                                  ),
+                                                  style: TextButton.styleFrom(
+                                                    padding: const EdgeInsets
+                                                        .symmetric(
+                                                        horizontal: 16,
+                                                        vertical: 10),
+                                                    shape:
+                                                        RoundedRectangleBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              10),
+                                                    ),
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 12),
+                                                ElevatedButton.icon(
+                                                  onPressed: () =>
+                                                      Navigator.pop(ctx, true),
+                                                  icon: const Icon(Icons.delete,
+                                                      color: Colors.white),
+                                                  label: const Text('Hapus'),
+                                                  style:
+                                                      ElevatedButton.styleFrom(
+                                                    backgroundColor:
+                                                        Colors.redAccent,
+                                                    foregroundColor:
+                                                        Colors.white,
+                                                    padding: const EdgeInsets
+                                                        .symmetric(
+                                                        horizontal: 20,
+                                                        vertical: 12),
+                                                    shape:
+                                                        RoundedRectangleBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              10),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            )
                                           ],
                                         ),
                                       );
 
                                       if (confirm == true) {
-                                        final response = await http.delete(
-                                          Uri.parse(
-                                              'http://${_ipAddress}:8080/user/${user.id}'),
-                                        );
+                                        final response =
+                                            await ApiService.deleteUser(
+                                                user.id);
                                         if (response.statusCode == 200) {
-                                          setState(() {});
+                                          await ApiService.logActivity(
+                                            widget.currentUserId,
+                                            'Menghapus user ${user.username}',
+                                          );
                                           Navigator.pop(context);
-                                          Future.delayed(
-                                              Duration.zero, _showUserDialog);
+                                          _showUserDialog();
                                         } else {
                                           ScaffoldMessenger.of(context)
                                               .showSnackBar(
@@ -264,13 +319,30 @@ class _TambahUserScreenState extends State<TambahUserScreen> {
                   ),
           ),
           actions: [
-            TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Tutup')),
+            ElevatedButton.icon(
+              onPressed: () => Navigator.pop(context),
+              icon: const Icon(Icons.close, color: Colors.white),
+              label: const Text('Tutup'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue.shade600,
+                foregroundColor: Colors.white,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
           ],
         );
       },
     );
+  }
+
+  void _trySubmitIfValid() {
+    if (_formKey.currentState!.validate() && _selectedRole != null) {
+      _submitForm();
+    }
   }
 
   @override
@@ -313,9 +385,11 @@ class _TambahUserScreenState extends State<TambahUserScreen> {
                   labelText: 'Username',
                   border: OutlineInputBorder(),
                 ),
+                textInputAction: TextInputAction.next,
                 validator: (value) => value == null || value.isEmpty
                     ? 'Username tidak boleh kosong'
                     : null,
+                onFieldSubmitted: (_) => _trySubmitIfValid(),
               ),
               const SizedBox(height: 16),
               TextFormField(
@@ -332,6 +406,7 @@ class _TambahUserScreenState extends State<TambahUserScreen> {
                         setState(() => _obscurePassword = !_obscurePassword),
                   ),
                 ),
+                textInputAction: TextInputAction.next,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Password tidak boleh kosong';
@@ -340,6 +415,7 @@ class _TambahUserScreenState extends State<TambahUserScreen> {
                   }
                   return null;
                 },
+                onFieldSubmitted: (_) => _trySubmitIfValid(),
               ),
               const SizedBox(height: 16),
               TextFormField(
@@ -356,6 +432,8 @@ class _TambahUserScreenState extends State<TambahUserScreen> {
                         _obscureConfirmPassword = !_obscureConfirmPassword),
                   ),
                 ),
+                textInputAction: TextInputAction.done,
+                onFieldSubmitted: (_) => _trySubmitIfValid(),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Konfirmasi password tidak boleh kosong';
@@ -377,17 +455,29 @@ class _TambahUserScreenState extends State<TambahUserScreen> {
                 ),
                 onChanged: (value) => setState(() => _selectedRole = value),
                 validator: (value) => value == null ? 'Pilih role' : null,
+                onSaved: (_) => _trySubmitIfValid(), // optional
               ),
               const SizedBox(height: 24),
               ElevatedButton.icon(
                 onPressed: _submitForm,
-                icon: const Icon(Icons.save),
-                label: const Text('Simpan User'),
+                icon: const Icon(Icons.save, color: Colors.white),
+                label: const Text(
+                  'Simpan User',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: Colors.white,
+                    letterSpacing: 1.1,
+                  ),
+                ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.grey,
+                  backgroundColor: Colors.blue.shade600,
                   minimumSize: const Size(double.infinity, 50),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8)),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 8,
+                  shadowColor: Colors.blueAccent.withOpacity(0.5),
                 ),
               ),
             ],

@@ -1,8 +1,4 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:drift/drift.dart' show OrderingTerm, Value;
-import 'package:drift/drift.dart' as drift;
-import 'package:excel/excel.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
@@ -12,14 +8,8 @@ import 'package:pms_flutter/models/pelanggan_model.dart';
 import 'package:pms_flutter/models/penjualantmp_model.dart';
 import 'package:pms_flutter/models/user_model.dart';
 import 'package:pms_flutter/services/api_service.dart';
-import 'package:printing/printing.dart';
 import '../database/app_database.dart';
-import 'dart:typed_data';
-import 'package:pdf/widgets.dart' as pw;
-import 'package:file_picker/file_picker.dart';
-import 'package:pdf/pdf.dart';
-import 'package:pdf/widgets.dart' as pw;
-import 'package:printing/printing.dart';
+import 'package:intl/intl.dart';
 
 class PenjualanScreen extends StatefulWidget {
   final UserModel user;
@@ -30,8 +20,11 @@ class PenjualanScreen extends StatefulWidget {
 }
 
 class _PenjualanScreenState extends State<PenjualanScreen> {
-  late AppDatabase db;
   List<PenjualanTmpModel> allPenjualantmp = [];
+
+  final currencyFormatter =
+      NumberFormat.currency(locale: 'id_ID', symbol: 'Rp', decimalDigits: 0);
+
   bool iscekumum = true;
   bool iscekpelanggan = false;
   bool iscekresep = false;
@@ -117,7 +110,9 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
   Future<void> ProsesPenjualan() async {
     String namabarang = _barangController.text;
     jumlahjual = int.tryParse(_jumlahbarangController.text) ?? 0;
-    int jualdiscon = int.tryParse(_discController.text) ?? hargajual;
+    int jualdiscon =
+        int.tryParse(_discController.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
+            hargajual;
     totalharga = (hargajual * jumlahjual);
     totalhargastlhdiskon = (jualdiscon * jumlahjual);
     totaldiskon = totalharga - totalhargastlhdiskon;
@@ -166,6 +161,7 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
         if (Navigator.canPop(context)) {
           Navigator.pop(context);
         }
+
         _barangController.clear();
         _discController.clear();
         tgexpired = null;
@@ -217,12 +213,22 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
         title: const Text('Hapus'),
         content: const Text('Yakin ingin menghapus data ini?'),
         actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Batal')),
-          TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Hapus')),
+          TextButton.icon(
+            onPressed: () => Navigator.pop(context, false),
+            icon: const Icon(Icons.close, color: Colors.grey),
+            label: const Text('Batal', style: TextStyle(color: Colors.grey)),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            ),
+          ),
+          TextButton.icon(
+            onPressed: () => Navigator.pop(context, true),
+            icon: const Icon(Icons.delete, color: Colors.red),
+            label: const Text('Hapus', style: TextStyle(color: Colors.red)),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            ),
+          ),
         ],
       ),
     );
@@ -352,6 +358,11 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.red, // warna teks tombol batal
+              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              textStyle: TextStyle(fontSize: 16),
+            ),
             child: const Text('Batal'),
           ),
           ElevatedButton(
@@ -416,7 +427,22 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
                 }
               }
             },
-            child: const Text('Simpan'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue.shade600, // warna tombol simpan
+              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+              textStyle: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              elevation: 3,
+            ),
+            child: const Text(
+              'Simpan',
+              style: TextStyle(color: Colors.white), // tulisannya putih
+            ),
           ),
         ],
       ),
@@ -472,7 +498,8 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
         if (Navigator.canPop(context)) {
           Navigator.pop(context);
         }
-
+        await ApiService.logActivity(
+            widget.user.id, 'Menambahkan Penjualan ${nofaktur}');
         // Reset form input
         _pelangganController.clear();
         kodepelanggan = ' ';
@@ -525,25 +552,60 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
                       fontWeight: FontWeight.w600,
                       color: Colors.grey[800]),
                 ),
-                Row(children: [
-                  ElevatedButton.icon(
-                    onPressed: prosesbatal,
-                    icon: const Icon(Icons.close),
-                    label: const Text('Batal'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors
-                          .red, // Mengatur warna latar belakang menjadi merah
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    ElevatedButton.icon(
+                      onPressed: prosesbatal,
+                      icon: const Icon(Icons.close,
+                          color: Colors.white, size: 20),
+                      label: const Text(
+                        'Batal',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                          color: Colors.white,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red.shade600,
+                        minimumSize: const Size(100, 40),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        elevation: 4,
+                        shadowColor: Colors.redAccent.withOpacity(0.4),
+                      ),
                     ),
-                  ),
-                  SizedBox(
-                    width: 15,
-                  ),
-                  ElevatedButton.icon(
-                    onPressed: prosesSimpan,
-                    icon: const Icon(Icons.save),
-                    label: const Text('Simpan/Bayar'),
-                  ),
-                ])
+                    const SizedBox(width: 15),
+                    ElevatedButton.icon(
+                      onPressed: prosesSimpan,
+                      icon:
+                          const Icon(Icons.save, color: Colors.white, size: 20),
+                      label: const Text(
+                        'Simpan',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                          color: Colors.white,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue.shade600,
+                        minimumSize: const Size(130, 40),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 8,
+                        shadowColor: Colors.blueAccent.withOpacity(0.5),
+                      ),
+                    ),
+                  ],
+                )
               ],
             ),
             Divider(
@@ -851,26 +913,47 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
                           (d) => d['value'].toString().contains(pattern));
                     },
                     itemBuilder: (context, suggestion) {
+                      final formatted =
+                          currencyFormatter.format(suggestion['value']);
                       return ListTile(
-                        title: Text(suggestion['value'].toString()),
+                        title: Text(formatted),
                         subtitle: Text(suggestion['label']),
                       );
                     },
                     onSuggestionSelected: (suggestion) {
-                      _discController.text = suggestion['value'].toString();
+                      _discController.text =
+                          currencyFormatter.format(suggestion['value']);
                     },
                     noItemsFoundBuilder: (context) =>
                         Text('Diskon tidak tersedia'),
                   ),
                 ),
                 SizedBox(
-                  width: 50,
+                  width: 20,
                 ),
                 ElevatedButton.icon(
                   onPressed: ProsesPenjualan,
-                  icon: const Icon(Icons.add),
-                  label: const Text('Tambah'),
-                ),
+                  icon: const Icon(Icons.add, color: Colors.white, size: 20),
+                  label: const Text(
+                    'Tambah',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                      color: Colors.white,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.teal,
+                    minimumSize: const Size(100, 40), // ukuran lebih compact
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    elevation: 4,
+                    shadowColor: Colors.greenAccent.withOpacity(0.4),
+                  ),
+                )
               ],
             ),
             SizedBox(height: 15),

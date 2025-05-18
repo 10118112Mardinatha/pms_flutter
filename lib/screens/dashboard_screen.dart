@@ -41,11 +41,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _getPage() {
     switch (_selectedPage) {
       case 'Supplier':
-        return SupplierScreen(database: db);
+        return SupplierScreen(user: widget.user);
       case 'Dokter':
-        return DoctorScreen(database: db);
+        return DoctorScreen(user: widget.user);
       case 'Pelanggan':
-        return PelangganScreen(database: db);
+        return PelangganScreen(user: widget.user);
       case 'Pembelian':
         return PembelianScreen(user: widget.user);
       case 'Penjualan':
@@ -55,9 +55,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
       case 'Resep':
         return ResepScreen(user: widget.user);
       case 'Rak':
-        return RakScreen(database: db);
+        return RakScreen(user: widget.user);
       case 'Laporan Pembelian':
-        return LaporanPembelianScreen(database: db);
+        return LaporanPembelianScreen();
       case 'Laporan Penjualan':
         return LaporanPenjualanScreen(database: db);
       case 'Laporan Resep':
@@ -127,7 +127,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
         children: [
           Sidebar(
             onMenuTap: _onMenuTap,
-            database: AppDatabase(),
             role: widget.user.role,
           ),
           Expanded(

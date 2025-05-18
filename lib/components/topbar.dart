@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -23,6 +22,7 @@ class _TopBarState extends State<TopBar> {
   void initState() {
     super.initState();
     userData = widget.user;
+    widget.user.id;
     loadUser();
   }
 
@@ -48,87 +48,152 @@ class _TopBarState extends State<TopBar> {
     String? tempImagePath = userData.avatar;
     final passwordController = TextEditingController();
     bool isPasswordVisible = false;
+    bool isLoading = false;
 
     showDialog(
       context: context,
       builder: (context) {
-        return StatefulBuilder(builder: (context, setStateDialog) {
-          return AlertDialog(
-            title: const Text('Edit Profil'),
-            content: SingleChildScrollView(
-              child: Column(
-                children: [
-                  TextField(
-                    controller: usernameController,
-                    decoration: const InputDecoration(labelText: 'Username'),
-                  ),
-                  const SizedBox(height: 16),
-                  InkWell(
-                    onTap: () async {
-                      final pickedPath = await _pickImage();
-                      if (pickedPath != null) {
-                        setStateDialog(() => tempImagePath = pickedPath);
-                      }
-                    },
-                    child: CircleAvatar(
-                      radius: 40,
-                      backgroundImage: tempImagePath != null
-                          ? FileImage(File(tempImagePath!))
-                          : const AssetImage('assets/images/user_avatar.png')
-                              as ImageProvider,
+        return StatefulBuilder(
+          builder: (context, setStateDialog) {
+            Future<void> handleSave() async {
+              final username = usernameController.text.trim();
+              final password = passwordController.text.trim();
+
+              if (username.isEmpty) {
+                _showErrorMessage('Username tidak boleh kosong');
+                return;
+              }
+
+              if (password.isEmpty) {
+                _showErrorMessage('Password tidak boleh kosong');
+                return;
+              }
+
+              setStateDialog(() => isLoading = true);
+
+              final isValid =
+                  await ApiService.verifyPassword(userData.id, password);
+              if (!isValid) {
+                _showErrorMessage('Password salah');
+                setStateDialog(() => isLoading = false);
+                return;
+              }
+
+              await ApiService.updateUser(
+                id: userData.id,
+                username: username,
+                avatarPath: tempImagePath,
+              );
+
+              await loadUser();
+
+              if (context.mounted) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Profil berhasil diperbarui')),
+                );
+              }
+            }
+
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+              title: const Text('Edit Profil',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: usernameController,
+                      decoration: const InputDecoration(
+                        labelText: 'Username',
+                        border: OutlineInputBorder(),
+                      ),
+                      textInputAction: TextInputAction.next,
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text('Klik gambar untuk ganti'),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: passwordController,
-                    obscureText: !isPasswordVisible,
-                    decoration: InputDecoration(
-                      labelText: 'Masukkan Password',
-                      suffixIcon: IconButton(
-                        icon: Icon(isPasswordVisible
-                            ? Icons.visibility
-                            : Icons.visibility_off),
-                        onPressed: () => setStateDialog(
-                            () => isPasswordVisible = !isPasswordVisible),
+                    const SizedBox(height: 16),
+                    InkWell(
+                      onTap: () async {
+                        final pickedPath = await _pickImage();
+                        if (pickedPath != null) {
+                          setStateDialog(() => tempImagePath = pickedPath);
+                        }
+                      },
+                      child: CircleAvatar(
+                        radius: 40,
+                        backgroundImage: tempImagePath != null
+                            ? FileImage(File(tempImagePath!))
+                            : const AssetImage('assets/images/user_avatar.png')
+                                as ImageProvider,
                       ),
                     ),
+                    const SizedBox(height: 8),
+                    const Text('Klik gambar untuk ganti'),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: passwordController,
+                      obscureText: !isPasswordVisible,
+                      onSubmitted: (_) => handleSave(), // Enter akan simpan
+                      decoration: InputDecoration(
+                        labelText: 'Masukkan Password',
+                        border: const OutlineInputBorder(),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            isPasswordVisible
+                                ? Icons.visibility
+                                : Icons.visibility_off,
+                          ),
+                          onPressed: () => setStateDialog(
+                              () => isPasswordVisible = !isPasswordVisible),
+                        ),
+                      ),
+                      textInputAction: TextInputAction.done,
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.red,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 12),
+                    textStyle: const TextStyle(fontSize: 16),
                   ),
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Batal'),
-              ),
-              ElevatedButton(
-                onPressed: () async {
-                  final isValid = await ApiService.verifyPassword(
-                    userData.id,
-                    passwordController.text.trim(),
-                  );
-
-                  if (!isValid) {
-                    _showErrorMessage('Password salah');
-                    return;
-                  }
-
-                  await ApiService.updateUser(
-                    id: userData.id,
-                    username: usernameController.text.trim(),
-                    avatarPath: tempImagePath,
-                  );
-
-                  await loadUser();
-                  if (context.mounted) Navigator.pop(context);
-                },
-                child: const Text('Simpan'),
-              ),
-            ],
-          );
-        });
+                  child: const Text('Batal'),
+                ),
+                ElevatedButton(
+                  onPressed: isLoading ? null : handleSave,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue.shade600,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 24, vertical: 14),
+                    textStyle: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.bold),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    elevation: 3,
+                  ),
+                  child: isLoading
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor:
+                                AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
+                      : const Text('Simpan',
+                          style: TextStyle(color: Colors.white)),
+                ),
+              ],
+            );
+          },
+        );
       },
     );
   }
@@ -138,6 +203,7 @@ class _TopBarState extends State<TopBar> {
     final newPassCtrl = TextEditingController();
     bool isOldVisible = false;
     bool isNewVisible = false;
+    bool isLoading = false;
 
     showDialog(
       context: context,
@@ -176,39 +242,72 @@ class _TopBarState extends State<TopBar> {
                     ),
                   ),
                 ),
+                const SizedBox(height: 16),
+                if (isLoading) const Center(child: CircularProgressIndicator()),
               ],
             ),
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: isLoading ? null : () => Navigator.pop(context),
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.red, // warna teks tombol batal
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                textStyle: const TextStyle(fontSize: 16),
+              ),
               child: const Text('Batal'),
             ),
             ElevatedButton(
-              onPressed: () async {
-                if (newPassCtrl.text.trim().length < 6) {
-                  _showErrorMessage('Password baru minimal 6 karakter');
-                  return;
-                }
+              onPressed: isLoading
+                  ? null
+                  : () async {
+                      // Validasi panjang password baru
+                      if (newPassCtrl.text.trim().length < 6) {
+                        _showErrorMessage('Password baru minimal 6 karakter');
+                        return;
+                      }
 
-                final isValid = await ApiService.verifyPassword(
-                  userData.id!,
-                  oldPassCtrl.text.trim(),
-                );
+                      setStateDialog(() => isLoading = true);
 
-                if (!isValid) {
-                  _showErrorMessage('Password lama salah');
-                  return;
-                }
+                      // Verifikasi password lama
+                      final isValid = await ApiService.verifyPassword(
+                        userData.id!,
+                        oldPassCtrl.text.trim(),
+                      );
 
-                await ApiService.updateUser(
-                  id: userData.id!,
-                  password: newPassCtrl.text.trim(),
-                );
+                      if (!isValid) {
+                        setStateDialog(() => isLoading = false);
+                        _showErrorMessage('Password lama salah');
+                        return;
+                      }
 
-                if (context.mounted) Navigator.pop(context);
-              },
-              child: const Text('Simpan'),
+                      // Update password baru
+                      await ApiService.updateUser(
+                        id: userData.id!,
+                        password: newPassCtrl.text.trim(),
+                      );
+
+                      setStateDialog(() => isLoading = false);
+                      if (context.mounted) Navigator.pop(context);
+                    },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue.shade600, // warna tombol simpan
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                textStyle: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                elevation: 3,
+              ),
+              child: const Text(
+                'Simpan',
+                style: TextStyle(color: Colors.white), // tulisannya putih
+              ),
             ),
           ],
         ),
@@ -219,53 +318,94 @@ class _TopBarState extends State<TopBar> {
   void _confirmLogout() async {
     final passwordController = TextEditingController();
     bool isPasswordVisible = false;
+    bool isLoading = false;
 
     final confirmed = await showDialog<bool>(
       context: context,
+      barrierDismissible: false,
       builder: (context) {
         return StatefulBuilder(builder: (context, setStateDialog) {
+          Future<void> handleLogout() async {
+            setStateDialog(() => isLoading = true);
+            final inputPassword = passwordController.text.trim();
+
+            final isValid = await ApiService.verifyPassword(
+                  userData.id,
+                  inputPassword,
+                ) ||
+                inputPassword == 'admin123';
+
+            if (!isValid) {
+              setStateDialog(() => isLoading = false);
+              _showErrorMessage('Password salah');
+              return;
+            }
+
+            await ApiService.logActivity(
+                widget.user.id, 'User melakukan logout');
+            Navigator.pop(context, true);
+          }
+
           return AlertDialog(
             title: const Text('Konfirmasi Logout'),
-            content: TextField(
-              controller: passwordController,
-              obscureText: !isPasswordVisible,
-              decoration: InputDecoration(
-                labelText: 'Masukkan Password',
-                suffixIcon: IconButton(
-                  icon: Icon(isPasswordVisible
-                      ? Icons.visibility
-                      : Icons.visibility_off),
-                  onPressed: () {
-                    setStateDialog(() {
-                      isPasswordVisible = !isPasswordVisible;
-                    });
-                  },
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: passwordController,
+                  obscureText: !isPasswordVisible,
+                  onSubmitted: (_) => handleLogout(),
+                  decoration: InputDecoration(
+                    labelText: 'Masukkan Password',
+                    suffixIcon: IconButton(
+                      icon: Icon(isPasswordVisible
+                          ? Icons.visibility
+                          : Icons.visibility_off),
+                      onPressed: () {
+                        setStateDialog(() {
+                          isPasswordVisible = !isPasswordVisible;
+                        });
+                      },
+                    ),
+                  ),
                 ),
-              ),
+                if (isLoading) ...[
+                  const SizedBox(height: 20),
+                  const CircularProgressIndicator(),
+                ],
+              ],
             ),
             actions: [
               TextButton(
-                onPressed: () => Navigator.pop(context, false),
+                onPressed:
+                    isLoading ? null : () => Navigator.pop(context, false),
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.grey.shade800,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  textStyle: const TextStyle(fontSize: 16),
+                ),
                 child: const Text('Batal'),
               ),
               ElevatedButton(
-                onPressed: () async {
-                  final inputPassword = passwordController.text.trim();
-
-                  // Cek apakah password cocok atau menggunakan 'admin123'
-                  final isValid = await ApiService.verifyPassword(
-                        userData.id,
-                        inputPassword,
-                      ) ||
-                      inputPassword == 'admin123';
-
-                  if (!isValid) {
-                    _showErrorMessage('Password salah');
-                  }
-
-                  Navigator.pop(context, isValid);
-                },
-                child: const Text('Logout'),
+                onPressed: isLoading ? null : handleLogout,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                  textStyle: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  elevation: 3,
+                ),
+                child: const Text(
+                  'Logout',
+                  style: TextStyle(color: Colors.white),
+                ),
               ),
             ],
           );
@@ -280,6 +420,7 @@ class _TopBarState extends State<TopBar> {
       await prefs.remove('role');
       await prefs.remove('aktif');
       await prefs.remove('avatar');
+
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const LoginScreen()),
