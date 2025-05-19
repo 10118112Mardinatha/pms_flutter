@@ -1098,7 +1098,7 @@ class _PembelianScreenState extends State<PembelianScreen> {
                     border: TableBorder.all(color: Colors.grey.shade300),
                     headingRowHeight: 30,
                     headingTextStyle: const TextStyle(fontSize: 11),
-                    columnSpacing: 20,
+                    columnSpacing: 10,
                     dataTextStyle: const TextStyle(fontSize: 11),
                     columns: const [
                       DataColumn(label: Text('Kode')),
@@ -1123,7 +1123,7 @@ class _PembelianScreenState extends State<PembelianScreen> {
                             child: Text(p.kodeBarang),
                           )),
                           DataCell(SizedBox(
-                              width: 140,
+                              width: 130,
                               child: Tooltip(
                                 message: 'Nama Barang',
                                 child: Text(

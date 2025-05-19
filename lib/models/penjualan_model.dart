@@ -1,6 +1,7 @@
 class PenjualanModel {
   final int id;
   final String noFaktur;
+  final String noResep;
   final String kodePelanggan;
   final String namaPelanggan;
   final String kodeDoctor;
@@ -22,6 +23,7 @@ class PenjualanModel {
   PenjualanModel({
     required this.id,
     required this.noFaktur,
+    required this.noResep,
     required this.kodePelanggan,
     required this.namaPelanggan,
     required this.kodeDoctor,
@@ -45,6 +47,7 @@ class PenjualanModel {
     return PenjualanModel(
       id: json['id'],
       noFaktur: json['noFaktur'],
+      noResep: json['noResep'],
       kodePelanggan: json['kodePelanggan'],
       namaPelanggan: json['namaPelanggan'],
       kodeDoctor: json['kodeDoctor'],
@@ -70,6 +73,7 @@ class PenjualanModel {
   Map<String, dynamic> toJson() => {
         'id': id,
         'noFaktur': noFaktur,
+        'noResep': noResep,
         'kodePelanggan': kodePelanggan,
         'namaPelanggan': namaPelanggan,
         'kodeDoctor': kodeDoctor,

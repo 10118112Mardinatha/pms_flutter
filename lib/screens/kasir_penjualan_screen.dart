@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:intl/intl.dart';
+import 'package:pms_flutter/database/app_database.dart';
 import 'package:pms_flutter/models/barang_model.dart';
 import 'package:pms_flutter/models/user_model.dart';
 import 'package:printing/printing.dart';
@@ -369,6 +370,262 @@ class _KasirPenjualanScreenState extends State<KasirPenjualanScreen> {
     );
   }
 
+  void _showStrukResepPreview(List<PenjualanModel> items) {
+    final formatRupiah =
+        NumberFormat.currency(locale: 'id', symbol: 'Rp ', decimalDigits: 0);
+
+    final totalSebelum = items.fold<double>(
+        0, (sum, item) => sum + (item.totalHargaSebelumDisc ?? 0));
+    final totalBayar = items.fold<double>(
+        0, (sum, item) => sum + (item.totalHargaSetelahDisc ?? 0));
+    final totalDiskon = totalSebelum - totalBayar;
+    final namapasien = items.first.namaPelanggan;
+    final namadokter = items.first.namaDoctor;
+    final noresep = items.first.noResep;
+    final now = DateTime.now();
+    final formattedDateTime = DateFormat('dd-MM-yyyy HH:mm:ss').format(now);
+    final username = widget.user.username;
+    _nofakturController.text = items.first.noFaktur;
+    final jumlahuangCtrl = TextEditingController();
+    Future<void> bayar(int uang, int kembalian) async {
+      await ApiService.updateStatusPenjualan(items.first.noFaktur, 'lunas');
+      await _printStrukResep(items, uang, kembalian);
+      if (context.mounted) Navigator.pop(context);
+      fetchMenungguData();
+    }
+
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Masukan jumlah uang di bayar'),
+        content: SingleChildScrollView(
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            TextFormField(
+              controller: jumlahuangCtrl,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Jumlah uang',
+                border: OutlineInputBorder(),
+              ),
+              onChanged: (value) {
+                if (value.isEmpty) return;
+                final number =
+                    int.tryParse(value.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+
+                final newText =
+                    currencyFormatter.format(number).replaceAll(',00', '');
+                jumlahuangCtrl.value = TextEditingValue(
+                  text: newText,
+                  selection: TextSelection.collapsed(offset: newText.length),
+                );
+              },
+              validator: (value) {
+                if (value == null ||
+                    value.isEmpty ||
+                    int.tryParse(value) == null) {
+                  return 'Masukkan jumlah yang valid';
+                }
+                return null;
+              },
+            )
+          ]),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.grey[700],
+              textStyle: const TextStyle(fontWeight: FontWeight.bold),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            ),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue.shade600,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              elevation: 4,
+              shadowColor: Colors.blueAccent.withOpacity(0.4),
+              textStyle: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.8,
+              ),
+            ),
+            onPressed: () async {
+              Navigator.pop(context); // Tutup dialog pertama
+              await Future.delayed(Duration(milliseconds: 300));
+              int jumlahuang = int.tryParse(
+                      jumlahuangCtrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
+                  0;
+              int kembalian = jumlahuang - totalBayar.toInt();
+              if (jumlahuang < totalBayar) {
+                showDialog(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    title: Row(
+                      children: const [
+                        Icon(Icons.warning_amber_rounded, color: Colors.orange),
+                        SizedBox(width: 8),
+                        Text(
+                          'Uang Tidak Cukup',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                    content: const Text(
+                      'Masukan Uang harus melebihin total bayar.',
+                      style: TextStyle(fontSize: 16),
+                    ),
+                    actionsAlignment: MainAxisAlignment.end,
+                    actions: [
+                      TextButton(
+                        child: const Text(
+                          'OK',
+                          style: TextStyle(
+                              color: Colors.redAccent,
+                              fontWeight: FontWeight.bold),
+                        ),
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                    ],
+                  ),
+                );
+                return;
+              }
+              showDialog(
+                context: context,
+                builder: (_) => AlertDialog(
+                  title: const Text('Preview Struk'),
+                  content: SizedBox(
+                    width: 500,
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Center(
+                            child: Column(
+                              children: [
+                                Text('Apotek Segar',
+                                    style:
+                                        TextStyle(fontWeight: FontWeight.bold)),
+                                Text('Jl. S.Parman, Kavaleri 29, No. 24'),
+                                Text(
+                                    'Kec. Langkai Kel. Pahandut Kota Palangka Raya'),
+                                Text('Kalimantan Tengah , 74874'),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          const Divider(),
+                          Text('No Faktur      : ${_nofakturController.text}'),
+                          Text('No Resep      : ${noresep}'),
+                          Text('Tanggal       : ${formattedDateTime}'),
+                          Text('Nama Pasien   : ${namapasien}'),
+                          Text('Nama Dokter   : ${namadokter}'),
+                          Text('Kasir         : ${username}'),
+                          Text(
+                              'Total Harga    : ${formatRupiah.format(totalSebelum)}'),
+                          Text(
+                              'Total Diskon   : ${formatRupiah.format(totalDiskon)}'),
+                          Text(
+                              'Total Dibayar  : ${formatRupiah.format(totalBayar)}'),
+                          Text(
+                              'Uang Bayar     : ${formatRupiah.format(jumlahuang)}'),
+                          Text(
+                              'Kembalian     : ${formatRupiah.format(kembalian)}'),
+                          const SizedBox(height: 10),
+                          const Divider(),
+                          const Center(
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 8),
+                              child: Text(
+                                'Terima kasih telah berbelanja di Apotek Segar. '
+                                'Untuk keluhan atau pertanyaan terkait obat, silakan hubungi Apoteker kami. '
+                                'Struk ini harap disimpan sebagai bukti pembelian.',
+                                style: TextStyle(
+                                  fontStyle: FontStyle.italic,
+                                  fontSize: 11,
+                                  color: Colors.grey,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  actions: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 6),
+                      child: TextButton(
+                        style: TextButton.styleFrom(
+                          backgroundColor: Colors.grey.shade200,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          foregroundColor: Colors.black,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 12),
+                        ),
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text(
+                          'Tutup',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 6),
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue.shade600,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 20, vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          foregroundColor: Colors.white,
+                          elevation: 5,
+                          shadowColor: Colors.blueAccent.withOpacity(0.6),
+                        ),
+                        icon: const Icon(Icons.payment, size: 20),
+                        label: const Text(
+                          'Bayar & Cetak',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.7,
+                          ),
+                        ),
+                        onPressed: () => bayar(jumlahuang, kembalian),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+            child: const Text('Simpan'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Map<String, List<PenjualanModel>> get groupedByFaktur {
     final map = <String, List<PenjualanModel>>{};
 
@@ -506,6 +763,90 @@ class _KasirPenjualanScreenState extends State<KasirPenjualanScreen> {
     );
   }
 
+  Future<void> _printStrukResep(
+      List<PenjualanModel> items, int uang, int kembalian) async {
+    final doc = pw.Document();
+    final formatRupiah =
+        NumberFormat.currency(locale: 'id', symbol: 'Rp ', decimalDigits: 0);
+
+    final totalSebelum = items.fold<double>(
+        0, (sum, item) => sum + (item.totalHargaSebelumDisc ?? 0));
+    final totalBayar = items.fold<double>(
+        0, (sum, item) => sum + (item.totalHargaSetelahDisc ?? 0));
+    final totalDiskon = totalSebelum - totalBayar;
+    final namapasien = items.first.namaPelanggan;
+    final namadokter = items.first.namaDoctor;
+    final noresep = items.first.noResep;
+    final now = DateTime.now();
+    final formattedDateTime = DateFormat('dd-MM-yyyy HH:mm:ss').format(now);
+    final username = widget.user.username;
+    final noFaktur = _nofakturController.text = items.first.noFaktur;
+
+    doc.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat.roll80,
+        build: (pw.Context context) {
+          return pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Center(
+                child: pw.Column(
+                  children: [
+                    pw.Text('Apotek Segar',
+                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                    pw.Text('Jl. S.Parman, Kavaleri 29, No. 24'),
+                    pw.Text('Kec. Langkai Kel. Pahandut Kota Palangka Raya'),
+                    pw.Text('Kalimantan Tengah , 74874'),
+                  ],
+                ),
+              ),
+              pw.SizedBox(height: 8),
+              pw.Text('No Faktur      : $noFaktur'),
+              pw.Text('No Resep       : $noresep'),
+              pw.Text('Tanggal        : $formattedDateTime'),
+              pw.Text('Nama Pasien    : $namapasien'),
+              pw.Text('Nama Dokter    : $namadokter'),
+              pw.Text('Kasir          : $username'),
+              pw.Text('Total Harga    : ${formatRupiah.format(totalSebelum)}'),
+              pw.Text('Total Diskon   : ${formatRupiah.format(totalDiskon)}'),
+              pw.Text('Total Dibayar  : ${formatRupiah.format(totalBayar)}'),
+              pw.Text('Uang Bayar : ${formatRupiah.format(uang)}'),
+              pw.Text('Kembalian : ${formatRupiah.format(kembalian)}'),
+              pw.SizedBox(height: 10),
+              pw.Divider(),
+              pw.Center(
+                child: pw.Padding(
+                  padding: const pw.EdgeInsets.symmetric(horizontal: 8),
+                  child: pw.Text(
+                    'Terima kasih telah berbelanja di Apotek Segar. '
+                    'Untuk keluhan atau pertanyaan terkait obat, silakan hubungi Apoteker kami. '
+                    'Struk ini harap disimpan sebagai bukti pembelian.',
+                    style: pw.TextStyle(
+                      fontStyle: pw.FontStyle.italic,
+                      fontSize:
+                          9, // bisa kecilkan font supaya tidak terlalu dominan
+                      color: PdfColors.grey600, // warna abu abu agak redup
+                    ),
+                    textAlign: pw.TextAlign.center,
+                  ),
+                ),
+              )
+            ],
+          );
+        },
+      ),
+    );
+
+    // Logging aktivitas & cetak
+    await ApiService.logActivity(
+        widget.user.id, 'Melakukan pembayaran $noFaktur');
+
+    await Printing.layoutPdf(
+      onLayout: (PdfPageFormat format) async => doc.save(),
+      name: 'Struk Penjualan',
+    );
+  }
+
   void _hapusItem(String id) async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -603,6 +944,7 @@ class _KasirPenjualanScreenState extends State<KasirPenjualanScreen> {
                       final faktur = entry.key;
                       final items = entry.value;
                       final status = items.first.status;
+                      final noresep = items.first.noResep;
                       final pelanggan = items.first.namaPelanggan;
                       final totalBayar = items.fold<int>(
                           0, (sum, i) => sum + (i.totalHargaSetelahDisc ?? 0));
@@ -622,10 +964,14 @@ class _KasirPenjualanScreenState extends State<KasirPenjualanScreen> {
                                   style: const TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.bold)),
+                              Text('No Resep: $noresep',
+                                  style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold)),
                               Text(
                                   'Tanggal: ${DateFormat('dd-MM-yyyy').format(tanggal)}'),
                               Text('Status: $status'),
-                              Text('Pelaggan: $pelanggan'),
+                              Text('Pelaggan / Pasien: $pelanggan'),
                               const SizedBox(height: 12),
 
                               /// Tabel Header
@@ -742,7 +1088,14 @@ class _KasirPenjualanScreenState extends State<KasirPenjualanScreen> {
                               Align(
                                 alignment: Alignment.centerRight,
                                 child: ElevatedButton.icon(
-                                  onPressed: () => _showStrukPreview(items),
+                                  onPressed: () {
+                                    if (noresep == null ||
+                                        noresep.trim().isEmpty) {
+                                      _showStrukPreview(items);
+                                    } else {
+                                      _showStrukResepPreview(items);
+                                    }
+                                  },
                                   icon: const Icon(Icons.receipt_long_outlined,
                                       size: 20),
                                   label: const Padding(

@@ -37,7 +37,6 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
   final TextEditingController _pelangganController = TextEditingController();
   final TextEditingController _nofakturController = TextEditingController();
   final TextEditingController _discController = TextEditingController();
-  TextEditingController _expiredController = TextEditingController();
   final TextEditingController _doctorController = TextEditingController();
   final formatCurrency =
       NumberFormat.currency(locale: 'id', symbol: 'Rp ', decimalDigits: 0);
@@ -446,6 +445,7 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
     }
     final data = {
       'noFaktur': nofaktur,
+      'noResep': '',
       'kodePelanggan': kdpelanggan,
       'namaPelanggan': namapelanggan,
       'kodeDoctor': kddoctor,
@@ -471,7 +471,7 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
       if (!mounted) return; // <-- ini cek awal, sebelum lanjut
       if (response.statusCode == 200 || response.statusCode == 201) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Data pembelian berhasil disimpan')),
+          const SnackBar(content: Text('Data penjualan berhasil disimpan')),
         );
         if (Navigator.canPop(context)) {
           Navigator.pop(context);
@@ -711,28 +711,8 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
             ),
             SizedBox(height: 10),
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                Row(children: [
-                  Checkbox(
-                    value: iscekresep,
-                    onChanged: (bool? newvalue) async {
-                      setState(() {
-                        iscekresep = newvalue ?? false;
-                      });
-
-                      if (iscekresep && kodepelanggan.isNotEmpty) {
-                        // Ambil resep dari DB
-                        await ApiService.insertResepToPenjualanTmp(
-                            kodePelanggan: kodepelanggan,
-                            username: widget.user.username);
-                        _loadPenjualan(); // Refresh data
-                        setState(() {});
-                      }
-                    },
-                  ),
-                  const Text('Resep'),
-                ]),
                 SizedBox(
                   height: 35,
                   width: 200,
@@ -780,65 +760,69 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
-                SizedBox(
-                  height: 35,
-                  width: 250,
-                  child: TypeAheadField<BarangModel>(
-                    textFieldConfiguration: TextFieldConfiguration(
-                      decoration: InputDecoration(
-                        contentPadding: EdgeInsets.all(5),
-                        border: OutlineInputBorder(),
-                        labelText: 'Masukan barang ke penjualan',
+                Row(mainAxisAlignment: MainAxisAlignment.start, children: [
+                  SizedBox(
+                    height: 35,
+                    width: 250,
+                    child: TypeAheadField<BarangModel>(
+                      textFieldConfiguration: TextFieldConfiguration(
+                        decoration: InputDecoration(
+                          contentPadding: EdgeInsets.all(5),
+                          border: OutlineInputBorder(),
+                          labelText: 'Masukan barang ke penjualan',
+                        ),
+                        controller: _barangController,
+                        focusNode: _barangFocusNode,
+                        onChanged: (value) {
+                          if (!_isSelectingSuggestion) {
+                            // Kosongkan field jika user sedang mengetik (bukan dari suggestion)
+                            sisaStok = 0;
+                            _jumlahbarangController.clear();
+                            _discController.clear();
+                            selectedBarang = null;
+                          }
+                        },
                       ),
-                      controller: _barangController,
-                      focusNode: _barangFocusNode,
-                      onChanged: (value) {
-                        if (!_isSelectingSuggestion) {
-                          // Kosongkan field jika user sedang mengetik (bukan dari suggestion)
-                          _jumlahbarangController.clear();
-                          _discController.clear();
-                          selectedBarang = null;
+                      suggestionsCallback: (pattern) async {
+                        try {
+                          final response =
+                              await ApiService.searchBarang(pattern);
+                          return response
+                              .map<BarangModel>(
+                                  (json) => BarangModel.fromJson(json))
+                              .toList();
+                        } catch (e) {
+                          return [];
                         }
                       },
+                      itemBuilder: (context, BarangModel suggestion) {
+                        return ListTile(
+                          title: Text(suggestion.namaBarang!),
+                          subtitle: Text(
+                              'Kode: ${suggestion.kodeBarang}|| Rak : ${suggestion.noRak}'),
+                        );
+                      },
+                      onSuggestionSelected: (BarangModel suggestion) async {
+                        _barangController.text = suggestion.namaBarang!;
+                        kodebarang = suggestion.kodeBarang;
+                        kelompok = suggestion.kelompok!;
+                        satuan = suggestion.satuan!;
+                        sisaStok = suggestion.stokAktual;
+                        hargabeli = suggestion.hargaBeli;
+                        hargajual = suggestion.hargaJual;
+                        _jumlahbeliFocusNode.requestFocus();
+                        selectedBarang =
+                            await ApiService.fetchBarangByKodefodiscon(
+                                kodebarang);
+                        // Ambil expired paling tua
+                        Future.delayed(Duration(milliseconds: 100), () {
+                          _isSelectingSuggestion = false;
+                        });
+                        setState(() {});
+                      },
                     ),
-                    suggestionsCallback: (pattern) async {
-                      try {
-                        final response = await ApiService.searchBarang(pattern);
-                        return response
-                            .map<BarangModel>(
-                                (json) => BarangModel.fromJson(json))
-                            .toList();
-                      } catch (e) {
-                        return [];
-                      }
-                    },
-                    itemBuilder: (context, BarangModel suggestion) {
-                      return ListTile(
-                        title: Text(suggestion.namaBarang!),
-                        subtitle: Text(
-                            'Kode: ${suggestion.kodeBarang}|| Rak : ${suggestion.noRak}'),
-                      );
-                    },
-                    onSuggestionSelected: (BarangModel suggestion) async {
-                      _barangController.text = suggestion.namaBarang!;
-                      kodebarang = suggestion.kodeBarang;
-                      kelompok = suggestion.kelompok!;
-                      satuan = suggestion.satuan!;
-                      sisaStok = suggestion.stokAktual;
-                      hargabeli = suggestion.hargaBeli;
-                      hargajual = suggestion.hargaJual;
-                      _jumlahbeliFocusNode.requestFocus();
-                      selectedBarang =
-                          await ApiService.fetchBarangByKodefodiscon(
-                              kodebarang);
-                      // Ambil expired paling tua
-                      Future.delayed(Duration(milliseconds: 100), () {
-                        _isSelectingSuggestion = false;
-                      });
-                      setState(() {});
-                    },
                   ),
-                ),
+                ]),
                 SizedBox(width: 15),
                 SizedBox(
                   height: 35,

@@ -718,6 +718,25 @@ class ApiService {
     }
   }
 
+  static Future<int> getTotalHargaResepTmp(String username) async {
+    final baseUrl = await _getBaseUrl();
+    final url = Uri.parse('$baseUrl/reseptmp/user/$username');
+    final response = await http.get(url);
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body);
+      int total = 0;
+
+      for (var item in data) {
+        total += (item['totalHargaSetelahDisc'] ?? 0) as int;
+      }
+
+      return total;
+    } else {
+      throw Exception('Gagal memuat data pembelian sementara');
+    }
+  }
+
   static Future<http.Response> deleteResepTmp(String kode) async {
     final baseUrl = await _getBaseUrl();
     final url = Uri.parse('$baseUrl/reseptmp/$kode');
@@ -733,6 +752,34 @@ class ApiService {
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(data),
     );
+  }
+
+  static Future<List<Map<String, dynamic>>> fetchUniqueNoResepByName(
+      String kode) async {
+    final baseUrl = await _getBaseUrl(); // asumsi kamu punya fungsi ini
+    final url = Uri.parse('$baseUrl/resep/kode/$kode');
+
+    final response = await http.get(url);
+
+    if (response.statusCode == 200) {
+      final List<dynamic> jsonData = jsonDecode(response.body);
+
+      // Gunakan Map untuk simpan hanya satu entri per noResep
+      final Map<String, Map<String, dynamic>> uniqueMap = {};
+
+      for (final item in jsonData) {
+        final resep = item as Map<String, dynamic>;
+        final noResep = resep['noResep'];
+
+        if (noResep != null && !uniqueMap.containsKey(noResep)) {
+          uniqueMap[noResep] = resep;
+        }
+      }
+
+      return uniqueMap.values.toList();
+    } else {
+      throw Exception('Gagal memuat data resep');
+    }
   }
 
   static Future<String> generatenoResep() async {

@@ -47,10 +47,11 @@ class _ResepScreenState extends State<ResepScreen> {
       NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
 //formutama
   String kodedokter = '';
-  String kodePelanggan = '';
+  String? kodePelanggan;
+  int sisaStok = 0;
 
 //buat tmp
-  String kodebarang = '';
+  String kodebarang = ' ';
   String satuan = '';
   String kelompok = '';
   int hargabeli = 0;
@@ -59,6 +60,8 @@ class _ResepScreenState extends State<ResepScreen> {
   int totalharga = 0;
   int totalhargastlhdiskon = 0;
   int totaldiskon = 0;
+
+  int? totalpenjualan;
 
   @override
   void initState() {
@@ -76,6 +79,7 @@ class _ResepScreenState extends State<ResepScreen> {
       allData = data;
       _noResepController.text = noresepbaru;
     });
+    updateTotalSeluruh();
   }
 
   @override
@@ -96,6 +100,7 @@ class _ResepScreenState extends State<ResepScreen> {
     final nohp = _noHpController.text;
     final keterangan = _keteranganController.text;
     final tanggalresep = tanggal;
+    final nofakturbaru = await ApiService.generatenofakturpenjualan();
 
     if (noresep.isEmpty || namapelanggan.isEmpty || tanggalresep == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -107,14 +112,15 @@ class _ResepScreenState extends State<ResepScreen> {
       'noResep': noresep,
       'tanggal': tanggalresep.toIso8601String(),
       'namaPelanggan': namapelanggan,
-      'kodePelanggan': kdpelanggan,
+      'kodePelanggan': kdpelanggan ?? ' ',
       'kelompokPelanggan': kelompokpelanggan,
       'kodeDoctor': kddoctor,
       'namaDoctor': namadoctor,
       'usia': umur,
       'alamat': alamat,
       'keterangan': keterangan,
-      'noTelp': nohp
+      'noTelp': nohp,
+      'noFaktur': nofakturbaru
     };
     try {
       final bolehLanjut = await ApiService.cekNoResepBelumAda(noresep);
@@ -144,8 +150,8 @@ class _ResepScreenState extends State<ResepScreen> {
             'Menambah Resep ${noresep} dengan nama ${namapelanggan}');
         _pelangganController.clear();
         _namaDoctorController.clear();
-        kodePelanggan = '';
-        kodedokter = '';
+        kodePelanggan = ' ';
+        kodedokter = ' ';
         tanggal = DateTime.now();
         tanggalCtrl.clear();
         _alamatController.clear();
@@ -212,8 +218,26 @@ class _ResepScreenState extends State<ResepScreen> {
     totalharga = (hargajual * jumlahjual);
     totalhargastlhdiskon = (jualdiscon * jumlahjual);
     totaldiskon = totalharga - totalhargastlhdiskon;
+    final sisa = sisaStok;
 
     if (namabarang != '') {
+      if (jumlahjual != null && sisaStok != null && jumlahjual! > sisa!) {
+        await showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Text('Stok Tidak Cukup'),
+            content: Text(
+                'Stok tersedia hanya $sisaStok, tetapi jumlah jual $jumlahjual.'),
+            actions: [
+              TextButton(
+                child: Text('OK'),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ],
+          ),
+        );
+        return; // ❌ Jangan lanjut insert
+      }
       final dat = {
         'username': widget.user.username, // jgn lupa
         'kodeBarang': kodebarang,
@@ -313,6 +337,12 @@ class _ResepScreenState extends State<ResepScreen> {
     }
   }
 
+  Future<void> updateTotalSeluruh() async {
+    final total = await ApiService.getTotalHargaResepTmp(widget.user.username);
+    totalpenjualan = total;
+    setState(() {});
+  }
+
   Future<void> _showForm({ResepTmpModel? data}) async {
     final formKey = GlobalKey<FormState>();
     final kodebarangCtrl = TextEditingController(text: data?.kodeBarang ?? '');
@@ -331,6 +361,24 @@ class _ResepScreenState extends State<ResepScreen> {
       print('Submit form triggered');
       if (formKey.currentState!.validate()) {
         if (data != null) {
+          int sisaStokupdate = pilihBarang?.stokAktual ?? 0;
+          int jumlahbel = int.tryParse(jumlahCtrl.text) ?? 0;
+          if (jumlahbel > sisaStokupdate) {
+            await showDialog(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: Text('Stok Tidak Cukup'),
+                content: Text(
+                    'Stok tersedia hanya $sisaStokupdate, tetapi jumlah jual $jumlahbel.'),
+                actions: [
+                  TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: Text('OK'))
+                ],
+              ),
+            );
+            return;
+          }
           int jumlah = int.tryParse(jumlahCtrl.text) ?? 0;
           int totalhar = data.hargaJual * jumlah;
           int jualdis = int.tryParse(jualdiscCtrl.text) ?? data.hargaJual;
@@ -685,7 +733,7 @@ class _ResepScreenState extends State<ResepScreen> {
                       decoration: InputDecoration(
                         contentPadding: EdgeInsets.all(5),
                         border: OutlineInputBorder(),
-                        labelText: 'Kode/Nama Pelanggan',
+                        labelText: 'Nama Pasien',
                       ),
                       controller: _pelangganController,
                     ),
@@ -722,81 +770,20 @@ class _ResepScreenState extends State<ResepScreen> {
                 ),
                 SizedBox(
                   height: 35,
-                  width: 280,
-                  child: TextFormField(
-                    controller: _alamatController,
-                    decoration: InputDecoration(
-                      border: OutlineInputBorder(),
-                      labelText: 'Alamat',
-                    ),
-                  ),
-                ),
-                SizedBox(
-                  width: 50,
-                ),
-                SizedBox(
-                  height: 35,
-                  width: 100,
-                  child: TextFormField(
-                    controller: _umurController,
-                    decoration: InputDecoration(
-                      contentPadding: EdgeInsets.all(5),
-                      border: OutlineInputBorder(),
-                      labelText: 'Umur',
-                    ),
-                  ),
-                ),
-                SizedBox(
-                  width: 15,
-                ),
-                SizedBox(
-                  height: 35,
                   width: 200,
                   child: TextFormField(
-                    controller: _kelompokController,
+                    controller: _noHpController,
                     decoration: InputDecoration(
-                      contentPadding: EdgeInsets.all(5),
                       border: OutlineInputBorder(),
-                      labelText: 'Kelompok',
+                      labelText: 'No telepon',
                     ),
                   ),
                 ),
               ],
             ),
             SizedBox(height: 10),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: [
-                SizedBox(
-                  height: 35,
-                  width: 200,
-                  child: TextFormField(
-                    controller: _noHpController,
-                    decoration: InputDecoration(
-                      border: OutlineInputBorder(),
-                      labelText: 'No Hp',
-                    ),
-                  ),
-                ),
-                SizedBox(
-                  width: 15,
-                ),
-                SizedBox(
-                  height: 35,
-                  width: 280,
-                  child: TextFormField(
-                    controller: _keteranganController,
-                    decoration: InputDecoration(
-                      contentPadding: EdgeInsets.all(5),
-                      border: OutlineInputBorder(),
-                      labelText: 'Keterangan',
-                    ),
-                  ),
-                ),
-              ],
-            ),
             Divider(thickness: 0.7),
-            SizedBox(height: 25),
+            SizedBox(height: 10),
             Row(
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
@@ -814,8 +801,8 @@ class _ResepScreenState extends State<ResepScreen> {
                       focusNode: _barangFocusNode,
                       onChanged: (value) {
                         if (!_isSelectingSuggestion) {
-                          // Kosongkan field jika user sedang mengetik (bukan dari suggestion)
                           _jumlahbarangController.clear();
+                          sisaStok = 0;
                           _discController.clear();
                           selectedBarang = null;
                         }
@@ -844,6 +831,7 @@ class _ResepScreenState extends State<ResepScreen> {
                       kelompok = suggestion.kelompok!;
                       satuan = suggestion.satuan!;
                       hargabeli = suggestion.hargaBeli;
+                      sisaStok = suggestion.stokAktual;
                       hargajual = suggestion.hargaJual;
                       _jumlahbeliFocusNode.requestFocus();
                       selectedBarang =
@@ -964,7 +952,12 @@ class _ResepScreenState extends State<ResepScreen> {
                     elevation: 4,
                     shadowColor: Colors.greenAccent.withOpacity(0.4),
                   ),
-                )
+                ),
+                SizedBox(width: 60),
+                Text(
+                  'Total : ${formatter.format(totalpenjualan ?? 0)} ',
+                  style: TextStyle(fontSize: 20),
+                ),
               ],
             ),
             SizedBox(height: 15),
