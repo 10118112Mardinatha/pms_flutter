@@ -803,7 +803,7 @@ class _PembelianScreenState extends State<PembelianScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Pembelian',
+                  '📥 Pembelian',
                   style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w600,

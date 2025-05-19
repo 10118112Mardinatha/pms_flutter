@@ -28,6 +28,7 @@ class _KasirPenjualanScreenState extends State<KasirPenjualanScreen> {
       NumberFormat.decimalPattern('id'); // atau: NumberFormat("#,##0", "id_ID")
   final currencyFormatter =
       NumberFormat.currency(locale: 'id_ID', symbol: 'Rp', decimalDigits: 0);
+
   @override
   void initState() {
     super.initState();
@@ -70,7 +71,7 @@ class _KasirPenjualanScreenState extends State<KasirPenjualanScreen> {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Masukan Jumlah Uang'),
+        title: const Text('Masukan jumlah uang di bayar'),
         content: SingleChildScrollView(
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             TextFormField(
@@ -80,6 +81,18 @@ class _KasirPenjualanScreenState extends State<KasirPenjualanScreen> {
                 labelText: 'Jumlah uang',
                 border: OutlineInputBorder(),
               ),
+              onChanged: (value) {
+                if (value.isEmpty) return;
+                final number =
+                    int.tryParse(value.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+
+                final newText =
+                    currencyFormatter.format(number).replaceAll(',00', '');
+                jumlahuangCtrl.value = TextEditingValue(
+                  text: newText,
+                  selection: TextSelection.collapsed(offset: newText.length),
+                );
+              },
               validator: (value) {
                 if (value == null ||
                     value.isEmpty ||
@@ -94,29 +107,73 @@ class _KasirPenjualanScreenState extends State<KasirPenjualanScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.grey[700],
+              textStyle: const TextStyle(fontWeight: FontWeight.bold),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            ),
             child: const Text('Batal'),
           ),
           ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue.shade600,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              elevation: 4,
+              shadowColor: Colors.blueAccent.withOpacity(0.4),
+              textStyle: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.8,
+              ),
+            ),
             onPressed: () async {
               Navigator.pop(context); // Tutup dialog pertama
               await Future.delayed(Duration(milliseconds: 300));
-              int jumlahuang = int.tryParse(jumlahuangCtrl.text) ?? 0;
+              int jumlahuang = int.tryParse(
+                      jumlahuangCtrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
+                  0;
               int kembalian = jumlahuang - totalBayar.toInt();
               if (jumlahuang < totalBayar) {
                 showDialog(
                   context: context,
                   builder: (context) => AlertDialog(
-                    title: Text('Uang Tidak Cukup'),
-                    content: Text('Masukan Uang harus melebihin total bayar.'),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    title: Row(
+                      children: const [
+                        Icon(Icons.warning_amber_rounded, color: Colors.orange),
+                        SizedBox(width: 8),
+                        Text(
+                          'Uang Tidak Cukup',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                    content: const Text(
+                      'Masukan Uang harus melebihin total bayar.',
+                      style: TextStyle(fontSize: 16),
+                    ),
+                    actionsAlignment: MainAxisAlignment.end,
                     actions: [
                       TextButton(
-                        child: Text('OK'),
+                        child: const Text(
+                          'OK',
+                          style: TextStyle(
+                              color: Colors.redAccent,
+                              fontWeight: FontWeight.bold),
+                        ),
                         onPressed: () => Navigator.of(context).pop(),
                       ),
                     ],
                   ),
                 );
-                return; // ❌ Jangan lanjut insert
+                return;
               }
               showDialog(
                 context: context,
@@ -501,7 +558,7 @@ class _KasirPenjualanScreenState extends State<KasirPenjualanScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Menu Kasir - Pembayaran',
+                '💳 Menu Kasir - Pembayaran',
                 style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -814,17 +871,22 @@ class _KasirPenjualanScreenState extends State<KasirPenjualanScreen> {
           ),
         ),
         actions: [
-          TextButton(
+          TextButton.icon(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Batal'),
+            icon: const Icon(Icons.close, color: Colors.grey),
+            label: const Text(
+              'Batal',
+              style: TextStyle(color: Colors.grey),
+            ),
           ),
-          ElevatedButton(
+          ElevatedButton.icon(
             onPressed: () async {
               if (!formKey.currentState!.validate()) return;
 
               final jumlahJual = int.tryParse(jumlahCtrl.text.trim()) ?? 0;
-              final diskon =
-                  int.tryParse(diskonCtrl.text.trim()) ?? penjualan.hargaJual;
+              final diskon = int.tryParse(
+                      diskonCtrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
+                  penjualan.hargaJual;
 
               final totalHarga = penjualan.hargaJual * jumlahJual;
               final totalSetelahDiskon = jumlahJual * diskon;
@@ -857,12 +919,23 @@ class _KasirPenjualanScreenState extends State<KasirPenjualanScreen> {
                 payload,
               );
               await ApiService.logActivity(
-                  widget.user.id, 'Melakukan edit pembayaran ${totalDics}');
+                  widget.user.id, 'Melakukan edit pembayaran $totalDics');
 
               if (context.mounted) Navigator.pop(context);
               fetchMenungguData();
             },
-            child: const Text('Simpan'),
+            icon: const Icon(Icons.save, color: Colors.white),
+            label: const Text(
+              'Simpan',
+              style: TextStyle(color: Colors.white),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
           ),
         ],
       ),

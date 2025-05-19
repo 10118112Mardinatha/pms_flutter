@@ -172,7 +172,7 @@ class _LaporanPembelianScreenState extends State<LaporanPembelianScreen> {
     final showTable = keyword.trim().isNotEmpty || dateRange != null;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Laporan Pembelian')),
+      appBar: AppBar(title: const Text('📊 Laporan Pembelian')),
       body: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(

@@ -524,7 +524,7 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Penjualan',
+                  '📦 Penjualan',
                   style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w600,

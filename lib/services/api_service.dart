@@ -77,7 +77,7 @@ class ApiService {
 //IMPORT
   static Future<http.Response> importSupplierFromExcel(File file) async {
     final baseUrl = await _getBaseUrl();
-    final url = Uri.parse('$baseUrl/supplier/import');
+    final url = Uri.parse('$baseUrl/supplier/supplier/import');
 
     final request = http.MultipartRequest('POST', url)
       ..files.add(await http.MultipartFile.fromPath('file', file.path));
@@ -88,7 +88,7 @@ class ApiService {
 
   static Future<http.Response> importDoctorFromExcel(File file) async {
     final baseUrl = await _getBaseUrl();
-    final url = Uri.parse('$baseUrl/doctor/import');
+    final url = Uri.parse('$baseUrl/doctor/doctor/import');
 
     final request = http.MultipartRequest('POST', url)
       ..files.add(await http.MultipartFile.fromPath('file', file.path));
@@ -110,7 +110,7 @@ class ApiService {
 
   static Future<http.Response> importRakFromExcel(File file) async {
     final baseUrl = await _getBaseUrl();
-    final url = Uri.parse('$baseUrl/rak/import');
+    final url = Uri.parse('$baseUrl/rak/rak/import');
 
     final request = http.MultipartRequest('POST', url)
       ..files.add(await http.MultipartFile.fromPath('file', file.path));
@@ -121,7 +121,7 @@ class ApiService {
 
   static Future<http.Response> importBarangFromExcel(File file) async {
     final baseUrl = await _getBaseUrl();
-    final url = Uri.parse('$baseUrl/barang/import');
+    final url = Uri.parse('$baseUrl/barang/barang/import');
 
     final request = http.MultipartRequest('POST', url)
       ..files.add(await http.MultipartFile.fromPath('file', file.path));

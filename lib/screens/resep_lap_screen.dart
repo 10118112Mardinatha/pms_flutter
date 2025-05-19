@@ -160,7 +160,7 @@ class _LaporanResepScreenState extends State<LaporanResepScreen> {
     final showTable = keyword.trim().isNotEmpty || dateRange != null;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Laporan Resep')),
+      appBar: AppBar(title: const Text('📊 Laporan Resep')),
       body: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
@@ -213,8 +213,11 @@ class _LaporanResepScreenState extends State<LaporanResepScreen> {
                             context: context,
                             firstDate: DateTime(2000),
                             lastDate: DateTime.now(),
+                            initialDateRange:
+                                dateRange, // Tambahkan ini agar terlihat terpilih
                             builder: (context, child) => Center(
-                                child: SizedBox(width: 400, child: child)),
+                              child: SizedBox(width: 400, child: child),
+                            ),
                           );
                           if (picked != null) {
                             setState(() {

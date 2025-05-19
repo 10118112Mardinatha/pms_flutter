@@ -159,7 +159,7 @@ class _LaporanPenjualanScreenState extends State<LaporanPenjualanScreen> {
     final showTable = keyword.trim().isNotEmpty || dateRange != null;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Laporan Penjualan')),
+      appBar: AppBar(title: const Text('📊 Laporan Penjualan')),
       body: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(

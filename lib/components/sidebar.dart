@@ -1,10 +1,11 @@
+// Ganti seluruh isi Sidebar.dart kamu dengan ini
+// Pastikan import dan font tetap
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:pms_flutter/database/app_database.dart';
 
 class Sidebar extends StatefulWidget {
   final Function(String) onMenuTap;
-
   final String? role;
 
   const Sidebar({
@@ -19,26 +20,32 @@ class Sidebar extends StatefulWidget {
 
 class _SidebarState extends State<Sidebar> {
   bool _isCollapsed = false;
-  final FocusNode _logoFocusNode = FocusNode();
   bool _isLaporanExpanded = false;
+
+  final FocusNode _logoFocusNode = FocusNode();
 
   String get _role => widget.role ?? '';
 
   @override
   void initState() {
     super.initState();
-
     _logoFocusNode.addListener(() {
       if (_logoFocusNode.hasFocus) {
-        setState(() {
-          _isCollapsed = !_isCollapsed;
-          if (_isCollapsed) {
-            _isLaporanExpanded = false;
-          }
-        });
+        _toggleSidebar();
       }
     });
   }
+
+  void _toggleSidebar() {
+    setState(() {
+      _isCollapsed = !_isCollapsed;
+      if (_isCollapsed) _isLaporanExpanded = false;
+    });
+  }
+
+  bool get _isAdmin => _role == 'admin';
+  bool get _isKasir => _role == 'kasir';
+  bool get _isCounter => _role == 'counter';
 
   @override
   Widget build(BuildContext context) {
@@ -49,133 +56,20 @@ class _SidebarState extends State<Sidebar> {
       child: FocusTraversalGroup(
         policy: WidgetOrderTraversalPolicy(),
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          width: _isCollapsed
-              ? 70
-              : isTablet
-                  ? 250
-                  : 190,
+          duration: const Duration(milliseconds: 250),
+          width: _isCollapsed ? 70 : (isTablet ? 240 : 200),
           decoration: const BoxDecoration(
             color: Color(0xFFe0f2f1),
-            boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)],
+            boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 5)],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildAppHeader(),
-              const Divider(thickness: 1, height: 1),
-              Expanded(
-                child: Column(
-                  children: [
-                    Expanded(
-                      child: ListView(
-                        children: [
-                          Tooltip(
-                              message: _isCollapsed ? 'Dashboard' : '',
-                              child: _menuItem(Icons.dashboard, 'Dashboard')),
-                          _divider(),
-                          Tooltip(
-                              message: _isCollapsed ? 'Supplier' : '',
-                              child: _menuItem(Icons.trolley, 'Supplier')),
-                          Tooltip(
-                              message: _isCollapsed ? 'Dokter' : '',
-                              child: _menuItem(Icons.local_hospital, 'Dokter')),
-                          Tooltip(
-                              message: _isCollapsed ? 'Pelanggan' : '',
-                              child: _menuItem(Icons.people_alt, 'Pelanggan')),
-                          Tooltip(
-                              message: _isCollapsed ? 'Rak' : '',
-                              child:
-                                  _menuItem(Icons.inventory_outlined, 'Rak')),
-                          Tooltip(
-                              message: _isCollapsed ? 'Obat' : '',
-                              child: _menuItem(Icons.medical_services, 'Obat')),
-                          Tooltip(
-                              message: _isCollapsed ? 'Pembelian' : '',
-                              child:
-                                  _menuItem(Icons.shopping_bag, 'Pembelian')),
-                          Tooltip(
-                              message: _isCollapsed ? 'Penjualan' : '',
-                              child:
-                                  _menuItem(Icons.point_of_sale, 'Penjualan')),
-                          Tooltip(
-                              message: _isCollapsed ? 'Kasir' : '',
-                              child: _menuItem(Icons.money, 'Kasir')),
-                          Tooltip(
-                              message: _isCollapsed ? 'Resep' : '',
-                              child: _menuItem(Icons.receipt_long, 'Resep')),
-                          if (_role == 'admin') _divider(),
-                          Tooltip(
-                            message: _isCollapsed ? 'Laporan' : '',
-                            child: _expansionMenuItem(
-                              Icons.bar_chart,
-                              'Laporan',
-                              _isLaporanExpanded,
-                              () {
-                                setState(() {
-                                  _isLaporanExpanded = !_isLaporanExpanded;
-                                });
-                              },
-                              [
-                                Tooltip(
-                                  message:
-                                      _isCollapsed ? 'Laporan Pembelian' : '',
-                                  child: _submenuItem(
-                                      Icons.show_chart, 'Laporan Pembelian'),
-                                ),
-                                Tooltip(
-                                  message:
-                                      _isCollapsed ? 'Laporan Penjualan' : '',
-                                  child: _submenuItem(
-                                      Icons.show_chart, 'Laporan Penjualan'),
-                                ),
-                                Tooltip(
-                                  message: _isCollapsed ? 'Laporan Resep' : '',
-                                  child: _submenuItem(
-                                      Icons.assessment, 'Laporan Resep'),
-                                ),
-                              ],
-                            ),
-                          ),
-                          _divider(),
-                          if (_role == 'admin')
-                            Tooltip(
-                                message: _isCollapsed ? 'User' : '',
-                                child: _menuItem(
-                                    Icons.supervisor_account, 'User')),
-                          Tooltip(
-                              message: _isCollapsed ? 'Log Aktivitas' : '',
-                              child: _menuItem(Icons.history, 'Log Aktivitas')),
-                        ],
-                      ),
-                    ),
-                    const Divider(thickness: 1),
-                    Padding(
-                      padding: const EdgeInsets.all(12.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (!_isCollapsed)
-                            Text(
-                              '© 2025 Apotek Segar',
-                              style: GoogleFonts.poppins(
-                                  fontSize: 11, color: Colors.black54),
-                            ),
-                          if (!_isCollapsed)
-                            Text(
-                              'by Kiwari Digital',
-                              style: GoogleFonts.poppins(
-                                  fontSize: 11, color: Colors.black54),
-                            ),
-                          if (_isCollapsed)
-                            const Icon(Icons.copyright,
-                                size: 14, color: Colors.black54),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              _buildHeader(),
+              const Divider(thickness: 1),
+              Expanded(child: _buildMenuItems()),
+              const Divider(thickness: 1),
+              _buildFooter(),
             ],
           ),
         ),
@@ -183,28 +77,23 @@ class _SidebarState extends State<Sidebar> {
     );
   }
 
-  Widget _buildAppHeader() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 13.5),
-      child: GestureDetector(
-        onTap: () => setState(() {
-          _isCollapsed = !_isCollapsed;
-          if (_isCollapsed) {
-            _isLaporanExpanded = false;
-          }
-        }),
+  Widget _buildHeader() {
+    return GestureDetector(
+      onTap: _toggleSidebar,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
         child: Focus(
-            focusNode: _logoFocusNode,
-            child: Row(
-              children: [
-                const Icon(Icons.menu, size: 28, color: Colors.black),
-                if (!_isCollapsed) ...[
-                  const SizedBox(width: 5),
-                  Expanded(
-                    // Tambahkan ini
+          focusNode: _logoFocusNode,
+          child: Row(
+            children: [
+              const Icon(Icons.menu, size: 26, color: Colors.black),
+              if (!_isCollapsed)
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 8),
                     child: Text(
                       'Apotek Segar',
-                      overflow: TextOverflow.ellipsis, // Hindari overflow teks
+                      overflow: TextOverflow.ellipsis,
                       style: GoogleFonts.poppins(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -212,51 +101,98 @@ class _SidebarState extends State<Sidebar> {
                       ),
                     ),
                   ),
-                ],
-              ],
-            )),
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }
 
-  Widget _menuItem(IconData icon, String title) {
-    return ListTile(
-      leading: Icon(icon, color: Colors.black),
-      title: _isCollapsed
-          ? null
-          : Text(
-              title,
-              style: GoogleFonts.poppins(fontSize: 14, color: Colors.black87),
-            ),
-      onTap: () {
-        widget.onMenuTap(title);
-        setState(() {
-          _isLaporanExpanded = false;
-        });
-      },
-      dense: true,
-      horizontalTitleGap: 12,
-      visualDensity: VisualDensity.compact,
+  Widget _buildMenuItems() {
+    return ListView(
+      children: [
+        if (_isAdmin || _isKasir || _isCounter) ...[
+          _tooltipItem('Dashboard', Icons.dashboard),
+        ],
+        if (_isAdmin || _isKasir || _isCounter) _divider(),
+        if (_isAdmin) _tooltipItem('Supplier', Icons.trolley),
+        if (_isAdmin) _tooltipItem('Dokter', Icons.medical_services_outlined),
+        if (_isAdmin) _tooltipItem('Pelanggan', Icons.people_alt),
+        if (_isAdmin) _tooltipItem('Rak', Icons.inventory_outlined),
+        if (_isAdmin) _tooltipItem('Obat', Icons.medical_services),
+        if (_isAdmin) _tooltipItem('Pembelian', Icons.shopping_cart),
+
+        // Akses Penjualan & Kasir
+        if (_isAdmin || _isKasir || _isCounter)
+          _tooltipItem('Penjualan', Icons.point_of_sale),
+        if (_isAdmin || _isKasir) _tooltipItem('Kasir', Icons.payment),
+
+        // Resep hanya untuk admin
+        if (_isAdmin) _tooltipItem('Resep', Icons.receipt_long),
+
+        if (_isAdmin) _divider(),
+
+        // Laporan untuk admin
+        if (_isAdmin)
+          _expansionMenuItem(
+            Icons.bar_chart,
+            'Laporan',
+            _isLaporanExpanded,
+            () {
+              setState(() {
+                _isLaporanExpanded = !_isLaporanExpanded;
+              });
+            },
+            [
+              _submenuItem('Laporan Pembelian', Icons.show_chart),
+              _submenuItem('Laporan Penjualan', Icons.show_chart),
+              _submenuItem('Laporan Resep', Icons.assessment),
+            ],
+          ),
+
+        if (_isAdmin) _divider(),
+
+        if (_isAdmin) _tooltipItem('User', Icons.supervisor_account),
+        if (_isAdmin) _tooltipItem('Log Aktivitas', Icons.history),
+      ],
     );
   }
 
-  Widget _submenuItem(IconData icon, String title) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 32.0),
+  Widget _tooltipItem(String title, IconData icon) {
+    return Tooltip(
+      message: _isCollapsed ? title : '',
       child: ListTile(
-        leading: Icon(icon, size: 20, color: Colors.black),
+        leading: Icon(icon, color: Colors.black),
         title: !_isCollapsed
-            ? Text(
-                title,
-                style: GoogleFonts.poppins(fontSize: 13, color: Colors.black87),
-              )
+            ? Text(title,
+                style: GoogleFonts.poppins(fontSize: 14, color: Colors.black87))
             : null,
         onTap: () {
           widget.onMenuTap(title);
-          setState(() {
-            _isLaporanExpanded = false;
-          });
+          setState(() => _isLaporanExpanded = false);
         },
+        dense: true,
+        visualDensity: VisualDensity.compact,
+        horizontalTitleGap: 12,
+      ),
+    );
+  }
+
+  Widget _submenuItem(String title, IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 32),
+      child: ListTile(
+        leading: Icon(icon, size: 20, color: Colors.black),
+        title: !_isCollapsed
+            ? Text(title,
+                style: GoogleFonts.poppins(fontSize: 13, color: Colors.black87))
+            : null,
+        onTap: () {
+          widget.onMenuTap(title);
+          setState(() => _isLaporanExpanded = false);
+        },
+        dense: true,
       ),
     );
   }
@@ -274,11 +210,9 @@ class _SidebarState extends State<Sidebar> {
         ListTile(
           leading: Icon(icon, color: Colors.black),
           title: !_isCollapsed
-              ? Text(
-                  title,
+              ? Text(title,
                   style:
-                      GoogleFonts.poppins(fontSize: 14, color: Colors.black87),
-                )
+                      GoogleFonts.poppins(fontSize: 14, color: Colors.black87))
               : null,
           trailing: !_isCollapsed
               ? Icon(
@@ -287,6 +221,7 @@ class _SidebarState extends State<Sidebar> {
                 )
               : null,
           onTap: onTap,
+          dense: true,
         ),
         if (isExpanded) ...children,
       ],
@@ -294,4 +229,25 @@ class _SidebarState extends State<Sidebar> {
   }
 
   Widget _divider() => const Divider(thickness: 1, indent: 8, endIndent: 8);
+
+  Widget _buildFooter() {
+    return Padding(
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (!_isCollapsed)
+            Text('© 2025 Apotek Segar',
+                style:
+                    GoogleFonts.poppins(fontSize: 11, color: Colors.black54)),
+          if (!_isCollapsed)
+            Text('by Kiwari Digital',
+                style:
+                    GoogleFonts.poppins(fontSize: 11, color: Colors.black54)),
+          if (_isCollapsed)
+            const Icon(Icons.copyright, size: 14, color: Colors.black54),
+        ],
+      ),
+    );
+  }
 }

@@ -519,7 +519,7 @@ class _ResepScreenState extends State<ResepScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Resep',
+                  '📄 Resep',
                   style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w600,

@@ -244,7 +244,7 @@ class _RiwayatUserScreenState extends State<RiwayatUserScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Riwayat Aktivitas User')),
+      appBar: AppBar(title: const Text('📜 Riwayat Aktivitas User')),
       body: Column(
         children: [
           _buildFilterBar(),

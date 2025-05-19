@@ -1,10 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:drift/drift.dart' show Value;
+
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
-import 'package:pms_flutter/database/app_database.dart';
+
 import 'package:pms_flutter/models/user_model.dart';
 import 'package:pms_flutter/services/api_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -31,7 +31,7 @@ class _TambahUserScreenState extends State<TambahUserScreen> {
   bool _obscureConfirmPassword = true;
   String? _ipAddress;
 
-  final List<String> _roles = ['admin', 'apoteker'];
+  final List<String> _roles = ['admin', 'kasir', 'counter'];
 
   @override
   void initState() {
@@ -177,7 +177,7 @@ class _TambahUserScreenState extends State<TambahUserScreen> {
                             ),
                             DropdownButton<String>(
                               value: user.role,
-                              items: ['admin', 'apoteker'].map((role) {
+                              items: ['admin', 'kasir', 'counter'].map((role) {
                                 return DropdownMenuItem(
                                     value: role, child: Text(role));
                               }).toList(),
@@ -349,7 +349,7 @@ class _TambahUserScreenState extends State<TambahUserScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Tambah User'),
+        title: const Text('👥 Tambah User'),
         actions: [
           IconButton(
             icon: const Icon(Icons.settings),
