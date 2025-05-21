@@ -7,11 +7,13 @@ import 'package:google_fonts/google_fonts.dart';
 class Sidebar extends StatefulWidget {
   final Function(String) onMenuTap;
   final String? role;
+  final List<String> akses;
 
   const Sidebar({
     super.key,
     required this.onMenuTap,
     required this.role,
+    required this.akses,
   });
 
   @override
@@ -25,6 +27,7 @@ class _SidebarState extends State<Sidebar> {
   final FocusNode _logoFocusNode = FocusNode();
 
   String get _role => widget.role ?? '';
+  bool hasAccess(String menuKey) => widget.akses.contains(menuKey);
 
   @override
   void initState() {
@@ -110,31 +113,57 @@ class _SidebarState extends State<Sidebar> {
   }
 
   Widget _buildMenuItems() {
+    String capitalizeLabel(String key) {
+      return key
+          .split('_')
+          .map((w) => w[0].toUpperCase() + w.substring(1))
+          .join(' ');
+    }
+
+    bool hasAccess(String key) => widget.akses.contains(key);
+
+    final hasMasterAccess = [
+      'supplier',
+      'dokter',
+      'pelanggan',
+      'rak',
+      'obat',
+      'pembelian',
+      'penjualan',
+      'kasir',
+      'resep',
+    ].any((key) => hasAccess(key));
+
+    final hasLaporanAccess = widget.akses.any((a) => a.startsWith('laporan_'));
+
+    final hasUserAccess = hasAccess('user') || hasAccess('log_aktivitas');
+
     return ListView(
       children: [
-        if (_isAdmin || _isKasir || _isCounter) ...[
-          _tooltipItem('Dashboard', Icons.dashboard),
-        ],
-        if (_isAdmin || _isKasir || _isCounter) _divider(),
-        if (_isAdmin) _tooltipItem('Supplier', Icons.trolley),
-        if (_isAdmin) _tooltipItem('Dokter', Icons.medical_services_outlined),
-        if (_isAdmin) _tooltipItem('Pelanggan', Icons.people_alt),
-        if (_isAdmin) _tooltipItem('Rak', Icons.inventory_outlined),
-        if (_isAdmin) _tooltipItem('Obat', Icons.medical_services),
-        if (_isAdmin) _tooltipItem('Pembelian', Icons.shopping_cart),
-
-        // Akses Penjualan & Kasir
-        if (_isAdmin || _isKasir || _isCounter)
-          _tooltipItem('Penjualan', Icons.point_of_sale),
-        if (_isAdmin || _isKasir) _tooltipItem('Kasir', Icons.payment),
-
-        // Resep hanya untuk admin
-        if (_isAdmin) _tooltipItem('Resep', Icons.receipt_long),
-
-        if (_isAdmin) _divider(),
-
-        // Laporan untuk admin
-        if (_isAdmin)
+        if (hasAccess('dashboard'))
+          _tooltipItem(capitalizeLabel('dashboard'), Icons.dashboard),
+        if (hasMasterAccess) _divider(),
+        if (hasAccess('supplier'))
+          _tooltipItem(capitalizeLabel('supplier'), Icons.trolley),
+        if (hasAccess('dokter'))
+          _tooltipItem(
+              capitalizeLabel('dokter'), Icons.medical_services_outlined),
+        if (hasAccess('pelanggan'))
+          _tooltipItem(capitalizeLabel('pelanggan'), Icons.people_alt),
+        if (hasAccess('rak'))
+          _tooltipItem(capitalizeLabel('rak'), Icons.inventory_outlined),
+        if (hasAccess('obat'))
+          _tooltipItem(capitalizeLabel('obat'), Icons.medical_services),
+        if (hasAccess('pembelian'))
+          _tooltipItem(capitalizeLabel('pembelian'), Icons.shopping_cart),
+        if (hasAccess('penjualan'))
+          _tooltipItem(capitalizeLabel('penjualan'), Icons.point_of_sale),
+        if (hasAccess('kasir'))
+          _tooltipItem(capitalizeLabel('kasir'), Icons.payment),
+        if (hasAccess('resep'))
+          _tooltipItem(capitalizeLabel('resep'), Icons.receipt_long),
+        if (hasLaporanAccess) _divider(),
+        if (hasLaporanAccess)
           _expansionMenuItem(
             Icons.bar_chart,
             'Laporan',
@@ -145,16 +174,22 @@ class _SidebarState extends State<Sidebar> {
               });
             },
             [
-              _submenuItem('Laporan Pembelian', Icons.show_chart),
-              _submenuItem('Laporan Penjualan', Icons.show_chart),
-              _submenuItem('Laporan Resep', Icons.assessment),
+              if (hasAccess('laporan_pembelian'))
+                _submenuItem(
+                    capitalizeLabel('laporan_pembelian'), Icons.show_chart),
+              if (hasAccess('laporan_penjualan'))
+                _submenuItem(
+                    capitalizeLabel('laporan_penjualan'), Icons.show_chart),
+              if (hasAccess('laporan_resep'))
+                _submenuItem(
+                    capitalizeLabel('laporan_resep'), Icons.assessment),
             ],
           ),
-
-        if (_isAdmin) _divider(),
-
-        if (_isAdmin) _tooltipItem('User', Icons.supervisor_account),
-        if (_isAdmin) _tooltipItem('Log Aktivitas', Icons.history),
+        if (hasUserAccess) _divider(),
+        if (hasAccess('user'))
+          _tooltipItem(capitalizeLabel('user'), Icons.supervisor_account),
+        if (hasAccess('log_aktivitas'))
+          _tooltipItem(capitalizeLabel('log_aktivitas'), Icons.history),
       ],
     );
   }

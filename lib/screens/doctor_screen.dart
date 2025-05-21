@@ -191,30 +191,10 @@ class _DoctorScreenState extends State<DoctorScreen> {
                     decoration: InputDecoration(labelText: 'Telepon'),
                     keyboardType: TextInputType.number,
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    validator: (value) => value == null || value.isEmpty
-                        ? 'Wajib diisi tidak boleh kosong dan berupa angka'
-                        : null,
-                  ),
-                  TextFormField(
-                    controller: nilaipenjualanCtrl,
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    decoration: InputDecoration(labelText: ' Nilai Penjualan'),
-                    onChanged: (value) {
-                      if (value.isEmpty) return;
-                      final number = int.parse(value.replaceAll('.', ''));
-                      final newText =
-                          formatter.format(number).replaceAll(',00', '');
-                      nilaipenjualanCtrl.value = TextEditingValue(
-                        text: newText,
-                        selection:
-                            TextSelection.collapsed(offset: newText.length),
-                      );
-                    },
                     onFieldSubmitted: (_) =>
                         _submit(), // Trigger submit via Enter
                     validator: (value) => value == null || value.isEmpty
-                        ? 'Wajib diisi tidak boleh kosong'
+                        ? 'Wajib diisi tidak boleh kosong dan berupa angka'
                         : null,
                   ),
                 ],
@@ -597,7 +577,6 @@ class _DoctorScreenState extends State<DoctorScreen> {
                               DataColumn(label: Text('Nama')),
                               DataColumn(label: Text('Alamat')),
                               DataColumn(label: Text('Telepon')),
-                              DataColumn(label: Text('Penjualan')),
                               DataColumn(label: Text('Aksi')),
                             ],
                             rows: _paginatedDoctor.asMap().entries.map((entry) {
@@ -624,11 +603,6 @@ class _DoctorScreenState extends State<DoctorScreen> {
                                 DataCell(Tooltip(
                                   message: 'Telepon',
                                   child: Text(s.telepon.toString()),
-                                )),
-                                DataCell(Tooltip(
-                                  message: 'Penjualan',
-                                  child:
-                                      Text(formatter.format(s.nilaipenjualan)),
                                 )),
                                 DataCell(Row(
                                   children: [

@@ -17,7 +17,7 @@ void main() async {
     size: Size(1350, 700),
     center: true,
     title:
-        "S.Parman, Kavaleri 29, No. 24, Langkai, Pahandut, Kota Palangka Raya, Kalimantan Tengah, 74874",
+        "Jl. S.Parman, Kavaleri 29, No. 24, Langkai, Pahandut, Kota Palangka Raya, Kalimantan Tengah, 74874",
     backgroundColor: Colors.white,
   );
 
@@ -37,6 +37,7 @@ void main() async {
       password: Value('admin123'),
       role: Value('admin'),
       aktif: Value(true),
+      avatar: Value('akses'),
     ));
   }
 
@@ -55,6 +56,7 @@ void main() async {
       role: role,
       aktif: aktif,
       avatar: avatar != '' ? avatar : null,
+      akses: [],
     );
   }
 

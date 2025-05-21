@@ -225,8 +225,37 @@ class _LaporanPembelianScreenState extends State<LaporanPembelianScreen> {
                             context: context,
                             firstDate: DateTime(2000),
                             lastDate: DateTime.now(),
-                            builder: (context, child) => Center(
-                                child: SizedBox(width: 400, child: child)),
+                            builder: (context, child) {
+                              return Center(
+                                child: SizedBox(
+                                  width: 360,
+                                  height: 460,
+                                  child: Theme(
+                                    data: Theme.of(context).copyWith(
+                                      dialogTheme: DialogTheme(
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(16),
+                                        ),
+                                      ),
+                                      colorScheme: Theme.of(context)
+                                          .colorScheme
+                                          .copyWith(
+                                            primary: Colors.blue,
+                                            onPrimary: Colors.white,
+                                            surface: Colors.white,
+                                            onSurface: Colors.black,
+                                          ),
+                                    ),
+                                    child: MediaQuery(
+                                      data: MediaQuery.of(context)
+                                          .copyWith(textScaleFactor: 0.9),
+                                      child: child!,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
                           );
                           if (picked != null) {
                             setState(() {
@@ -280,90 +309,148 @@ class _LaporanPembelianScreenState extends State<LaporanPembelianScreen> {
                       : filteredData.isEmpty
                           ? const Center(
                               child: Text('Tidak ada data yang cocok'))
-                          : ListView(
-                              children: [
-                                SingleChildScrollView(
-                                  scrollDirection: Axis.horizontal,
-                                  child: DataTable(
-                                    columns: const [
-                                      DataColumn(label: Text('No')),
-                                      DataColumn(label: Text('No Faktur')),
-                                      DataColumn(label: Text('Kode Supplier')),
-                                      DataColumn(label: Text('Nama Supplier')),
-                                      DataColumn(label: Text('Kode Barang')),
-                                      DataColumn(label: Text('Nama Barang')),
-                                      DataColumn(label: Text('Tanggal Beli')),
-                                      DataColumn(label: Text('Kelompok')),
-                                      DataColumn(label: Text('Satuan')),
-                                      DataColumn(label: Text('Harga Beli')),
-                                      DataColumn(label: Text('Harga Jual')),
-                                      DataColumn(label: Text('Disc1')),
-                                      DataColumn(label: Text('Disc2')),
-                                      DataColumn(label: Text('Disc3')),
-                                      DataColumn(label: Text('Disc4')),
-                                      DataColumn(label: Text('Jumlah Beli')),
-                                      DataColumn(label: Text('Total Harga')),
-                                    ],
-                                    rows: List.generate(
-                                      paginatedData.length,
-                                      (index) {
-                                        final p = paginatedData[index];
-                                        return DataRow(cells: [
-                                          DataCell(Text(
-                                              '${currentPage * rowsPerPage + index + 1}')),
-                                          DataCell(Text(p.noFaktur)),
-                                          DataCell(Text(p.kodeSupplier)),
-                                          DataCell(Text(p.namaSuppliers)),
-                                          DataCell(Text(p.kodeBarang)),
-                                          DataCell(Text(p.namaBarang)),
-                                          DataCell(Text(DateFormat('dd-MM-yyyy')
-                                              .format(p.tanggalBeli))),
-                                          DataCell(Text(p.kelompok)),
-                                          DataCell(Text(p.satuan)),
-                                          DataCell(Text(NumberFormat.currency(
-                                                  locale: 'id', symbol: 'Rp ')
-                                              .format(p.hargaBeli))),
-                                          DataCell(Text(NumberFormat.currency(
-                                                  locale: 'id', symbol: 'Rp ')
-                                              .format(p.hargaJual))),
-                                          DataCell(Text('${p.jualDisc1 ?? 0}')),
-                                          DataCell(Text('${p.jualDisc2 ?? 0}')),
-                                          DataCell(Text('${p.jualDisc3 ?? 0}')),
-                                          DataCell(Text('${p.jualDisc4 ?? 0}')),
-                                          DataCell(
-                                              Text('${p.jumlahBeli ?? 0}')),
-                                          DataCell(Text(NumberFormat.currency(
-                                                  locale: 'id', symbol: 'Rp ')
-                                              .format(p.totalHarga ?? 0))),
-                                        ]);
-                                      },
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 10),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
+                          : LayoutBuilder(
+                              builder: (context, constraints) {
+                                return Column(
                                   children: [
-                                    IconButton(
-                                      icon: const Icon(Icons.chevron_left),
-                                      onPressed: currentPage > 0
-                                          ? () => setState(() => currentPage--)
-                                          : null,
+                                    Expanded(
+                                      child: SingleChildScrollView(
+                                        scrollDirection: Axis.vertical,
+                                        child: SingleChildScrollView(
+                                          scrollDirection: Axis.horizontal,
+                                          child: ConstrainedBox(
+                                            constraints: BoxConstraints(
+                                              minWidth: constraints.maxWidth,
+                                            ),
+                                            child: DataTable(
+                                              columnSpacing: 24,
+                                              columns: const [
+                                                DataColumn(label: Text('No')),
+                                                DataColumn(
+                                                    label: Text('No Faktur')),
+                                                DataColumn(
+                                                    label:
+                                                        Text('Kode Supplier')),
+                                                DataColumn(
+                                                    label:
+                                                        Text('Nama Supplier')),
+                                                DataColumn(
+                                                    label: Text('Kode Barang')),
+                                                DataColumn(
+                                                    label: Text('Nama Barang')),
+                                                DataColumn(
+                                                    label:
+                                                        Text('Tanggal Beli')),
+                                                DataColumn(
+                                                    label: Text('Kelompok')),
+                                                DataColumn(
+                                                    label: Text('Satuan')),
+                                                DataColumn(
+                                                    label: Text('Harga Beli')),
+                                                DataColumn(
+                                                    label: Text('Harga Jual')),
+                                                DataColumn(
+                                                    label: Text('Disc1')),
+                                                DataColumn(
+                                                    label: Text('Disc2')),
+                                                DataColumn(
+                                                    label: Text('Disc3')),
+                                                DataColumn(
+                                                    label: Text('Disc4')),
+                                                DataColumn(
+                                                    label: Text('Jumlah Beli')),
+                                                DataColumn(
+                                                    label: Text('Total Harga')),
+                                              ],
+                                              rows: List.generate(
+                                                paginatedData.length,
+                                                (index) {
+                                                  final p =
+                                                      paginatedData[index];
+                                                  return DataRow(cells: [
+                                                    DataCell(Text(
+                                                        '${currentPage * rowsPerPage + index + 1}')),
+                                                    DataCell(Text(p.noFaktur)),
+                                                    DataCell(
+                                                        Text(p.kodeSupplier)),
+                                                    DataCell(
+                                                        Text(p.namaSuppliers)),
+                                                    DataCell(
+                                                        Text(p.kodeBarang)),
+                                                    DataCell(
+                                                        Text(p.namaBarang)),
+                                                    DataCell(Text(DateFormat(
+                                                            'dd-MM-yyyy')
+                                                        .format(
+                                                            p.tanggalBeli))),
+                                                    DataCell(Text(p.kelompok)),
+                                                    DataCell(Text(p.satuan)),
+                                                    DataCell(Text(
+                                                        NumberFormat.currency(
+                                                                locale: 'id',
+                                                                symbol: 'Rp ')
+                                                            .format(
+                                                                p.hargaBeli))),
+                                                    DataCell(Text(
+                                                        NumberFormat.currency(
+                                                                locale: 'id',
+                                                                symbol: 'Rp ')
+                                                            .format(
+                                                                p.hargaJual))),
+                                                    DataCell(Text(
+                                                        '${p.jualDisc1 ?? 0}')),
+                                                    DataCell(Text(
+                                                        '${p.jualDisc2 ?? 0}')),
+                                                    DataCell(Text(
+                                                        '${p.jualDisc3 ?? 0}')),
+                                                    DataCell(Text(
+                                                        '${p.jualDisc4 ?? 0}')),
+                                                    DataCell(Text(
+                                                        '${p.jumlahBeli ?? 0}')),
+                                                    DataCell(Text(
+                                                        NumberFormat.currency(
+                                                                locale: 'id',
+                                                                symbol: 'Rp ')
+                                                            .format(
+                                                                p.totalHarga ??
+                                                                    0))),
+                                                  ]);
+                                                },
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
                                     ),
-                                    Text('Halaman ${currentPage + 1}'),
-                                    IconButton(
-                                      icon: const Icon(Icons.chevron_right),
-                                      onPressed: (currentPage + 1) *
-                                                  rowsPerPage <
-                                              filteredData.length
-                                          ? () => setState(() => currentPage++)
-                                          : null,
+                                    const SizedBox(height: 10),
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        IconButton(
+                                          icon: const Icon(Icons.chevron_left),
+                                          onPressed: currentPage > 0
+                                              ? () =>
+                                                  setState(() => currentPage--)
+                                              : null,
+                                        ),
+                                        Text('Halaman ${currentPage + 1}'),
+                                        IconButton(
+                                          icon: const Icon(Icons.chevron_right),
+                                          onPressed: (currentPage + 1) *
+                                                      rowsPerPage <
+                                                  filteredData.length
+                                              ? () =>
+                                                  setState(() => currentPage++)
+                                              : null,
+                                        ),
+                                      ],
                                     ),
                                   ],
-                                ),
-                              ],
+                                );
+                              },
                             ),
-            )
+            ),
           ],
         ),
       ),

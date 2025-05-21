@@ -86,6 +86,19 @@ class ApiService {
     return await http.Response.fromStream(response);
   }
 
+  static Future<http.Response> importPembelianFromExcel(
+      File file, String username) async {
+    final baseUrl = await _getBaseUrl();
+    final url = Uri.parse('$baseUrl/pembelian/pembelian/import');
+
+    final request = http.MultipartRequest('POST', url);
+    request.files.add(await http.MultipartFile.fromPath('file', file.path));
+    request.fields['username'] = username;
+
+    final response = await request.send();
+    return await http.Response.fromStream(response);
+  }
+
   static Future<http.Response> importDoctorFromExcel(File file) async {
     final baseUrl = await _getBaseUrl();
     final url = Uri.parse('$baseUrl/doctor/doctor/import');

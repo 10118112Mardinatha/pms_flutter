@@ -450,7 +450,7 @@ class _TopBarState extends State<TopBar> {
       elevation: 3,
       color: Colors.white,
       child: Container(
-        height: 55,
+        height: 58,
         padding: const EdgeInsets.symmetric(horizontal: 20),
         decoration: const BoxDecoration(
           border: Border(

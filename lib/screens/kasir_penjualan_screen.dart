@@ -284,8 +284,9 @@ class _KasirPenjualanScreenState extends State<KasirPenjualanScreen> {
                           Text(
                               'Total Dibayar : ${formatRupiah.format(totalBayar)}'),
                           Text(
-                              'Uang Bayar : ${formatRupiah.format(jumlahuang)}'),
-                          Text('Kembalian : ${formatRupiah.format(kembalian)}'),
+                              'Uang Bayar    : ${formatRupiah.format(jumlahuang)}'),
+                          Text(
+                              'Kembalian     : ${formatRupiah.format(kembalian)}'),
                           const SizedBox(height: 10),
                           const Divider(),
                           const Center(
@@ -508,61 +509,84 @@ class _KasirPenjualanScreenState extends State<KasirPenjualanScreen> {
                   content: SizedBox(
                     width: 500,
                     child: SingleChildScrollView(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Center(
-                            child: Column(
+                        child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Center(
+                          child: Column(
+                            children: [
+                              Text('Apotek Segar',
+                                  style:
+                                      TextStyle(fontWeight: FontWeight.bold)),
+                              Text('Jl. S.Parman, Kavaleri 29, No. 24'),
+                              Text(
+                                  'Kec. Langkai Kel. Pahandut Kota Palangka Raya'),
+                              Text('Kalimantan Tengah , 74874'),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        const Divider(),
+                        Table(
+                          columnWidths: const {
+                            0: IntrinsicColumnWidth(),
+                            1: FixedColumnWidth(10),
+                            2: FlexColumnWidth(),
+                          },
+                          defaultVerticalAlignment:
+                              TableCellVerticalAlignment.middle,
+                          children: [
+                            _tableRow("No Faktur", _nofakturController.text),
+                            _tableRow("No Resep", noresep),
+                            _tableRow("Tanggal", formattedDateTime),
+                            _tableRow("Nama Pasien", namapasien),
+                            _tableRow("Nama Dokter", namadokter),
+                            _tableRow("Kasir", username),
+                            const TableRow(
                               children: [
-                                Text('Apotek Segar',
-                                    style:
-                                        TextStyle(fontWeight: FontWeight.bold)),
-                                Text('Jl. S.Parman, Kavaleri 29, No. 24'),
-                                Text(
-                                    'Kec. Langkai Kel. Pahandut Kota Palangka Raya'),
-                                Text('Kalimantan Tengah , 74874'),
+                                Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 8.0),
+                                  child: Divider(thickness: 1),
+                                ),
+                                SizedBox(),
+                                Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 8.0),
+                                  child: Divider(thickness: 1),
+                                ),
                               ],
                             ),
-                          ),
-                          const SizedBox(height: 10),
-                          const Divider(),
-                          Text('No Faktur      : ${_nofakturController.text}'),
-                          Text('No Resep      : ${noresep}'),
-                          Text('Tanggal       : ${formattedDateTime}'),
-                          Text('Nama Pasien   : ${namapasien}'),
-                          Text('Nama Dokter   : ${namadokter}'),
-                          Text('Kasir         : ${username}'),
-                          Text(
-                              'Total Harga    : ${formatRupiah.format(totalSebelum)}'),
-                          Text(
-                              'Total Diskon   : ${formatRupiah.format(totalDiskon)}'),
-                          Text(
-                              'Total Dibayar  : ${formatRupiah.format(totalBayar)}'),
-                          Text(
-                              'Uang Bayar     : ${formatRupiah.format(jumlahuang)}'),
-                          Text(
-                              'Kembalian     : ${formatRupiah.format(kembalian)}'),
-                          const SizedBox(height: 10),
-                          const Divider(),
-                          const Center(
-                            child: Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 8),
-                              child: Text(
-                                'Terima kasih telah berbelanja di Apotek Segar. '
-                                'Untuk keluhan atau pertanyaan terkait obat, silakan hubungi Apoteker kami. '
-                                'Struk ini harap disimpan sebagai bukti pembelian.',
-                                style: TextStyle(
-                                  fontStyle: FontStyle.italic,
-                                  fontSize: 11,
-                                  color: Colors.grey,
-                                ),
-                                textAlign: TextAlign.center,
+                            _tableRow("Total Harga",
+                                formatRupiah.format(totalSebelum)),
+                            _tableRow("Total Diskon",
+                                formatRupiah.format(totalDiskon)),
+                            _tableRow("Total Dibayar",
+                                formatRupiah.format(totalBayar)),
+                            _tableRow(
+                                "Uang Bayar", formatRupiah.format(jumlahuang)),
+                            _tableRow(
+                                "Kembalian", formatRupiah.format(kembalian)),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        const Divider(),
+                        const Center(
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 8),
+                            child: Text(
+                              'Terima kasih telah berbelanja di Apotek Segar. '
+                              'Untuk keluhan atau pertanyaan terkait obat, silakan hubungi Apoteker kami. '
+                              'Struk ini harap disimpan sebagai bukti pembelian.',
+                              style: TextStyle(
+                                fontStyle: FontStyle.italic,
+                                fontSize: 11,
+                                color: Colors.grey,
                               ),
+                              textAlign: TextAlign.center,
                             ),
                           ),
-                        ],
-                      ),
-                    ),
+                        ),
+                      ],
+                    )),
                   ),
                   actions: [
                     Padding(
@@ -623,6 +647,31 @@ class _KasirPenjualanScreenState extends State<KasirPenjualanScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  TableRow _tableRow(String label, String value) {
+    return TableRow(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Text(
+            label,
+            style: const TextStyle(fontWeight: FontWeight.w500),
+          ),
+        ),
+        const Padding(
+          padding: EdgeInsets.symmetric(vertical: 4),
+          child: Text(":"),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Text(
+            value,
+            style: const TextStyle(fontWeight: FontWeight.w400),
+          ),
+        ),
+      ],
     );
   }
 
@@ -810,8 +859,8 @@ class _KasirPenjualanScreenState extends State<KasirPenjualanScreen> {
               pw.Text('Total Harga    : ${formatRupiah.format(totalSebelum)}'),
               pw.Text('Total Diskon   : ${formatRupiah.format(totalDiskon)}'),
               pw.Text('Total Dibayar  : ${formatRupiah.format(totalBayar)}'),
-              pw.Text('Uang Bayar : ${formatRupiah.format(uang)}'),
-              pw.Text('Kembalian : ${formatRupiah.format(kembalian)}'),
+              pw.Text('Uang Bayar     : ${formatRupiah.format(uang)}'),
+              pw.Text('Kembalian      : ${formatRupiah.format(kembalian)}'),
               pw.SizedBox(height: 10),
               pw.Divider(),
               pw.Center(
@@ -943,7 +992,7 @@ class _KasirPenjualanScreenState extends State<KasirPenjualanScreen> {
                     children: groupedByFaktur.entries.map((entry) {
                       final faktur = entry.key;
                       final items = entry.value;
-                      final status = items.first.status;
+
                       final noresep = items.first.noResep;
                       final pelanggan = items.first.namaPelanggan;
                       final totalBayar = items.fold<int>(
@@ -960,18 +1009,22 @@ class _KasirPenjualanScreenState extends State<KasirPenjualanScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Faktur: $faktur',
-                                  style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold)),
-                              Text('No Resep: $noresep',
+                              Text('Faktur           : $faktur',
                                   style: const TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.bold)),
                               Text(
-                                  'Tanggal: ${DateFormat('dd-MM-yyyy').format(tanggal)}'),
-                              Text('Status: $status'),
-                              Text('Pelaggan / Pasien: $pelanggan'),
+                                'No Resep      : ${noresep.trim().isEmpty ? 'Tidak pakai resep' : noresep}',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+
+                              Text(
+                                  'Tanggal             : ${DateFormat('dd-MM-yyyy').format(tanggal)}'),
+
+                              Text('Pasien               : $pelanggan'),
                               const SizedBox(height: 12),
 
                               /// Tabel Header
@@ -1078,7 +1131,7 @@ class _KasirPenjualanScreenState extends State<KasirPenjualanScreen> {
                               ),
                               const SizedBox(height: 12),
                               Text(
-                                'Total Bayar: Rp ${formatter.format(totalBayar)}',
+                                'Total Bayar     : Rp ${formatter.format(totalBayar)}',
                                 style: const TextStyle(
                                     fontWeight: FontWeight.bold, fontSize: 16),
                               ),

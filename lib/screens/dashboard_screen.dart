@@ -320,6 +320,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Sidebar(
             onMenuTap: _onMenuTap,
             role: widget.user.role,
+            akses: widget.user.akses,
           ),
           Expanded(
             child: Column(

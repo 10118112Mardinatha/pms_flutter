@@ -213,11 +213,37 @@ class _LaporanResepScreenState extends State<LaporanResepScreen> {
                             context: context,
                             firstDate: DateTime(2000),
                             lastDate: DateTime.now(),
-                            initialDateRange:
-                                dateRange, // Tambahkan ini agar terlihat terpilih
-                            builder: (context, child) => Center(
-                              child: SizedBox(width: 400, child: child),
-                            ),
+                            builder: (context, child) {
+                              return Center(
+                                child: SizedBox(
+                                  width: 360,
+                                  height: 460,
+                                  child: Theme(
+                                    data: Theme.of(context).copyWith(
+                                      dialogTheme: DialogTheme(
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(16),
+                                        ),
+                                      ),
+                                      colorScheme: Theme.of(context)
+                                          .colorScheme
+                                          .copyWith(
+                                            primary: Colors.blue,
+                                            onPrimary: Colors.white,
+                                            surface: Colors.white,
+                                            onSurface: Colors.black,
+                                          ),
+                                    ),
+                                    child: MediaQuery(
+                                      data: MediaQuery.of(context)
+                                          .copyWith(textScaleFactor: 0.9),
+                                      child: child!,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
                           );
                           if (picked != null) {
                             setState(() {
@@ -271,57 +297,78 @@ class _LaporanResepScreenState extends State<LaporanResepScreen> {
                       : filteredData.isEmpty
                           ? const Center(
                               child: Text('Tidak ada data yang cocok'))
-                          : ListView(
+                          : Column(
                               children: [
-                                SingleChildScrollView(
-                                  scrollDirection: Axis.horizontal,
-                                  child: DataTable(
-                                    columns: const [
-                                      DataColumn(label: Text('No')),
-                                      DataColumn(label: Text('No Resep')),
-                                      DataColumn(label: Text('Tanggal')),
-                                      DataColumn(label: Text('Pelanggan')),
-                                      DataColumn(label: Text('Doctor')),
-                                      DataColumn(label: Text('Barang')),
-                                      DataColumn(label: Text('Kelompok')),
-                                      DataColumn(label: Text('Satuan')),
-                                      DataColumn(label: Text('Hrg Beli')),
-                                      DataColumn(label: Text('Hrg Jual')),
-                                      DataColumn(label: Text('Jumlah')),
-                                      DataColumn(label: Text('Total Sebelum')),
-                                      DataColumn(label: Text('Total Setelah')),
-                                      DataColumn(label: Text('Diskon')),
-                                    ],
-                                    rows: List.generate(
-                                      paginatedData.length,
-                                      (index) {
-                                        final r = paginatedData[index];
-                                        return DataRow(cells: [
-                                          DataCell(Text(
-                                              '${currentPage * rowsPerPage + index + 1}')),
-                                          DataCell(Text(r.noResep)),
-                                          DataCell(Text(DateFormat('dd-MM-yyyy')
-                                              .format(r.tanggal))),
-                                          DataCell(Text(r.namaPelanggan)),
-                                          DataCell(Text(r.namaDoctor)),
-                                          DataCell(Text(r.namaBarang)),
-                                          DataCell(Text(r.kelompok)),
-                                          DataCell(Text(r.satuan)),
-                                          DataCell(Text(
-                                              'Rp ${NumberFormat("#,##0", "id_ID").format(r.hargaBeli)}')),
-                                          DataCell(Text(
-                                              'Rp ${NumberFormat("#,##0", "id_ID").format(r.hargaJual)}')),
-                                          DataCell(
-                                              Text('${r.jumlahJual ?? 0}')),
-                                          DataCell(Text(
-                                              'Rp ${NumberFormat("#,##0", "id_ID").format(r.totalHargaSebelumDisc ?? 0)}')),
-                                          DataCell(Text(
-                                              'Rp ${NumberFormat("#,##0", "id_ID").format(r.totalHargaSetelahDisc ?? 0)}')),
-                                          DataCell(Text(
-                                              'Rp ${NumberFormat("#,##0", "id_ID").format(r.totalDisc ?? 0)}')),
-                                        ]);
-                                      },
-                                    ),
+                                Expanded(
+                                  child: LayoutBuilder(
+                                    builder: (context, constraints) {
+                                      return SingleChildScrollView(
+                                        scrollDirection: Axis.horizontal,
+                                        child: ConstrainedBox(
+                                          constraints: BoxConstraints(
+                                              minWidth: constraints.maxWidth),
+                                          child: DataTable(
+                                            columnSpacing: 20,
+                                            columns: const [
+                                              DataColumn(label: Text('No')),
+                                              DataColumn(
+                                                  label: Text('No Resep')),
+                                              DataColumn(
+                                                  label: Text('Tanggal')),
+                                              DataColumn(
+                                                  label: Text('Pelanggan')),
+                                              DataColumn(label: Text('Doctor')),
+                                              DataColumn(label: Text('Barang')),
+                                              DataColumn(
+                                                  label: Text('Kelompok')),
+                                              DataColumn(label: Text('Satuan')),
+                                              DataColumn(
+                                                  label: Text('Hrg Beli')),
+                                              DataColumn(
+                                                  label: Text('Hrg Jual')),
+                                              DataColumn(label: Text('Jumlah')),
+                                              DataColumn(
+                                                  label: Text('Total Sebelum')),
+                                              DataColumn(
+                                                  label: Text('Total Setelah')),
+                                              DataColumn(label: Text('Diskon')),
+                                            ],
+                                            rows: List.generate(
+                                              paginatedData.length,
+                                              (index) {
+                                                final r = paginatedData[index];
+                                                return DataRow(cells: [
+                                                  DataCell(Text(
+                                                      '${currentPage * rowsPerPage + index + 1}')),
+                                                  DataCell(Text(r.noResep)),
+                                                  DataCell(Text(
+                                                      DateFormat('dd-MM-yyyy')
+                                                          .format(r.tanggal))),
+                                                  DataCell(
+                                                      Text(r.namaPelanggan)),
+                                                  DataCell(Text(r.namaDoctor)),
+                                                  DataCell(Text(r.namaBarang)),
+                                                  DataCell(Text(r.kelompok)),
+                                                  DataCell(Text(r.satuan)),
+                                                  DataCell(Text(
+                                                      'Rp ${NumberFormat("#,##0", "id_ID").format(r.hargaBeli)}')),
+                                                  DataCell(Text(
+                                                      'Rp ${NumberFormat("#,##0", "id_ID").format(r.hargaJual)}')),
+                                                  DataCell(Text(
+                                                      '${r.jumlahJual ?? 0}')),
+                                                  DataCell(Text(
+                                                      'Rp ${NumberFormat("#,##0", "id_ID").format(r.totalHargaSebelumDisc ?? 0)}')),
+                                                  DataCell(Text(
+                                                      'Rp ${NumberFormat("#,##0", "id_ID").format(r.totalHargaSetelahDisc ?? 0)}')),
+                                                  DataCell(Text(
+                                                      'Rp ${NumberFormat("#,##0", "id_ID").format(r.totalDisc ?? 0)}')),
+                                                ]);
+                                              },
+                                            ),
+                                          ),
+                                        ),
+                                      );
+                                    },
                                   ),
                                 ),
                                 const SizedBox(height: 10),

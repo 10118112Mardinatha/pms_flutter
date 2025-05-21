@@ -61,6 +61,20 @@ class _LoginScreenState extends State<LoginScreen> {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
 
+        // Parsing akses dengan aman
+        final akses = (() {
+          final raw = data['akses'];
+          if (raw == null) return [];
+          if (raw is List) return List<String>.from(raw);
+          if (raw is String) {
+            try {
+              final decoded = jsonDecode(raw);
+              if (decoded is List) return List<String>.from(decoded);
+            } catch (_) {}
+          }
+          return [];
+        })();
+
         final userModel = UserModel(
           id: data['id'],
           password: data['password'],
@@ -68,6 +82,7 @@ class _LoginScreenState extends State<LoginScreen> {
           role: data['role'],
           aktif: data['aktif'],
           avatar: data['avatar'],
+          akses: List<String>.from(akses),
         );
 
         final prefs = await SharedPreferences.getInstance();
@@ -76,12 +91,15 @@ class _LoginScreenState extends State<LoginScreen> {
         await prefs.setString('role', userModel.role);
         await prefs.setBool('aktif', userModel.aktif);
         await prefs.setString('ip', _ipController.text.trim());
+        await prefs.setStringList('akses', userModel.akses);
         if (userModel.avatar != null) {
           await prefs.setString('avatar', userModel.avatar!);
         }
 
         await ApiService.logActivity(
-            userModel.id, 'Login berhasil sebagai ${userModel.role}');
+          userModel.id,
+          'Login berhasil sebagai ${userModel.role}',
+        );
 
         Navigator.pushReplacement(
           context,
@@ -90,6 +108,24 @@ class _LoginScreenState extends State<LoginScreen> {
       } else {
         // Jika login gagal, coba fallback admin
         if (username == 'admin' && password == 'admin123') {
+          final allMenus = [
+            'dashboard',
+            'supplier',
+            'dokter',
+            'pelanggan',
+            'rak',
+            'obat',
+            'pembelian',
+            'penjualan',
+            'kasir',
+            'resep',
+            'laporan_pembelian',
+            'laporan_penjualan',
+            'laporan_resep',
+            'user',
+            'log_aktivitas',
+          ];
+
           final fallbackUser = UserModel(
             id: 0,
             username: 'admin',
@@ -97,9 +133,12 @@ class _LoginScreenState extends State<LoginScreen> {
             role: 'admin',
             aktif: true,
             avatar: null,
+            akses: allMenus,
           );
+
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString('ip', _ipController.text.trim());
+          await prefs.setStringList('akses', allMenus);
 
           Navigator.pushReplacement(
             context,

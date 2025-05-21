@@ -25,6 +25,24 @@ class _TambahUserScreenState extends State<TambahUserScreen> {
       TextEditingController();
   String? _selectedRole;
   List<UserModel> users = [];
+  final List<String> _allMenus = [
+    'dashboard',
+    'supplier',
+    'dokter',
+    'pelanggan',
+    'rak',
+    'obat',
+    'pembelian',
+    'penjualan',
+    'kasir',
+    'resep',
+    'laporan_pembelian',
+    'laporan_penjualan',
+    'laporan_resep',
+    'user',
+    'log_aktivitas',
+  ];
+  final Set<String> _selectedMenus = {};
 
   File? _pickedImage;
   bool _obscurePassword = true;
@@ -70,10 +88,12 @@ class _TambahUserScreenState extends State<TambahUserScreen> {
         role: _selectedRole!,
         aktif: true,
         avatar: _pickedImage?.path,
+        akses: _selectedMenus.toList(),
       );
 
       try {
-        await ApiService.addUser(user);
+        await ApiService.addUser(
+            user); // -> kirim user.toJson() (akses: List<String>)
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('User berhasil ditambahkan')),
         );
@@ -83,6 +103,7 @@ class _TambahUserScreenState extends State<TambahUserScreen> {
         _usernameController.clear();
         _passwordController.clear();
         _confirmPasswordController.clear();
+        _selectedMenus.clear();
         setState(() {
           _pickedImage = null;
           _selectedRole = null;
@@ -215,6 +236,161 @@ class _TambahUserScreenState extends State<TambahUserScreen> {
                                         }
                                       }
                                     },
+                            ),
+                            const SizedBox(width: 8),
+                            TextButton(
+                              onPressed: user.id == widget.currentUserId
+                                  ? null
+                                  : () async {
+                                      final selected =
+                                          Set<String>.from(user.akses ?? []);
+                                      await showDialog(
+                                        context: context,
+                                        builder: (ctx) => StatefulBuilder(
+                                          builder: (ctx, setModalState) =>
+                                              AlertDialog(
+                                            title:
+                                                const Text('Edit Akses Menu'),
+                                            content: SizedBox(
+                                              width: double.maxFinite,
+                                              child: LayoutBuilder(
+                                                builder:
+                                                    (context, constraints) {
+                                                  final maxWidth =
+                                                      constraints.maxWidth;
+                                                  final itemsPerRow =
+                                                      (maxWidth / 200)
+                                                          .floor()
+                                                          .clamp(1, 4);
+                                                  return Wrap(
+                                                    spacing: 10,
+                                                    runSpacing: 6,
+                                                    children:
+                                                        _allMenus.map((menu) {
+                                                      final label = menu
+                                                          .split('_')
+                                                          .map((w) =>
+                                                              w[0].toUpperCase() +
+                                                              w.substring(1))
+                                                          .join(' ');
+                                                      return SizedBox(
+                                                        width: maxWidth /
+                                                                itemsPerRow -
+                                                            10,
+                                                        child: CheckboxListTile(
+                                                          title: Text(
+                                                            label,
+                                                            style:
+                                                                const TextStyle(
+                                                                    fontSize:
+                                                                        13),
+                                                          ),
+                                                          value: selected
+                                                              .contains(menu),
+                                                          onChanged: (val) {
+                                                            setModalState(() {
+                                                              if (val == true) {
+                                                                selected
+                                                                    .add(menu);
+                                                              } else {
+                                                                selected.remove(
+                                                                    menu);
+                                                              }
+                                                            });
+                                                          },
+                                                          controlAffinity:
+                                                              ListTileControlAffinity
+                                                                  .leading,
+                                                          dense: true,
+                                                          contentPadding:
+                                                              EdgeInsets.zero,
+                                                          visualDensity:
+                                                              VisualDensity
+                                                                  .compact,
+                                                        ),
+                                                      );
+                                                    }).toList(),
+                                                  );
+                                                },
+                                              ),
+                                            ),
+                                            actions: [
+                                              TextButton.icon(
+                                                onPressed: () =>
+                                                    Navigator.pop(ctx),
+                                                icon: const Icon(Icons.close,
+                                                    color: Colors.redAccent),
+                                                label: const Text(
+                                                  'Batal',
+                                                  style: TextStyle(
+                                                      color: Colors.redAccent),
+                                                ),
+                                                style: TextButton.styleFrom(
+                                                  foregroundColor:
+                                                      Colors.redAccent,
+                                                  padding: const EdgeInsets
+                                                      .symmetric(
+                                                      horizontal: 16,
+                                                      vertical: 12),
+                                                ),
+                                              ),
+                                              ElevatedButton.icon(
+                                                onPressed: () async {
+                                                  final res = await http.put(
+                                                    Uri.parse(
+                                                        'http://${ip}:8080/user/${user.id}'),
+                                                    headers: {
+                                                      'Content-Type':
+                                                          'application/json'
+                                                    },
+                                                    body: jsonEncode({
+                                                      'akses': selected.toList()
+                                                    }),
+                                                  );
+                                                  if (res.statusCode == 200) {
+                                                    await ApiService
+                                                        .logActivity(
+                                                      widget.currentUserId,
+                                                      'Mengubah akses user ${user.username}',
+                                                    );
+                                                    Navigator.pop(ctx);
+                                                    Navigator.pop(context);
+                                                    _showUserDialog();
+                                                  } else {
+                                                    ScaffoldMessenger.of(
+                                                            context)
+                                                        .showSnackBar(
+                                                      const SnackBar(
+                                                          content: Text(
+                                                              'Gagal menyimpan akses')),
+                                                    );
+                                                  }
+                                                },
+                                                icon: const Icon(
+                                                    Icons.check_circle_outline),
+                                                label: const Text('Simpan'),
+                                                style: ElevatedButton.styleFrom(
+                                                  backgroundColor:
+                                                      Colors.blueAccent,
+                                                  foregroundColor: Colors.white,
+                                                  padding: const EdgeInsets
+                                                      .symmetric(
+                                                      horizontal: 20,
+                                                      vertical: 12),
+                                                  shape: RoundedRectangleBorder(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            10),
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      );
+                                    },
+                              child: const Text('Edit Akses',
+                                  style: TextStyle(fontSize: 12)),
                             ),
                             const SizedBox(width: 8),
                             IconButton(
@@ -455,7 +631,54 @@ class _TambahUserScreenState extends State<TambahUserScreen> {
                 ),
                 onChanged: (value) => setState(() => _selectedRole = value),
                 validator: (value) => value == null ? 'Pilih role' : null,
-                onSaved: (_) => _trySubmitIfValid(), // optional
+              ),
+              const SizedBox(height: 16),
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Akses Menu',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+              ),
+              const SizedBox(height: 8),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final double maxWidth = constraints.maxWidth;
+                  final int itemsPerRow = (maxWidth / 160).floor();
+                  return Wrap(
+                    spacing: 10,
+                    runSpacing: 4,
+                    children: _allMenus.map((menu) {
+                      final label = menu
+                          .split('_')
+                          .map((word) =>
+                              word[0].toUpperCase() + word.substring(1))
+                          .join(' ');
+
+                      return SizedBox(
+                        width: maxWidth / itemsPerRow - 12,
+                        child: CheckboxListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title:
+                              Text(label, style: const TextStyle(fontSize: 13)),
+                          value: _selectedMenus.contains(menu),
+                          onChanged: (selected) {
+                            setState(() {
+                              if (selected ?? false) {
+                                _selectedMenus.add(menu);
+                              } else {
+                                _selectedMenus.remove(menu);
+                              }
+                            });
+                          },
+                          controlAffinity: ListTileControlAffinity.leading,
+                          dense: true,
+                          visualDensity: VisualDensity.compact,
+                        ),
+                      );
+                    }).toList(),
+                  );
+                },
               ),
               const SizedBox(height: 24),
               ElevatedButton.icon(

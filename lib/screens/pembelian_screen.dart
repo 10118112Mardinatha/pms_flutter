@@ -1,3 +1,6 @@
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
@@ -23,6 +26,7 @@ class _PembelianScreenState extends State<PembelianScreen> {
   bool _isSelectingSupplier = false;
   String searchField = 'Nama';
   String searchText = '';
+  final username = 'username';
   Pembelian? data;
   final TextEditingController _searchController = TextEditingController();
   final TextEditingController _nofaktur = TextEditingController();
@@ -812,6 +816,72 @@ class _PembelianScreenState extends State<PembelianScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.start,
                   children: [
+                    IconButton(
+                      tooltip: 'Import Excel',
+                      icon: const Icon(Icons.upload_file),
+                      onPressed: () async {
+                        final result = await FilePicker.platform.pickFiles(
+                          type: FileType.custom,
+                          allowedExtensions: ['xlsx'],
+                        );
+
+                        if (result == null ||
+                            result.files.single.path == null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content: Text('Tidak ada file dipilih')),
+                          );
+                          return;
+                        }
+
+                        final file = File(result.files.single.path!);
+
+                        final confirm = await showDialog<bool>(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: const Text('Konfirmasi Import'),
+                            content: const Text(
+                                'Apakah Anda yakin ingin mengupload file ini?'),
+                            actions: [
+                              TextButton(
+                                child: const Text('Batal'),
+                                onPressed: () => Navigator.pop(context, false),
+                              ),
+                              ElevatedButton(
+                                child: const Text('Ya, Upload'),
+                                onPressed: () => Navigator.pop(context, true),
+                              ),
+                            ],
+                          ),
+                        );
+
+                        if (confirm != true) return;
+
+                        try {
+                          final response =
+                              await ApiService.importPembelianFromExcel(
+                                  file, username);
+
+                          if (response.statusCode == 200) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Import berhasil!')),
+                            );
+                            await _loadPembelians(); // Refresh data tabel
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                  content:
+                                      Text('Gagal import: ${response.body}')),
+                            );
+                          }
+                        } catch (e) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Terjadi kesalahan: $e')),
+                          );
+                        }
+                      },
+                    ),
+                    const SizedBox(width: 15),
                     ElevatedButton.icon(
                       onPressed: prosesbatal,
                       icon: const Icon(Icons.close,
@@ -1191,7 +1261,7 @@ class _PembelianScreenState extends State<PembelianScreen> {
                           DataCell(Row(
                             children: [
                               IconButton(
-                                tooltip: 'Hapus Data',
+                                tooltip: 'Edit Data',
                                 icon:
                                     const Icon(Icons.edit, color: Colors.blue),
                                 onPressed: () => showFormPembelianstmp(data: p),
