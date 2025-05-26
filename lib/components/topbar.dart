@@ -420,6 +420,7 @@ class _TopBarState extends State<TopBar> {
       await prefs.remove('role');
       await prefs.remove('aktif');
       await prefs.remove('avatar');
+      await prefs.remove('akses');
 
       Navigator.pushReplacement(
         context,
@@ -447,34 +448,42 @@ class _TopBarState extends State<TopBar> {
   @override
   Widget build(BuildContext context) {
     return Material(
-      elevation: 3,
-      color: Colors.white,
+      elevation: 4,
       child: Container(
         height: 58,
         padding: const EdgeInsets.symmetric(horizontal: 20),
-        decoration: const BoxDecoration(
-          border: Border(
-            bottom: BorderSide(color: Colors.blueAccent, width: 0.5),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Colors.blue.shade400, Colors.teal.shade800],
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
           ),
         ),
         child: Row(
           children: [
+            // Logo dan Judul
             Row(
               children: [
-                const Icon(Icons.local_hospital,
-                    color: Colors.blueAccent, size: 28),
-                const SizedBox(width: 10),
+                const Icon(
+                  Icons.local_pharmacy,
+                  color: Colors.white,
+                  size: 30,
+                ),
+                const SizedBox(width: 12),
                 Text(
                   'Pharmacy Management System',
                   style: GoogleFonts.poppins(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: Colors.blue[800],
+                    color: Colors.white,
                   ),
                 ),
               ],
             ),
+
             const Spacer(),
+
+            // User info dan Avatar
             Row(
               children: [
                 Column(
@@ -483,21 +492,24 @@ class _TopBarState extends State<TopBar> {
                   children: [
                     Text(
                       'Hi, ${userData.username ?? 'User'} 👋',
-                      style: const TextStyle(
-                        fontSize: 16,
+                      style: GoogleFonts.poppins(
+                        fontSize: 15,
+                        color: Colors.white,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
                     Text(
                       userData.role ?? '',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey[600],
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        color: Colors.white70,
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(width: 12),
+
+                // Menu dropdown avatar
                 PopupMenuButton<String>(
                   onSelected: (value) {
                     switch (value) {
@@ -520,21 +532,21 @@ class _TopBarState extends State<TopBar> {
                     const PopupMenuItem(
                       value: 'edit_profile',
                       child: ListTile(
-                        leading: Icon(Icons.edit_outlined),
+                        leading: Icon(Icons.edit, color: Colors.teal),
                         title: Text('Edit Profil'),
                       ),
                     ),
                     const PopupMenuItem(
                       value: 'change_password',
                       child: ListTile(
-                        leading: Icon(Icons.lock_outline),
+                        leading: Icon(Icons.lock, color: Colors.indigo),
                         title: Text('Ganti Password'),
                       ),
                     ),
                     const PopupMenuItem(
                       value: 'logout',
                       child: ListTile(
-                        leading: Icon(Icons.logout_outlined),
+                        leading: Icon(Icons.logout, color: Colors.redAccent),
                         title: Text('Logout'),
                       ),
                     ),
@@ -543,9 +555,10 @@ class _TopBarState extends State<TopBar> {
                     margin: const EdgeInsets.only(left: 12),
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 2),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.blueAccent.withOpacity(0.4),
+                          color: Colors.white.withOpacity(0.3),
                           blurRadius: 6,
                           offset: const Offset(0, 3),
                         ),
@@ -553,7 +566,7 @@ class _TopBarState extends State<TopBar> {
                     ),
                     child: CircleAvatar(
                       radius: 24,
-                      backgroundColor: Colors.grey[100],
+                      backgroundColor: Colors.grey[200],
                       backgroundImage: userData.avatar != null &&
                               File(userData.avatar!).existsSync()
                           ? FileImage(File(userData.avatar!))

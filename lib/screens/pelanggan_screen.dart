@@ -2,8 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:drift/drift.dart' show Value;
-import 'package:drift/drift.dart' as drift;
+
 import 'package:excel/excel.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
@@ -554,7 +553,7 @@ class _PelangganScreenState extends State<PelangganScreen> {
                         child: SingleChildScrollView(
                           child: DataTable(
                             headingRowColor:
-                                MaterialStateProperty.all(Colors.blue[100]),
+                                MaterialStateProperty.all(Colors.blue[300]),
                             dataRowColor:
                                 MaterialStateProperty.all(Colors.white),
                             border:

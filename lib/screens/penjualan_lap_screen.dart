@@ -3,16 +3,14 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:excel/excel.dart';
-import 'package:pms_flutter/database/app_database.dart';
+
 import 'package:pms_flutter/models/penjualan_model.dart';
 import 'package:pms_flutter/services/api_service.dart';
 import 'package:printing/printing.dart';
 import 'dart:typed_data';
 
 class LaporanPenjualanScreen extends StatefulWidget {
-  final AppDatabase database;
-
-  const LaporanPenjualanScreen({super.key, required this.database});
+  const LaporanPenjualanScreen({super.key});
 
   @override
   State<LaporanPenjualanScreen> createState() => _LaporanPenjualanScreenState();
@@ -21,6 +19,7 @@ class LaporanPenjualanScreen extends StatefulWidget {
 class _LaporanPenjualanScreenState extends State<LaporanPenjualanScreen> {
   List<PenjualanModel> allData = [];
   bool isLoading = true;
+
   Timer? _debounce;
   void triggerSearchWithLoading() {
     if (_debounce?.isActive ?? false) _debounce!.cancel();
@@ -37,7 +36,8 @@ class _LaporanPenjualanScreenState extends State<LaporanPenjualanScreen> {
     'Pilih Filter',
     'No Faktur',
     'Nama Barang',
-    'Kelompok'
+    'Kelompok',
+    'Nama Dokter'
   ];
   String keyword = '';
   DateTimeRange? dateRange;
@@ -93,6 +93,10 @@ class _LaporanPenjualanScreenState extends State<LaporanPenjualanScreen> {
               matchDate;
         case 'Kelompok':
           return (item.kelompok?.toLowerCase().contains(lowerKeyword) ??
+                  false) &&
+              matchDate;
+        case 'Nama Dokter':
+          return (item.namaDoctor?.toLowerCase().contains(lowerKeyword) ??
                   false) &&
               matchDate;
         default:
@@ -205,7 +209,10 @@ class _LaporanPenjualanScreenState extends State<LaporanPenjualanScreen> {
                           ),
                         ),
                       IconButton(
-                        icon: const Icon(Icons.date_range),
+                        icon: Icon(
+                          Icons.date_range,
+                          color: dateRange != null ? Colors.blue : null,
+                        ),
                         tooltip: 'Pilih Tanggal',
                         onPressed: () async {
                           final picked = await showDateRangePicker(
@@ -320,7 +327,9 @@ class _LaporanPenjualanScreenState extends State<LaporanPenjualanScreen> {
                                               DataColumn(
                                                   label: Text('Nama Dokter')),
                                               DataColumn(
-                                                  label: Text('Tanggal Beli')),
+                                                  label: Text('Tanggal Jual')),
+                                              DataColumn(
+                                                  label: Text('Jumlah Jual')),
                                               DataColumn(
                                                   label: Text('Kelompok')),
                                               DataColumn(
@@ -347,6 +356,8 @@ class _LaporanPenjualanScreenState extends State<LaporanPenjualanScreen> {
                                                           'dd-MM-yyyy')
                                                       .format(
                                                           p.tanggalPenjualan))),
+                                                  DataCell(Text(
+                                                      p.jumlahJual.toString())),
                                                   DataCell(Text(p.kelompok)),
                                                   DataCell(Text(
                                                       'Rp ${NumberFormat("#,##0", "id_ID").format(p.hargaBeli)}')),

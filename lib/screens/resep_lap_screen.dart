@@ -4,15 +4,13 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:excel/excel.dart';
-import 'package:pms_flutter/database/app_database.dart';
+
 import 'package:pms_flutter/models/resep_model.dart';
 import 'package:pms_flutter/services/api_service.dart';
 import 'package:printing/printing.dart';
 
 class LaporanResepScreen extends StatefulWidget {
-  final AppDatabase database;
-
-  const LaporanResepScreen({super.key, required this.database});
+  const LaporanResepScreen({super.key});
 
   @override
   State<LaporanResepScreen> createState() => _LaporanResepScreenState();
@@ -38,7 +36,8 @@ class _LaporanResepScreenState extends State<LaporanResepScreen> {
     'Pilih Filter',
     'No Resep',
     'Nama Barang',
-    'Kelompok'
+    'Kelompok',
+    'Nama Dokter',
   ];
   String keyword = '';
   DateTimeRange? dateRange;
@@ -73,20 +72,32 @@ class _LaporanResepScreenState extends State<LaporanResepScreen> {
 
   List<ResepModel> get filteredData {
     return allData.where((item) {
-      final matchDate = dateRange == null ||
-          (item.tanggal.isAfter(
-                  dateRange!.start.subtract(const Duration(days: 1))) &&
-              item.tanggal
-                  .isBefore(dateRange!.end.add(const Duration(days: 1))));
+      final tanggal = item.tanggal;
+      final matchDate = tanggal != null &&
+          (dateRange == null ||
+              (tanggal.isAfter(
+                      dateRange!.start.subtract(const Duration(days: 1))) &&
+                  tanggal
+                      .isBefore(dateRange!.end.add(const Duration(days: 1)))));
+
       final lowerKeyword = keyword.toLowerCase();
+
       switch (selectedFilter) {
         case 'No Resep':
-          return item.noResep.toLowerCase().contains(lowerKeyword) && matchDate;
+          return (item.noResep?.toLowerCase().contains(lowerKeyword) ??
+                  false) &&
+              matchDate;
         case 'Nama Barang':
-          return item.namaBarang.toLowerCase().contains(lowerKeyword) &&
+          return (item.namaBarang?.toLowerCase().contains(lowerKeyword) ??
+                  false) &&
               matchDate;
         case 'Kelompok':
-          return item.kelompok.toLowerCase().contains(lowerKeyword) &&
+          return (item.kelompok?.toLowerCase().contains(lowerKeyword) ??
+                  false) &&
+              matchDate;
+        case 'Nama Dokter':
+          return (item.namaDoctor?.toLowerCase().contains(lowerKeyword) ??
+                  false) &&
               matchDate;
         default:
           return matchDate;
@@ -206,7 +217,10 @@ class _LaporanResepScreenState extends State<LaporanResepScreen> {
                           ),
                         ),
                       IconButton(
-                        icon: const Icon(Icons.date_range),
+                        icon: Icon(
+                          Icons.date_range,
+                          color: dateRange != null ? Colors.blue : null,
+                        ),
                         tooltip: 'Pilih Tanggal',
                         onPressed: () async {
                           final picked = await showDateRangePicker(

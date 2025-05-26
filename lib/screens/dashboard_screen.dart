@@ -1,9 +1,12 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:path/path.dart';
 import 'package:pms_flutter/database/app_database.dart';
 import 'package:pms_flutter/models/log_activity_model.dart';
+import 'package:pms_flutter/models/penjualan_model.dart';
 import 'package:pms_flutter/screens/kasir_penjualan_screen.dart';
 import 'package:pms_flutter/screens/pelanggan_screen.dart';
 import 'package:pms_flutter/screens/pembelian_lap_screen.dart';
@@ -35,11 +38,50 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   String _selectedPage = 'Dashboard';
   final AppDatabase db = AppDatabase();
+  int? totalpembelian;
+  final formatter =
+      NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
+
+  List<PenjualanModel> menunggu = [];
+  String searchQuery = '';
+  bool isLoading = true;
 
   void _onMenuTap(String page) {
     setState(() {
       _selectedPage = page;
     });
+  }
+
+  Future<int> updateTotalPembelian() async {
+    final total = await ApiService.getTotalPembeliantoDay();
+    return total;
+  }
+
+  Future<int> updateTotalPenjualan() async {
+    final total = await ApiService.getTotalPenjualantoDay();
+    return total;
+  }
+
+  Future<void> fetchMenungguData() async {
+    try {
+      final all = await ApiService.fetchAllPenjualanlap();
+      menunggu = all.where((p) => p.status == 'menunggu').toList();
+    } catch (e) {
+      debugPrint('Gagal memuat data penjualan: $e');
+    }
+  }
+
+  Map<String, List<PenjualanModel>> get groupedByFaktur {
+    final map = <String, List<PenjualanModel>>{};
+
+    for (final item in menunggu) {
+      final nama = item.namaPelanggan?.toLowerCase() ?? '';
+      if (searchQuery.trim().isEmpty || nama.contains(searchQuery)) {
+        map.putIfAbsent(item.noFaktur, () => []).add(item);
+      }
+    }
+
+    return map;
   }
 
   Widget _getPage() {
@@ -63,9 +105,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
       case 'Laporan Pembelian':
         return LaporanPembelianScreen();
       case 'Laporan Penjualan':
-        return LaporanPenjualanScreen(database: db);
+        return LaporanPenjualanScreen();
       case 'Laporan Resep':
-        return LaporanResepScreen(database: db);
+        return LaporanResepScreen();
       case 'Obat':
         return BarangScreen(user: widget.user);
       case 'User':
@@ -123,123 +165,165 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildDashboardContent() {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Kiri: Card 2x2
-        Expanded(
-          flex: 2,
-          child: Column(
-            children: [
-              Row(children: [
-                Text(
-                  'DASHBOARD',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+    fetchMenungguData();
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Wrap(
+        spacing: 16,
+        runSpacing: 20,
+        alignment: WrapAlignment.start,
+        crossAxisAlignment: WrapCrossAlignment.start,
+        children: [
+          // KIRI: Kartu-kartu Dashboard
+          SizedBox(
+            width: 600, // Ubah sesuai kebutuhan agar tetap proporsional
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildDashboardCardWelcomeAsync(
+                        Icons.hail,
+                        'Selamat Datang di Dashboard,',
+                        '${widget.user.username}!',
+                      ),
+                    ),
+                  ],
                 ),
-              ]),
-              SizedBox(height: 10),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildDashboardCardAsync(
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildDashboardCardAsync(
                         Icons.people_alt,
                         'Jumlah Pelanggan',
-                        _getJumlahPelanggan().then((val) => val.toString())),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildDashboardCardAsync(
+                        _getJumlahPelanggan().then((val) => val.toString()),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _buildDashboardCardAsync(
                         Icons.local_hospital,
                         'Jumlah Dokter',
-                        _getJumlahDoctor().then((val) => val.toString())),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildDashboardCardAsync(
+                        _getJumlahDoctor().then((val) => val.toString()),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _buildDashboardCardAsync(
                         Icons.inventory_2,
                         'Jumlah Barang',
-                        _getJumlahBarang().then((val) => val.toString())),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildDashboardCardAsync(
+                        _getJumlahBarang().then((val) => val.toString()),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildDashboardCardAsync(
                         Icons.point_of_sale,
                         'Total Penjualan hari ini',
-                        _getJumlahPelanggan().then((val) => val.toString())),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildDashboardCardAsync(
+                        updateTotalPenjualan()
+                            .then((val) => formatter.format(val)),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildDashboardCardAsync(
                         Icons.shopping_bag,
                         'Total Pembelian hari ini',
-                        _getJumlahPelanggan().then((val) => val.toString())),
-                  ),
-                ],
-              ),
-            ],
+                        updateTotalPembelian()
+                            .then((val) => formatter.format(val)),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
-        ),
 
-        const SizedBox(width: 32),
-
-        // Kanan: Recent Files
-        Expanded(
-          flex: 1,
-          child: Card(
-            elevation: 3,
-            color: Color(0xFFe3f2fd),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const Text(
-                    'Barang keluar terbaru',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  SizedBox(height: 30),
-                  // Agar tabel mengisi ruang vertikal sepenuhnya
-
-                  _buildRecentFilesTable(),
-                ],
+          // KANAN: Card Penjualan Menunggu
+          SizedBox(
+            width: 600, // Ubah sesuai kebutuhan
+            child: Card(
+              elevation: 3,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16)),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Text(
+                      'Penjualan Menunggu pembayaran',
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 30),
+                    SizedBox(height: 300, child: _buildRecentFilesTable()),
+                  ],
+                ),
               ),
             ),
           ),
-        )
-      ],
+        ],
+      ),
     );
   }
 
   Widget _buildDashboardCardAsync(
-      IconData icon, String title, Future<String> futureValue) {
-    return Card(
-      elevation: 3,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
+    IconData icon,
+    String title,
+    Future<String> futureValue, {
+    VoidCallback? onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Ink(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Colors.teal.shade300, Colors.blue.shade600],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.blue.shade100.withOpacity(0.3),
+              blurRadius: 10,
+              offset: Offset(2, 6),
+            ),
+          ],
+        ),
+        padding: const EdgeInsets.all(20),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 36, color: Colors.blue.shade700),
+            Icon(icon, size: 36, color: Colors.white),
             const SizedBox(height: 12),
             FutureBuilder<String>(
               future: futureValue,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const CircularProgressIndicator();
+                  return const CircularProgressIndicator(color: Colors.white);
                 } else if (snapshot.hasError) {
-                  return const Text('Error');
+                  return const Text('Error',
+                      style: TextStyle(color: Colors.white));
                 } else {
                   return Text(
                     snapshot.data!,
                     style: const TextStyle(
-                        fontSize: 22, fontWeight: FontWeight.bold),
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
                   );
                 }
               },
@@ -247,7 +331,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
             const SizedBox(height: 8),
             Text(
               title,
-              style: const TextStyle(fontSize: 14, color: Colors.grey),
+              style: const TextStyle(
+                fontSize: 14,
+                color: Colors.white70,
+              ),
               textAlign: TextAlign.center,
             ),
           ],
@@ -256,57 +343,85 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildRecentFilesTable() {
-    final recentFiles = [
-      {'name': 'Document', 'date': '2', 'size': '32'},
-      {'name': 'Docume', 'date': '2', 'size': '32'},
-      {'name': 'Document', 'date': '2', 'size': '32'},
-      {'name': 'Document', 'date': '2', 'size': '32'},
-      {'name': 'Document', 'date': '2', 'size': '32'},
-      {'name': 'Document', 'date': '2', 'size': '32'},
-      {'name': 'Document', 'date': '2', 'size': '32'},
-      {'name': 'Document', 'date': '2', 'size': '32'},
-      {'name': 'Document', 'date': '2', 'size': '32'},
-      {'name': 'Document', 'date': '2', 'size': '32'},
-      {'name': 'Document', 'date': '2', 'size': '32'},
-    ];
-
-    return Expanded(
-      child: SingleChildScrollView(
-        child: Card(
-          elevation: 2,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12), // Sudut membulat
+  Widget _buildDashboardCardWelcomeAsync(
+      IconData icon, String title, String nama) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.lightBlueAccent.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 28,
+            backgroundColor: Colors.blue.shade100,
+            child: Icon(icon, size: 32, color: Colors.blue.shade700),
           ),
-          child: ClipRRect(
-            borderRadius:
-                BorderRadius.circular(12), // Untuk konten di dalam Card
-            child: DataTable(
-              columns: const [
-                DataColumn(label: Text('Nama barang')),
-                DataColumn(label: Text('Jumlah')),
-                DataColumn(label: Text('Total Bayar')),
-              ],
-              rows: recentFiles
-                  .map(
-                    (file) => DataRow(
-                      cells: [
-                        DataCell(Text(file['name']!)),
-                        DataCell(Text(file['date']!)),
-                        DataCell(Text(file['size']!)),
-                      ],
-                    ),
-                  )
-                  .toList(),
-              columnSpacing: 5,
-              headingRowColor: MaterialStateProperty.all(Colors.blue),
-              headingRowHeight: 50,
-              dataRowHeight: 43,
-              dataRowColor: MaterialStateProperty.all(Colors.white),
-              headingTextStyle: TextStyle(color: Colors.white),
-              dividerThickness: 0.5,
+          const SizedBox(width: 16),
+          Expanded(
+            child: RichText(
+              text: TextSpan(
+                children: [
+                  TextSpan(
+                    text: "$title ",
+                    style: const TextStyle(fontSize: 20, color: Colors.black),
+                  ),
+                  TextSpan(
+                    text: nama,
+                    style: const TextStyle(
+                        fontSize: 22,
+                        color: Colors.blueAccent,
+                        fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRecentFilesTable() {
+    return SingleChildScrollView(
+      scrollDirection: Axis.vertical,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: DataTable(
+          headingRowColor: MaterialStateProperty.all(Colors.blue.shade300),
+          headingTextStyle: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+          columns: const [
+            DataColumn(label: Text('No Faktur')),
+            DataColumn(label: Text('No Resep')),
+            DataColumn(label: Text('Pelanggan')),
+            DataColumn(label: Text('Total Bayar')),
+          ],
+          rows: groupedByFaktur.entries.map((entry) {
+            final faktur = entry.key;
+            final items = entry.value;
+            final noresep = (items.first.noResep?.trim().isEmpty ?? true)
+                ? 'Tidak Pakai Resep'
+                : items.first.noResep.trim();
+            final pelanggan = items.first.namaPelanggan;
+            final totalBayar = items.fold<int>(
+              0,
+              (sum, i) => sum + (i.totalHargaSetelahDisc ?? 0),
+            );
+
+            return DataRow(cells: [
+              DataCell(Text(faktur)),
+              DataCell(Text(noresep)),
+              DataCell(Text(
+                pelanggan ?? '-',
+                overflow: TextOverflow.ellipsis,
+              )),
+              DataCell(Text(' ${formatter.format(totalBayar)}')),
+            ]);
+          }).toList(),
         ),
       ),
     );

@@ -583,7 +583,7 @@ class _SupplierScreenState extends State<SupplierScreen> {
                         child: SingleChildScrollView(
                           child: DataTable(
                             headingRowColor:
-                                MaterialStateProperty.all(Colors.blue[100]),
+                                MaterialStateProperty.all(Colors.blue[300]),
                             dataRowColor:
                                 MaterialStateProperty.all(Colors.white),
                             border:

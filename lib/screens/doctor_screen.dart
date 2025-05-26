@@ -102,8 +102,7 @@ class _DoctorScreenState extends State<DoctorScreen> {
     final namaCtrl = TextEditingController(text: doctor?.namaDoctor ?? '');
     final alamatCtrl = TextEditingController(text: doctor?.alamat ?? '');
     final teleponCtrl = TextEditingController(text: doctor?.telepon ?? '');
-    final nilaipenjualanCtrl =
-        TextEditingController(text: doctor?.nilaipenjualan.toString() ?? '');
+
     final formatter =
         NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
 
@@ -114,9 +113,6 @@ class _DoctorScreenState extends State<DoctorScreen> {
           'namaDoctor': namaCtrl.text,
           'alamat': alamatCtrl.text,
           'telepon': teleponCtrl.text,
-          'nilaipenjualan': int.tryParse(
-                  nilaipenjualanCtrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
-              0,
         };
 
         late http.Response response;
@@ -560,7 +556,7 @@ class _DoctorScreenState extends State<DoctorScreen> {
                         child: SingleChildScrollView(
                           child: DataTable(
                             headingRowColor:
-                                MaterialStateProperty.all(Colors.blue[100]),
+                                MaterialStateProperty.all(Colors.blue[300]),
                             dataRowColor:
                                 MaterialStateProperty.all(Colors.white),
                             border:

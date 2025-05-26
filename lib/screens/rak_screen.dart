@@ -545,7 +545,7 @@ class _RakScreenState extends State<RakScreen> {
                         child: SingleChildScrollView(
                           child: DataTable(
                             headingRowColor:
-                                MaterialStateProperty.all(Colors.blue[100]),
+                                MaterialStateProperty.all(Colors.blue[300]),
                             dataRowColor:
                                 MaterialStateProperty.all(Colors.white),
                             border:

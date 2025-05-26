@@ -622,7 +622,7 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
                       controller: tanggaljualCtrl,
                       readOnly: true,
                       decoration: InputDecoration(
-                        labelText: 'Tanggal Pembelian',
+                        labelText: 'Tanggal Penjualan',
                         border: OutlineInputBorder(),
                         suffixIcon: Icon(Icons.calendar_today),
                       ),
@@ -942,7 +942,7 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
                   width: double.infinity,
                   child: DataTable(
                     headingRowColor:
-                        MaterialStateProperty.all(Colors.blue.shade100),
+                        MaterialStateProperty.all(Colors.blue.shade300),
                     dataRowColor: MaterialStateProperty.all(Colors.white),
                     border: TableBorder.all(color: Colors.grey.shade300),
                     headingRowHeight: 30,

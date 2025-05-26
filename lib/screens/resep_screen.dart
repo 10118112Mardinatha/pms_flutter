@@ -967,7 +967,7 @@ class _ResepScreenState extends State<ResepScreen> {
                   width: double.infinity,
                   child: DataTable(
                     headingRowColor:
-                        MaterialStateProperty.all(Colors.blue.shade100),
+                        MaterialStateProperty.all(Colors.blue.shade300),
                     dataRowColor: MaterialStateProperty.all(Colors.white),
                     border: TableBorder.all(color: Colors.grey.shade300),
                     headingRowHeight: 30,

@@ -61,8 +61,12 @@ class _SidebarState extends State<Sidebar> {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 250),
           width: _isCollapsed ? 70 : (isTablet ? 240 : 200),
-          decoration: const BoxDecoration(
-            color: Color(0xFFe0f2f1),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.blue.shade400, Colors.teal.shade800],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
             boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 5)],
           ),
           child: Column(
@@ -100,7 +104,7 @@ class _SidebarState extends State<Sidebar> {
                       style: GoogleFonts.poppins(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: Colors.blue[900],
+                        color: Colors.white,
                       ),
                     ),
                   ),
@@ -201,7 +205,7 @@ class _SidebarState extends State<Sidebar> {
         leading: Icon(icon, color: Colors.black),
         title: !_isCollapsed
             ? Text(title,
-                style: GoogleFonts.poppins(fontSize: 14, color: Colors.black87))
+                style: GoogleFonts.poppins(fontSize: 14, color: Colors.white))
             : null,
         onTap: () {
           widget.onMenuTap(title);
@@ -221,7 +225,7 @@ class _SidebarState extends State<Sidebar> {
         leading: Icon(icon, size: 20, color: Colors.black),
         title: !_isCollapsed
             ? Text(title,
-                style: GoogleFonts.poppins(fontSize: 13, color: Colors.black87))
+                style: GoogleFonts.poppins(fontSize: 13, color: Colors.white))
             : null,
         onTap: () {
           widget.onMenuTap(title);
@@ -246,13 +250,12 @@ class _SidebarState extends State<Sidebar> {
           leading: Icon(icon, color: Colors.black),
           title: !_isCollapsed
               ? Text(title,
-                  style:
-                      GoogleFonts.poppins(fontSize: 14, color: Colors.black87))
+                  style: GoogleFonts.poppins(fontSize: 14, color: Colors.white))
               : null,
           trailing: !_isCollapsed
               ? Icon(
                   isExpanded ? Icons.expand_less : Icons.expand_more,
-                  color: Colors.grey[700],
+                  color: Colors.white,
                 )
               : null,
           onTap: onTap,
@@ -273,12 +276,10 @@ class _SidebarState extends State<Sidebar> {
         children: [
           if (!_isCollapsed)
             Text('© 2025 Apotek Segar',
-                style:
-                    GoogleFonts.poppins(fontSize: 11, color: Colors.black54)),
+                style: GoogleFonts.poppins(fontSize: 11, color: Colors.white)),
           if (!_isCollapsed)
             Text('by Kiwari Digital',
-                style:
-                    GoogleFonts.poppins(fontSize: 11, color: Colors.black54)),
+                style: GoogleFonts.poppins(fontSize: 11, color: Colors.white)),
           if (_isCollapsed)
             const Icon(Icons.copyright, size: 14, color: Colors.black54),
         ],

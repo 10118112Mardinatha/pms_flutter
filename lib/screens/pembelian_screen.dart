@@ -816,7 +816,7 @@ class _PembelianScreenState extends State<PembelianScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.start,
                   children: [
-                    IconButton(
+                    /*  IconButton(
                       tooltip: 'Import Excel',
                       icon: const Icon(Icons.upload_file),
                       onPressed: () async {
@@ -881,7 +881,7 @@ class _PembelianScreenState extends State<PembelianScreen> {
                         }
                       },
                     ),
-                    const SizedBox(width: 15),
+                    const SizedBox(width: 15),*/
                     ElevatedButton.icon(
                       onPressed: prosesbatal,
                       icon: const Icon(Icons.close,
@@ -1163,7 +1163,7 @@ class _PembelianScreenState extends State<PembelianScreen> {
                   width: double.infinity,
                   child: DataTable(
                     headingRowColor:
-                        MaterialStateProperty.all(Colors.blue.shade100),
+                        MaterialStateProperty.all(Colors.blue.shade300),
                     dataRowColor: MaterialStateProperty.all(Colors.white),
                     border: TableBorder.all(color: Colors.grey.shade300),
                     headingRowHeight: 30,

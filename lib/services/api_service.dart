@@ -1041,4 +1041,44 @@ class ApiService {
     final url = Uri.parse('$baseUrl/penjualan/id/$id');
     return http.delete(url);
   }
+
+//buat dashboard
+
+  static Future<int> getTotalPenjualantoDay() async {
+    final baseUrl = await _getBaseUrl();
+    final url = Uri.parse('$baseUrl/penjualan/today/');
+    final response = await http.get(url);
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body);
+      int total = 0;
+
+      for (var item in data) {
+        total += (item['totalHargaSetelahDisc'] ?? 0) as int;
+      }
+
+      return total;
+    } else {
+      throw Exception('Gagal memuat data pembelian sementara');
+    }
+  }
+
+  static Future<int> getTotalPembeliantoDay() async {
+    final baseUrl = await _getBaseUrl();
+    final url = Uri.parse('$baseUrl/pembelian/today/');
+    final response = await http.get(url);
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body);
+      int total = 0;
+
+      for (var item in data) {
+        total += (item['totalHarga'] ?? 0) as int;
+      }
+
+      return total;
+    } else {
+      throw Exception('Gagal memuat data pembelian sementara');
+    }
+  }
 }

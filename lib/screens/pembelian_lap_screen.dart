@@ -218,7 +218,10 @@ class _LaporanPembelianScreenState extends State<LaporanPembelianScreen> {
                           ),
                         ),
                       IconButton(
-                        icon: const Icon(Icons.date_range),
+                        icon: Icon(
+                          Icons.date_range,
+                          color: dateRange != null ? Colors.blue : null,
+                        ),
                         tooltip: 'Pilih Tanggal',
                         onPressed: () async {
                           final picked = await showDateRangePicker(
