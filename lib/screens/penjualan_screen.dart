@@ -50,6 +50,7 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
   String kodepelanggan = ' ';
   String satuan = '';
   String kelompok = '';
+  String? keterangan;
   int hargabeli = 0;
   int hargajual = 0;
   int jualdiscon = 0;
@@ -780,6 +781,9 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
                             _jumlahbarangController.clear();
                             _discController.clear();
                             selectedBarang = null;
+                            setState(() {
+                              keterangan = null;
+                            });
                           }
                         },
                       ),
@@ -810,6 +814,7 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
                         sisaStok = suggestion.stokAktual;
                         hargabeli = suggestion.hargaBeli;
                         hargajual = suggestion.hargaJual;
+                        keterangan = suggestion.keterangan;
                         _jumlahbeliFocusNode.requestFocus();
                         selectedBarang =
                             await ApiService.fetchBarangByKodefodiscon(
@@ -932,7 +937,13 @@ class _PenjualanScreenState extends State<PenjualanScreen> {
                     elevation: 4,
                     shadowColor: Colors.greenAccent.withOpacity(0.4),
                   ),
-                )
+                ),
+                SizedBox(
+                  width: 20,
+                ),
+                if (keterangan != null) ...[
+                  Text('Keterangan : ${keterangan ?? '-'}'),
+                ]
               ],
             ),
             SizedBox(height: 15),

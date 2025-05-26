@@ -108,6 +108,8 @@ class _BarangScreenState extends State<BarangScreen> {
     final noRakCtrl = TextEditingController(text: barang?.noRak ?? '');
     final kelompoktCtrl = TextEditingController(text: barang?.kelompok ?? '');
     final satuanCtrl = TextEditingController(text: barang?.satuan ?? '');
+    final keteranganctrl =
+        TextEditingController(text: barang?.keterangan ?? '');
     final stokCtrl =
         TextEditingController(text: barang?.stokAktual.toString() ?? '');
     final hargaBCtrl =
@@ -168,6 +170,7 @@ class _BarangScreenState extends State<BarangScreen> {
           'jualDisc2': disc2,
           'jualDisc3': disc3,
           'jualDisc4': disc4,
+          'keterangan': keteranganctrl.text,
         };
 
         late http.Response response;
@@ -353,6 +356,11 @@ class _BarangScreenState extends State<BarangScreen> {
                     validator: (value) => value == null || value.isEmpty
                         ? 'Wajib diisi tidak boleh kosong'
                         : null,
+                  ),
+                  TextFormField(
+                    controller: keteranganctrl,
+                    decoration: const InputDecoration(labelText: 'Keterangan'),
+                    onFieldSubmitted: (_) => _submitForm(),
                   ),
 
                   // Khusus kalau EDIT, munculkan diskon
@@ -581,6 +589,7 @@ class _BarangScreenState extends State<BarangScreen> {
       'Jual Dic 2',
       'Jual Dic 3',
       'Jual Dic 4',
+      'Ketrangan',
     ]);
 
     // Isi data baris
@@ -600,6 +609,7 @@ class _BarangScreenState extends State<BarangScreen> {
         s.jualDisc2,
         s.jualDisc3,
         s.jualDisc4,
+        s.keterangan,
       ]);
     }
 
@@ -636,7 +646,8 @@ class _BarangScreenState extends State<BarangScreen> {
               'Jual Dic 1',
               'Jual Dic 2',
               'Jual Dic 3',
-              'Jual Dic 4'
+              'Jual Dic 4',
+              'Keterangan',
             ],
             data: filteredBarangs.map((s) {
               return [
@@ -652,6 +663,7 @@ class _BarangScreenState extends State<BarangScreen> {
                 s.jualDisc2,
                 s.jualDisc3,
                 s.jualDisc4,
+                s.keterangan,
               ];
             }).toList(),
           );
@@ -894,6 +906,7 @@ class _BarangScreenState extends State<BarangScreen> {
                               DataColumn(label: Text('Harga Disc2')),
                               DataColumn(label: Text('Harga Disc3')),
                               DataColumn(label: Text('Harga Disc4')),
+                              DataColumn(label: Text('Ketrangan')),
                               DataColumn(label: Text('Aksi')),
                             ],
                             rows:
@@ -959,6 +972,10 @@ class _BarangScreenState extends State<BarangScreen> {
                                 DataCell(Tooltip(
                                   message: 'Diskon 4',
                                   child: Text(formatter.format(s.jualDisc4)),
+                                )),
+                                DataCell(Tooltip(
+                                  message: 'Ketrangan',
+                                  child: Text(s.keterangan ?? ''),
                                 )),
                                 DataCell(Row(
                                   children: [

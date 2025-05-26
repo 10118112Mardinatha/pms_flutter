@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -175,6 +176,7 @@ class _PembelianScreenState extends State<PembelianScreen> {
     final kodeBarangCtrl = TextEditingController(text: data?.kodeBarang ?? '');
     final kelompokCtrl = TextEditingController(text: data?.kelompok ?? '');
     final satuanCtrl = TextEditingController(text: data?.satuan ?? '');
+    final ketranganctrl = TextEditingController(text: data?.keterangan ?? '');
     final hargaBeliCtrl =
         TextEditingController(text: data?.hargaBeli.toString() ?? '');
     final hargaJualCtrl =
@@ -264,6 +266,7 @@ class _PembelianScreenState extends State<PembelianScreen> {
               'jualDisc4': int.tryParse(
                       disc4Ctrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
                   0,
+              'keterangan': ketranganctrl.text,
             };
 
             await ApiService.postBarang(raw);
@@ -303,6 +306,7 @@ class _PembelianScreenState extends State<PembelianScreen> {
           'totalHarga': int.tryParse(
                   totalHargaCtrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
               0,
+          'keterangan': ketranganctrl.text
         };
 
         final masuk = await ApiService.postPembelianTmp(raw2);
@@ -345,6 +349,7 @@ class _PembelianScreenState extends State<PembelianScreen> {
           'totalHarga': int.tryParse(
                   totalHargaCtrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
               0,
+          'keterangan': ketranganctrl.text,
         };
 
         final update =
@@ -391,6 +396,7 @@ class _PembelianScreenState extends State<PembelianScreen> {
                           disc2Ctrl.clear();
                           disc3Ctrl.clear();
                           disc4Ctrl.clear();
+                          ketranganctrl.clear();
                         }
                       },
                     ),
@@ -423,6 +429,7 @@ class _PembelianScreenState extends State<PembelianScreen> {
                       disc2Ctrl.text = suggestion.jualDisc2.toString();
                       disc3Ctrl.text = suggestion.jualDisc3.toString();
                       disc4Ctrl.text = suggestion.jualDisc4.toString();
+                      ketranganctrl.text = suggestion.keterangan!;
 
                       Future.delayed(Duration(milliseconds: 100), () {
                         _isSelectingSuggestion = false;
@@ -670,6 +677,11 @@ class _PembelianScreenState extends State<PembelianScreen> {
 
                       return null;
                     },
+                  ),
+                  TextFormField(
+                    controller: ketranganctrl,
+                    onFieldSubmitted: (_) => _handleSimpan(),
+                    decoration: InputDecoration(labelText: 'Keterangan'),
                   ),
                   TextFormField(
                     keyboardType: TextInputType.number,
@@ -1181,6 +1193,7 @@ class _PembelianScreenState extends State<PembelianScreen> {
                       DataColumn(label: Text('Harga Disc2')),
                       DataColumn(label: Text('Harga Disc3')),
                       DataColumn(label: Text('Harga Disc4')),
+                      DataColumn(label: Text('Keterangan')),
                       DataColumn(label: Text('Jumlah')),
                       DataColumn(label: Text('Total')),
                       DataColumn(label: Text('Aksi')),
@@ -1246,6 +1259,10 @@ class _PembelianScreenState extends State<PembelianScreen> {
                               child: Text(formatter.format(p.jualDisc4 ?? 0)),
                             ),
                           ),
+                          DataCell(Tooltip(
+                            message: 'Ketarangan',
+                            child: Text(p.keterangan ?? ''),
+                          )),
                           DataCell(
                             Tooltip(
                               message: 'Jumlah Beli',

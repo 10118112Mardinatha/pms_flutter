@@ -58,6 +58,7 @@ class _ResepScreenState extends State<ResepScreen> {
   int hargajual = 0;
   int jumlahjual = 0;
   int totalharga = 0;
+  String? keterangan;
   int totalhargastlhdiskon = 0;
   int totaldiskon = 0;
 
@@ -783,6 +784,10 @@ class _ResepScreenState extends State<ResepScreen> {
             ),
             SizedBox(height: 10),
             Divider(thickness: 0.7),
+            Text(
+              'Total : ${formatter.format(totalpenjualan ?? 0)} ',
+              style: TextStyle(fontSize: 20),
+            ),
             SizedBox(height: 10),
             Row(
               mainAxisAlignment: MainAxisAlignment.start,
@@ -805,6 +810,9 @@ class _ResepScreenState extends State<ResepScreen> {
                           sisaStok = 0;
                           _discController.clear();
                           selectedBarang = null;
+                          setState(() {
+                            keterangan = null;
+                          });
                         }
                       },
                     ),
@@ -832,6 +840,7 @@ class _ResepScreenState extends State<ResepScreen> {
                       satuan = suggestion.satuan!;
                       hargabeli = suggestion.hargaBeli;
                       sisaStok = suggestion.stokAktual;
+                      keterangan = suggestion.keterangan;
                       hargajual = suggestion.hargaJual;
                       _jumlahbeliFocusNode.requestFocus();
                       selectedBarang =
@@ -953,11 +962,10 @@ class _ResepScreenState extends State<ResepScreen> {
                     shadowColor: Colors.greenAccent.withOpacity(0.4),
                   ),
                 ),
-                SizedBox(width: 60),
-                Text(
-                  'Total : ${formatter.format(totalpenjualan ?? 0)} ',
-                  style: TextStyle(fontSize: 20),
-                ),
+                SizedBox(width: 25),
+                if (keterangan != null) ...[
+                  Text('Keterangan : ${keterangan ?? '-'}'),
+                ]
               ],
             ),
             SizedBox(height: 15),

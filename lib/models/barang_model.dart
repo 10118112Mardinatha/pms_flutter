@@ -12,6 +12,7 @@ class BarangModel {
   final int? jualDisc2;
   final int? jualDisc3;
   final int? jualDisc4;
+  final String? keterangan;
 
   BarangModel({
     required this.id,
@@ -27,6 +28,7 @@ class BarangModel {
     this.jualDisc2,
     this.jualDisc3,
     this.jualDisc4,
+    this.keterangan,
   });
 
   factory BarangModel.fromJson(Map<String, dynamic> json) {
@@ -58,6 +60,7 @@ class BarangModel {
       jualDisc4: json['jualDisc4'] is int
           ? json['jualDisc4']
           : int.tryParse(json['jualDisc4']?.toString() ?? '0'),
+      keterangan: json['keterangan'],
     );
   }
 
@@ -76,6 +79,7 @@ class BarangModel {
       'jualDisc2': jualDisc2,
       'jualDisc3': jualDisc3,
       'jualDisc4': jualDisc4,
+      'keterangan': keterangan,
     };
   }
 }

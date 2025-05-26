@@ -13,6 +13,7 @@ class PembelianTmpModel {
   final int? jualDisc4;
   final int? jumlahBeli;
   final int? totalHarga;
+  final String? keterangan;
 
   PembelianTmpModel({
     required this.id,
@@ -29,6 +30,7 @@ class PembelianTmpModel {
     this.jualDisc4,
     this.jumlahBeli,
     this.totalHarga,
+    this.keterangan,
   });
 
   factory PembelianTmpModel.fromJson(Map<String, dynamic> json) {
@@ -47,6 +49,7 @@ class PembelianTmpModel {
       jualDisc4: json['jualDisc4'],
       jumlahBeli: json['jumlahBeli'],
       totalHarga: json['totalHarga'],
+      keterangan: json['keterangan'],
     );
   }
 
@@ -65,5 +68,6 @@ class PembelianTmpModel {
         'jualDisc4': jualDisc4,
         'jumlahBeli': jumlahBeli,
         'totalHarga': totalHarga,
+        'keterangan': keterangan,
       };
 }
