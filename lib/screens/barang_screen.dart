@@ -125,6 +125,96 @@ class _BarangScreenState extends State<BarangScreen> {
 
     final formatCurrency =
         NumberFormat.currency(locale: 'id', symbol: 'Rp ', decimalDigits: 0);
+    Future<void> _submitForm() async {
+      if (formKey.currentState!.validate()) {
+        final kode = kodeCtrl.text;
+        final nama = namaBrgCtrl.text;
+        final hargaJualInt =
+            int.tryParse(hargaJCtrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
+                0;
+        final disc1 = dic1Ctrl.text.isEmpty
+            ? hargaJualInt
+            : int.tryParse(dic1Ctrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
+                hargaJualInt;
+
+        final disc2 = dic2Ctrl.text.isEmpty
+            ? hargaJualInt
+            : int.tryParse(dic2Ctrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
+                hargaJualInt;
+
+        final disc3 = dic3Ctrl.text.isEmpty
+            ? hargaJualInt
+            : int.tryParse(dic3Ctrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
+                hargaJualInt;
+
+        final disc4 = dic4Ctrl.text.isEmpty
+            ? hargaJualInt
+            : int.tryParse(dic4Ctrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
+                hargaJualInt;
+        final data = {
+          'kodeBarang': kode,
+          'namaBarang': nama,
+          'noRak': noRakCtrl.text,
+          'kelompok': kelompoktCtrl.text,
+          'satuan': satuanCtrl.text,
+          'stokAktual': int.tryParse(stokCtrl.text) ?? 0,
+          'hargaBeli':
+              int.tryParse(hargaBCtrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
+                  0,
+          'hargaJual':
+              int.tryParse(hargaJCtrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
+                  0,
+          'jualDisc1': disc1,
+          'jualDisc2': disc2,
+          'jualDisc3': disc3,
+          'jualDisc4': disc4,
+        };
+
+        late http.Response response;
+
+        if (barang == null) {
+          // Cek apakah barang dengan kode & nama sama sudah ada secara lokal
+          final existing = barangs.firstWhereOrNull(
+            (b) =>
+                b.kodeBarang == kode &&
+                b.namaBarang!.toLowerCase() == nama.toLowerCase(),
+          );
+
+          if (existing != null) {
+            // Update stok & kirim ke API (PUT)
+            final updatedStok =
+                existing.stokAktual + (data['stokAktual'] as int);
+            data['stokAktual'] = updatedStok;
+
+            response = await ApiService.updateBarang(existing.kodeBarang, data);
+            // Log activity untuk update barang
+            await ApiService.logActivity(
+                widget.user.id, 'Update Barang ${existing.kodeBarang}');
+          } else {
+            // Barang baru - kirim ke API (POST)
+            response = await ApiService.postBarang(data);
+            // Log activity untuk tambah barang baru
+            await ApiService.logActivity(widget.user.id, 'Tambah Barang $kode');
+          }
+        } else {
+          // Edit barang yang sudah ada
+          response = await ApiService.updateBarang(barang.kodeBarang, data);
+          // Log activity untuk edit barang
+          await ApiService.logActivity(
+              widget.user.id, 'Edit Barang ${barang.kodeBarang}');
+        }
+
+        if (response.statusCode == 200 || response.statusCode == 201) {
+          if (context.mounted) Navigator.pop(context);
+          await _loadBarangs(); // refresh data
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Gagal menyimpan data')),
+          );
+        }
+      }
+    }
+
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
@@ -141,6 +231,7 @@ class _BarangScreenState extends State<BarangScreen> {
                   TextFormField(
                     controller: kodeCtrl,
                     decoration: const InputDecoration(labelText: 'Kode Barang'),
+                    onFieldSubmitted: (_) => _submitForm(),
                     validator: (value) {
                       if (value == null || value.isEmpty)
                         return 'Wajib diisi tidak boleh kosong';
@@ -154,6 +245,7 @@ class _BarangScreenState extends State<BarangScreen> {
                   TextFormField(
                     controller: namaBrgCtrl,
                     decoration: const InputDecoration(labelText: 'Nama Barang'),
+                    onFieldSubmitted: (_) => _submitForm(),
                     validator: (value) => value == null || value.isEmpty
                         ? 'Wajib diisi tidak boleh kosong'
                         : null,
@@ -165,6 +257,7 @@ class _BarangScreenState extends State<BarangScreen> {
                         labelText: 'No Rak',
                       ),
                       controller: noRakCtrl,
+                      onSubmitted: (_) => _submitForm(),
                     ),
                     suggestionsCallback: (pattern) async {
                       try {
@@ -190,6 +283,7 @@ class _BarangScreenState extends State<BarangScreen> {
                   TextFormField(
                     controller: kelompoktCtrl,
                     decoration: const InputDecoration(labelText: 'Kelompok'),
+                    onFieldSubmitted: (_) => _submitForm(),
                     validator: (value) => value == null || value.isEmpty
                         ? 'Wajib diisi tidak boleh kosong'
                         : null,
@@ -197,6 +291,7 @@ class _BarangScreenState extends State<BarangScreen> {
                   TextFormField(
                     controller: satuanCtrl,
                     decoration: const InputDecoration(labelText: 'Satuan'),
+                    onFieldSubmitted: (_) => _submitForm(),
                     validator: (value) => value == null || value.isEmpty
                         ? 'Wajib diisi tidak boleh kosong'
                         : null,
@@ -206,6 +301,7 @@ class _BarangScreenState extends State<BarangScreen> {
                     keyboardType: TextInputType.number,
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     decoration: const InputDecoration(labelText: 'Stok Aktual'),
+                    onFieldSubmitted: (_) => _submitForm(),
                     validator: (value) => value == null || value.isEmpty
                         ? 'Wajib diisi tidak boleh kosong dan hanya angka'
                         : null,
@@ -214,6 +310,7 @@ class _BarangScreenState extends State<BarangScreen> {
                     controller: hargaBCtrl,
                     keyboardType: TextInputType.number,
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    onFieldSubmitted: (_) => _submitForm(),
                     decoration: InputDecoration(labelText: 'Harga Beli'),
                     onChanged: (value) {
                       if (value.isEmpty) return;
@@ -238,6 +335,7 @@ class _BarangScreenState extends State<BarangScreen> {
                     keyboardType: TextInputType.number,
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     decoration: InputDecoration(labelText: 'Harga Jual'),
+                    onFieldSubmitted: (_) => _submitForm(),
                     onChanged: (value) {
                       if (value.isEmpty) return;
                       final number = int.tryParse(
@@ -263,6 +361,7 @@ class _BarangScreenState extends State<BarangScreen> {
                       controller: dic1Ctrl,
                       decoration: InputDecoration(labelText: 'Disc 1'),
                       keyboardType: TextInputType.number,
+                      onFieldSubmitted: (_) => _submitForm(),
                       validator: (value) {
                         if (value == null || value.isEmpty)
                           return 'Harap masukkan angka';
@@ -288,6 +387,7 @@ class _BarangScreenState extends State<BarangScreen> {
                       controller: dic2Ctrl,
                       decoration: InputDecoration(labelText: 'Disc 2'),
                       keyboardType: TextInputType.number,
+                      onFieldSubmitted: (_) => _submitForm(),
                       validator: (value) {
                         if (value == null || value.isEmpty)
                           return 'Harap masukkan angka';
@@ -313,6 +413,7 @@ class _BarangScreenState extends State<BarangScreen> {
                       controller: dic3Ctrl,
                       decoration: InputDecoration(labelText: 'Disc 3'),
                       keyboardType: TextInputType.number,
+                      onFieldSubmitted: (_) => _submitForm(),
                       validator: (value) {
                         if (value == null || value.isEmpty)
                           return 'Harap masukkan angka';
@@ -337,6 +438,7 @@ class _BarangScreenState extends State<BarangScreen> {
                     TextFormField(
                       controller: dic4Ctrl,
                       decoration: InputDecoration(labelText: 'Disc 4'),
+                      onFieldSubmitted: (_) => _submitForm(),
                       keyboardType: TextInputType.number,
                       validator: (value) {
                         if (value == null || value.isEmpty)
@@ -376,102 +478,7 @@ class _BarangScreenState extends State<BarangScreen> {
             child: const Text('Batal'),
           ),
           ElevatedButton(
-            onPressed: () async {
-              if (formKey.currentState!.validate()) {
-                final kode = kodeCtrl.text;
-                final nama = namaBrgCtrl.text;
-                final hargaJualInt = int.tryParse(
-                        hargaJCtrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
-                    0;
-                final disc1 = dic1Ctrl.text.isEmpty
-                    ? hargaJualInt
-                    : int.tryParse(
-                            dic1Ctrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
-                        hargaJualInt;
-
-                final disc2 = dic2Ctrl.text.isEmpty
-                    ? hargaJualInt
-                    : int.tryParse(
-                            dic2Ctrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
-                        hargaJualInt;
-
-                final disc3 = dic3Ctrl.text.isEmpty
-                    ? hargaJualInt
-                    : int.tryParse(
-                            dic3Ctrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
-                        hargaJualInt;
-
-                final disc4 = dic4Ctrl.text.isEmpty
-                    ? hargaJualInt
-                    : int.tryParse(
-                            dic4Ctrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
-                        hargaJualInt;
-                final data = {
-                  'kodeBarang': kode,
-                  'namaBarang': nama,
-                  'noRak': noRakCtrl.text,
-                  'kelompok': kelompoktCtrl.text,
-                  'satuan': satuanCtrl.text,
-                  'stokAktual': int.tryParse(stokCtrl.text) ?? 0,
-                  'hargaBeli': int.tryParse(
-                          hargaBCtrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
-                      0,
-                  'hargaJual': int.tryParse(
-                          hargaJCtrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ??
-                      0,
-                  'jualDisc1': disc1,
-                  'jualDisc2': disc2,
-                  'jualDisc3': disc3,
-                  'jualDisc4': disc4,
-                };
-
-                late http.Response response;
-
-                if (barang == null) {
-                  // Cek apakah barang dengan kode & nama sama sudah ada secara lokal
-                  final existing = barangs.firstWhereOrNull(
-                    (b) =>
-                        b.kodeBarang == kode &&
-                        b.namaBarang!.toLowerCase() == nama.toLowerCase(),
-                  );
-
-                  if (existing != null) {
-                    // Update stok & kirim ke API (PUT)
-                    final updatedStok =
-                        existing.stokAktual + (data['stokAktual'] as int);
-                    data['stokAktual'] = updatedStok;
-
-                    response = await ApiService.updateBarang(
-                        existing.kodeBarang, data);
-                    // Log activity untuk update barang
-                    await ApiService.logActivity(
-                        widget.user.id, 'Update Barang ${existing.kodeBarang}');
-                  } else {
-                    // Barang baru - kirim ke API (POST)
-                    response = await ApiService.postBarang(data);
-                    // Log activity untuk tambah barang baru
-                    await ApiService.logActivity(
-                        widget.user.id, 'Tambah Barang $kode');
-                  }
-                } else {
-                  // Edit barang yang sudah ada
-                  response =
-                      await ApiService.updateBarang(barang.kodeBarang, data);
-                  // Log activity untuk edit barang
-                  await ApiService.logActivity(
-                      widget.user.id, 'Edit Barang ${barang.kodeBarang}');
-                }
-
-                if (response.statusCode == 200 || response.statusCode == 201) {
-                  if (context.mounted) Navigator.pop(context);
-                  await _loadBarangs(); // refresh data
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Gagal menyimpan data')),
-                  );
-                }
-              }
-            },
+            onPressed: _submitForm,
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.blue.shade600, // warna tombol simpan
               padding: EdgeInsets.symmetric(horizontal: 24, vertical: 14),
