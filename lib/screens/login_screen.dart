@@ -124,6 +124,7 @@ class _LoginScreenState extends State<LoginScreen> {
             'laporan_resep',
             'user',
             'log_aktivitas',
+            'pesanan',
           ];
 
           final fallbackUser = UserModel(

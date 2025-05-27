@@ -136,6 +136,7 @@ class _SidebarState extends State<Sidebar> {
       'penjualan',
       'kasir',
       'resep',
+      'pesanan',
     ].any((key) => hasAccess(key));
 
     final hasLaporanAccess = widget.akses.any((a) => a.startsWith('laporan_'));
@@ -166,6 +167,8 @@ class _SidebarState extends State<Sidebar> {
           _tooltipItem(capitalizeLabel('kasir'), Icons.payment),
         if (hasAccess('resep'))
           _tooltipItem(capitalizeLabel('resep'), Icons.receipt_long),
+        if (hasAccess('pesanan'))
+          _tooltipItem(capitalizeLabel('pesanan'), Icons.shopping_bag),
         if (hasLaporanAccess) _divider(),
         if (hasLaporanAccess)
           _expansionMenuItem(

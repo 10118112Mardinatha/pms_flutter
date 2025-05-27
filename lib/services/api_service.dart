@@ -11,6 +11,7 @@ import 'package:pms_flutter/models/pembelian_model.dart';
 import 'package:pms_flutter/models/pembeliantmp_model.dart';
 import 'package:pms_flutter/models/penjualan_model.dart';
 import 'package:pms_flutter/models/penjualantmp_model.dart';
+import 'package:pms_flutter/models/pesanantmp_model.dart';
 import 'package:pms_flutter/models/resep_model.dart';
 import 'package:pms_flutter/models/reseptmp_model.dart';
 import 'package:pms_flutter/models/user_model.dart';
@@ -1080,5 +1081,76 @@ class ApiService {
     } else {
       throw Exception('Gagal memuat data pembelian sementara');
     }
+  }
+
+  //pesanan
+
+  static Future<String> generateNoPesanan() async {
+    final baseUrl = await _getBaseUrl();
+    final response =
+        await http.get(Uri.parse('$baseUrl/pesanantmp/generatenoPesanan/'));
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return data['noFaktur']; // ✅ jadi string
+    } else {
+      throw Exception('Gagal ambil kode');
+    }
+  }
+
+  static Future<http.Response> postPesananTmp(Map<String, dynamic> data) async {
+    final baseUrl = await _getBaseUrl();
+    final url = Uri.parse('$baseUrl/pesanantmp/');
+    return await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(data),
+    );
+  }
+
+  static Future<List<PesananTmpModel>> fetchPesananTmp(String user) async {
+    final baseUrl = await _getBaseUrl();
+    final response =
+        await http.get(Uri.parse('$baseUrl/pesanantmp/user/$user'));
+    if (response.statusCode == 200) {
+      final List<dynamic> jsonList = jsonDecode(response.body);
+      return jsonList.map((json) => PesananTmpModel.fromJson(json)).toList();
+    } else {
+      throw Exception('Gagal memuat data');
+    }
+  }
+
+  static Future<http.Response> updatePesananTmp(
+      String kode, Map<String, dynamic> data) async {
+    final baseUrl = await _getBaseUrl();
+    final url = Uri.parse('$baseUrl/pesanantmp/$kode');
+    return await http.put(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(data),
+    );
+  }
+
+  static Future<http.Response> pindahPesanan(
+      Map<String, dynamic> data, String user) async {
+    final baseUrl = await _getBaseUrl();
+    final url = Uri.parse('$baseUrl/pesanantmp/pindah/$user');
+    return await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(data),
+    );
+  }
+
+  static Future<http.Response> deletePesananTmpUser(String user) async {
+    final baseUrl = await _getBaseUrl();
+    final url = Uri.parse('$baseUrl/pesanantmp/user/$user');
+    return http.delete(url);
+  }
+
+  static Future<http.Response> deletePesananTmp(String kode) async {
+    final baseUrl = await _getBaseUrl();
+    final url = Uri.parse('$baseUrl/pesanantmp/$kode');
+    return http.delete(url); // Pastikan API mendukung method DELETE
   }
 }

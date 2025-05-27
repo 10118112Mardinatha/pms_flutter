@@ -13,6 +13,7 @@ import 'package:pms_flutter/screens/pembelian_lap_screen.dart';
 import 'package:pms_flutter/screens/pembelian_screen.dart';
 import 'package:pms_flutter/screens/penjualan_lap_screen.dart';
 import 'package:pms_flutter/screens/penjualan_screen.dart';
+import 'package:pms_flutter/screens/pesanan_screen.dart';
 import 'package:pms_flutter/screens/riwayat_user_screen.dart';
 import 'package:pms_flutter/screens/resep_lap_screen.dart';
 import 'package:pms_flutter/screens/resep_screen.dart';
@@ -102,6 +103,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         return ResepScreen(user: widget.user);
       case 'Rak':
         return RakScreen(user: widget.user);
+      case 'Pesanan':
+        return PesananScreen(user: widget.user);
       case 'Laporan Pembelian':
         return LaporanPembelianScreen();
       case 'Laporan Penjualan':
