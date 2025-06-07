@@ -1,21 +1,20 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:drift/drift.dart' show Value;
-import 'package:drift/drift.dart' as drift;
+
 import 'package:excel/excel.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:pms_flutter/models/barang_model.dart';
-import 'package:pms_flutter/models/pelanggan_model.dart';
+
 import 'package:pms_flutter/models/rak_model.dart';
 import 'package:pms_flutter/models/user_model.dart';
 import 'package:pms_flutter/services/api_service.dart';
 import 'package:printing/printing.dart';
 import 'package:collection/collection.dart';
-import '../database/app_database.dart';
+
 import 'dart:typed_data';
 import 'package:pdf/widgets.dart' as pw;
 
@@ -102,6 +101,7 @@ class _BarangScreenState extends State<BarangScreen> {
 
   void _showForm({BarangModel? barang}) {
     final formKey = GlobalKey<FormState>();
+
     final kodeCtrl =
         TextEditingController(text: barang?.kodeBarang ?? _generateBarang());
     final namaBrgCtrl = TextEditingController(text: barang?.namaBarang ?? '');
@@ -112,21 +112,40 @@ class _BarangScreenState extends State<BarangScreen> {
         TextEditingController(text: barang?.keterangan ?? '');
     final stokCtrl =
         TextEditingController(text: barang?.stokAktual.toString() ?? '');
-    final hargaBCtrl =
-        TextEditingController(text: barang?.hargaBeli.toString() ?? '');
-    final hargaJCtrl =
-        TextEditingController(text: barang?.hargaJual.toString() ?? '');
-    final dic1Ctrl =
-        TextEditingController(text: barang?.jualDisc1.toString() ?? '');
-    final dic2Ctrl =
-        TextEditingController(text: barang?.jualDisc2.toString() ?? '');
-    final dic3Ctrl =
-        TextEditingController(text: barang?.jualDisc3.toString() ?? '');
-    final dic4Ctrl =
-        TextEditingController(text: barang?.jualDisc4.toString() ?? '');
-
     final formatCurrency =
-        NumberFormat.currency(locale: 'id', symbol: 'Rp ', decimalDigits: 0);
+        NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
+
+    final hargaBCtrl = TextEditingController(
+      text: barang?.hargaBeli != null
+          ? formatCurrency.format(barang!.hargaBeli)
+          : '',
+    );
+    final hargaJCtrl = TextEditingController(
+      text: barang?.hargaJual != null
+          ? formatCurrency.format(barang!.hargaJual)
+          : '',
+    );
+    final dic1Ctrl = TextEditingController(
+      text: barang?.jualDisc1 != null
+          ? formatCurrency.format(barang!.jualDisc1)
+          : '',
+    );
+    final dic2Ctrl = TextEditingController(
+      text: barang?.jualDisc2 != null
+          ? formatCurrency.format(barang!.jualDisc2)
+          : '',
+    );
+    final dic3Ctrl = TextEditingController(
+      text: barang?.jualDisc3 != null
+          ? formatCurrency.format(barang!.jualDisc3)
+          : '',
+    );
+    final dic4Ctrl = TextEditingController(
+      text: barang?.jualDisc4 != null
+          ? formatCurrency.format(barang!.jualDisc4)
+          : '',
+    );
+
     Future<void> _submitForm() async {
       if (formKey.currentState!.validate()) {
         final kode = kodeCtrl.text;
@@ -313,14 +332,14 @@ class _BarangScreenState extends State<BarangScreen> {
                     controller: hargaBCtrl,
                     keyboardType: TextInputType.number,
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    decoration: const InputDecoration(labelText: 'Harga Beli'),
                     onFieldSubmitted: (_) => _submitForm(),
-                    decoration: InputDecoration(labelText: 'Harga Beli'),
                     onChanged: (value) {
                       if (value.isEmpty) return;
+
                       final number = int.tryParse(
                               value.replaceAll(RegExp(r'[^0-9]'), '')) ??
                           0;
-
                       final newText =
                           formatCurrency.format(number).replaceAll(',00', '');
                       hargaBCtrl.value = TextEditingValue(
@@ -329,22 +348,26 @@ class _BarangScreenState extends State<BarangScreen> {
                             TextSelection.collapsed(offset: newText.length),
                       );
                     },
-                    validator: (value) => value == null || value.isEmpty
-                        ? 'Wajib diisi tidak boleh kosong'
-                        : null,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Wajib diisi tidak boleh kosong';
+                      }
+                      return null;
+                    },
                   ),
+
                   TextFormField(
                     controller: hargaJCtrl,
                     keyboardType: TextInputType.number,
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    decoration: InputDecoration(labelText: 'Harga Jual'),
+                    decoration: const InputDecoration(labelText: 'Harga Jual'),
                     onFieldSubmitted: (_) => _submitForm(),
                     onChanged: (value) {
                       if (value.isEmpty) return;
+
                       final number = int.tryParse(
                               value.replaceAll(RegExp(r'[^0-9]'), '')) ??
                           0;
-
                       final newText =
                           formatCurrency.format(number).replaceAll(',00', '');
                       hargaJCtrl.value = TextEditingValue(
@@ -353,10 +376,26 @@ class _BarangScreenState extends State<BarangScreen> {
                             TextSelection.collapsed(offset: newText.length),
                       );
                     },
-                    validator: (value) => value == null || value.isEmpty
-                        ? 'Wajib diisi tidak boleh kosong'
-                        : null,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Wajib diisi tidak boleh kosong';
+                      }
+
+                      final hargaJual = int.tryParse(
+                              value.replaceAll(RegExp(r'[^0-9]'), '')) ??
+                          0;
+                      final hargaBeli = int.tryParse(hargaBCtrl.text
+                              .replaceAll(RegExp(r'[^0-9]'), '')) ??
+                          0;
+
+                      if (hargaJual < hargaBeli) {
+                        return 'Harga Jual tidak boleh lebih kecil dari Harga Beli';
+                      }
+
+                      return null;
+                    },
                   ),
+
                   TextFormField(
                     controller: keteranganctrl,
                     decoration: const InputDecoration(labelText: 'Keterangan'),
@@ -370,15 +409,35 @@ class _BarangScreenState extends State<BarangScreen> {
                       decoration: InputDecoration(labelText: 'Disc 1'),
                       keyboardType: TextInputType.number,
                       onFieldSubmitted: (_) => _submitForm(),
+                      onChanged: (value) {
+                        if (value.isEmpty) return;
+                        final number = int.tryParse(
+                                value.replaceAll(RegExp(r'[^0-9]'), '')) ??
+                            0;
+
+                        final newText =
+                            formatCurrency.format(number).replaceAll(',00', '');
+                        dic1Ctrl.value = TextEditingValue(
+                          text: newText,
+                          selection:
+                              TextSelection.collapsed(offset: newText.length),
+                        );
+                      },
                       validator: (value) {
                         if (value == null || value.isEmpty)
                           return 'Harap masukkan angka';
-                        if (!RegExp(r'^[0-9]+$').hasMatch(value))
-                          return 'Hanya angka yang diperbolehkan';
 
-                        final hargaJual = int.tryParse(hargaJCtrl.text);
-                        final hargaBeli = int.tryParse(hargaBCtrl.text);
-                        final disc = int.tryParse(value);
+                        // Bersihkan string agar hanya angka
+                        final cleanValue =
+                            value.replaceAll(RegExp(r'[^0-9]'), '');
+                        final disc = int.tryParse(cleanValue);
+
+                        final hargaJual = int.tryParse(
+                          hargaJCtrl.text.replaceAll(RegExp(r'[^0-9]'), ''),
+                        );
+                        final hargaBeli = int.tryParse(
+                          hargaBCtrl.text.replaceAll(RegExp(r'[^0-9]'), ''),
+                        );
 
                         if (hargaBeli == null || hargaJual == null) {
                           return 'Isi harga beli & harga jual terlebih dahulu';
@@ -396,15 +455,35 @@ class _BarangScreenState extends State<BarangScreen> {
                       decoration: InputDecoration(labelText: 'Disc 2'),
                       keyboardType: TextInputType.number,
                       onFieldSubmitted: (_) => _submitForm(),
+                      onChanged: (value) {
+                        if (value.isEmpty) return;
+                        final number = int.tryParse(
+                                value.replaceAll(RegExp(r'[^0-9]'), '')) ??
+                            0;
+
+                        final newText =
+                            formatCurrency.format(number).replaceAll(',00', '');
+                        dic2Ctrl.value = TextEditingValue(
+                          text: newText,
+                          selection:
+                              TextSelection.collapsed(offset: newText.length),
+                        );
+                      },
                       validator: (value) {
                         if (value == null || value.isEmpty)
                           return 'Harap masukkan angka';
-                        if (!RegExp(r'^[0-9]+$').hasMatch(value))
-                          return 'Hanya angka yang diperbolehkan';
 
-                        final hargaJual = int.tryParse(hargaJCtrl.text);
-                        final hargaBeli = int.tryParse(hargaBCtrl.text);
-                        final disc = int.tryParse(value);
+                        // Bersihkan string agar hanya angka
+                        final cleanValue =
+                            value.replaceAll(RegExp(r'[^0-9]'), '');
+                        final disc = int.tryParse(cleanValue);
+
+                        final hargaJual = int.tryParse(
+                          hargaJCtrl.text.replaceAll(RegExp(r'[^0-9]'), ''),
+                        );
+                        final hargaBeli = int.tryParse(
+                          hargaBCtrl.text.replaceAll(RegExp(r'[^0-9]'), ''),
+                        );
 
                         if (hargaBeli == null || hargaJual == null) {
                           return 'Isi harga beli & harga jual terlebih dahulu';
@@ -422,15 +501,35 @@ class _BarangScreenState extends State<BarangScreen> {
                       decoration: InputDecoration(labelText: 'Disc 3'),
                       keyboardType: TextInputType.number,
                       onFieldSubmitted: (_) => _submitForm(),
+                      onChanged: (value) {
+                        if (value.isEmpty) return;
+                        final number = int.tryParse(
+                                value.replaceAll(RegExp(r'[^0-9]'), '')) ??
+                            0;
+
+                        final newText =
+                            formatCurrency.format(number).replaceAll(',00', '');
+                        dic3Ctrl.value = TextEditingValue(
+                          text: newText,
+                          selection:
+                              TextSelection.collapsed(offset: newText.length),
+                        );
+                      },
                       validator: (value) {
                         if (value == null || value.isEmpty)
                           return 'Harap masukkan angka';
-                        if (!RegExp(r'^[0-9]+$').hasMatch(value))
-                          return 'Hanya angka yang diperbolehkan';
 
-                        final hargaJual = int.tryParse(hargaJCtrl.text);
-                        final hargaBeli = int.tryParse(hargaBCtrl.text);
-                        final disc = int.tryParse(value);
+                        // Bersihkan string agar hanya angka
+                        final cleanValue =
+                            value.replaceAll(RegExp(r'[^0-9]'), '');
+                        final disc = int.tryParse(cleanValue);
+
+                        final hargaJual = int.tryParse(
+                          hargaJCtrl.text.replaceAll(RegExp(r'[^0-9]'), ''),
+                        );
+                        final hargaBeli = int.tryParse(
+                          hargaBCtrl.text.replaceAll(RegExp(r'[^0-9]'), ''),
+                        );
 
                         if (hargaBeli == null || hargaJual == null) {
                           return 'Isi harga beli & harga jual terlebih dahulu';
@@ -448,15 +547,35 @@ class _BarangScreenState extends State<BarangScreen> {
                       decoration: InputDecoration(labelText: 'Disc 4'),
                       onFieldSubmitted: (_) => _submitForm(),
                       keyboardType: TextInputType.number,
+                      onChanged: (value) {
+                        if (value.isEmpty) return;
+                        final number = int.tryParse(
+                                value.replaceAll(RegExp(r'[^0-9]'), '')) ??
+                            0;
+
+                        final newText =
+                            formatCurrency.format(number).replaceAll(',00', '');
+                        dic4Ctrl.value = TextEditingValue(
+                          text: newText,
+                          selection:
+                              TextSelection.collapsed(offset: newText.length),
+                        );
+                      },
                       validator: (value) {
                         if (value == null || value.isEmpty)
                           return 'Harap masukkan angka';
-                        if (!RegExp(r'^[0-9]+$').hasMatch(value))
-                          return 'Hanya angka yang diperbolehkan';
 
-                        final hargaJual = int.tryParse(hargaJCtrl.text);
-                        final hargaBeli = int.tryParse(hargaBCtrl.text);
-                        final disc = int.tryParse(value);
+                        // Bersihkan string agar hanya angka
+                        final cleanValue =
+                            value.replaceAll(RegExp(r'[^0-9]'), '');
+                        final disc = int.tryParse(cleanValue);
+
+                        final hargaJual = int.tryParse(
+                          hargaJCtrl.text.replaceAll(RegExp(r'[^0-9]'), ''),
+                        );
+                        final hargaBeli = int.tryParse(
+                          hargaBCtrl.text.replaceAll(RegExp(r'[^0-9]'), ''),
+                        );
 
                         if (hargaBeli == null || hargaJual == null) {
                           return 'Isi harga beli & harga jual terlebih dahulu';
@@ -568,13 +687,23 @@ class _BarangScreenState extends State<BarangScreen> {
   }
 
   Future<void> _exportToExcel() async {
-    var excel = Excel.createExcel(); // Ini akan buat sheet default 'Sheet1'
-
-    // Ambil sheet default (langsung Sheet1)
+    var excel = Excel.createExcel();
     final String defaultSheet = excel.getDefaultSheet()!;
     final Sheet sheet = excel[defaultSheet];
 
-    // Isi judul kolom
+    // Fungsi untuk wrap text panjang ke baris baru
+    String wrapTextManual(String? text, {int wrapEvery = 20}) {
+      if (text == null || text.isEmpty) return '';
+      final buffer = StringBuffer();
+      for (int i = 0; i < text.length; i += wrapEvery) {
+        final end = (i + wrapEvery < text.length) ? i + wrapEvery : text.length;
+        buffer.write(text.substring(i, end));
+        if (end < text.length) buffer.write('\n');
+      }
+      return buffer.toString();
+    }
+
+    // Judul kolom
     sheet.appendRow([
       'No',
       'Kode Barang',
@@ -589,16 +718,17 @@ class _BarangScreenState extends State<BarangScreen> {
       'Jual Dic 2',
       'Jual Dic 3',
       'Jual Dic 4',
-      'Ketrangan',
+      'Keterangan',
+      "",
     ]);
 
-    // Isi data baris
+    // Data isi
     for (int i = 0; i < filteredBarangs.length; i++) {
       var s = filteredBarangs[i];
       sheet.appendRow([
-        i + 1, // Nomor urut dimulai dari 1
+        i + 1,
         s.kodeBarang,
-        s.namaBarang,
+        wrapTextManual(s.namaBarang),
         s.noRak,
         s.kelompok,
         s.satuan,
@@ -609,11 +739,11 @@ class _BarangScreenState extends State<BarangScreen> {
         s.jualDisc2,
         s.jualDisc3,
         s.jualDisc4,
-        s.keterangan,
+        wrapTextManual(s.keterangan),
       ]);
     }
 
-    // Encode menjadi file
+    // Encode file
     final fileBytes = excel.encode();
     if (fileBytes != null) {
       final now = DateTime.now();
@@ -875,9 +1005,12 @@ class _BarangScreenState extends State<BarangScreen> {
                   Expanded(
                     child: SingleChildScrollView(
                       scrollDirection: Axis.vertical,
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(minWidth: 1300),
-                        child: SingleChildScrollView(
+                      child: SingleChildScrollView(
+                        scrollDirection:
+                            Axis.horizontal, // <- Tambahkan scroll horizontal
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(
+                              minWidth: 1300), // Tetap dipertahankan
                           child: DataTable(
                             headingRowColor:
                                 MaterialStateProperty.all(Colors.blue[300]),
@@ -926,10 +1059,10 @@ class _BarangScreenState extends State<BarangScreen> {
                                 DataCell(SizedBox(
                                     width: 150,
                                     child: Tooltip(
-                                      message: 'Nama Barang',
+                                      message: s.namaBarang,
                                       child: Text(
                                         s.namaBarang ?? '',
-                                        maxLines: 2, // maksimal 2 baris
+                                        maxLines: 2,
                                         overflow: TextOverflow.ellipsis,
                                       ),
                                     ))),
@@ -973,10 +1106,29 @@ class _BarangScreenState extends State<BarangScreen> {
                                   message: 'Diskon 4',
                                   child: Text(formatter.format(s.jualDisc4)),
                                 )),
-                                DataCell(Tooltip(
-                                  message: 'Ketrangan',
-                                  child: Text(s.keterangan ?? ''),
-                                )),
+                                DataCell(
+                                  SizedBox(
+                                    width: 150,
+                                    child: Tooltip(
+                                      message: s.keterangan ?? '',
+                                      padding: const EdgeInsets.all(8),
+                                      margin: const EdgeInsets.symmetric(
+                                          horizontal: 20),
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey.shade700,
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      textStyle:
+                                          const TextStyle(color: Colors.white),
+                                      preferBelow: true,
+                                      child: Text(
+                                        s.keterangan ?? '',
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ),
+                                ),
                                 DataCell(Row(
                                   children: [
                                     Tooltip(
@@ -1005,13 +1157,10 @@ class _BarangScreenState extends State<BarangScreen> {
                       ),
                     ),
                   ),
-
-                  // Pagination controls
                   const SizedBox(height: 12),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // Jumlah baris per halaman
                       Row(
                         children: [
                           const Text('Baris per halaman:'),
@@ -1033,8 +1182,6 @@ class _BarangScreenState extends State<BarangScreen> {
                           ),
                         ],
                       ),
-
-                      // Info halaman + tombol prev/next
                       Row(
                         children: [
                           IconButton(

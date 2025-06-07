@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'dart:ui';
 
-import 'package:file_picker/file_picker.dart';
+/* import 'package:file_picker/file_picker.dart'; */
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
@@ -172,31 +172,76 @@ class _PembelianScreenState extends State<PembelianScreen> {
   }) async {
     final formKey = GlobalKey<FormState>();
     bool _isSelectingSuggestion = false;
+    String? validateDisc(String? value, TextEditingController hargaJualCtrl,
+        TextEditingController hargaBeliCtrl) {
+      if (value == null || value.isEmpty) return 'Harap masukkan angka';
+
+      final clean = value.replaceAll(RegExp(r'[^0-9]'), '');
+      if (clean.isEmpty) return 'Hanya angka yang diperbolehkan';
+
+      final hargaJual =
+          int.tryParse(hargaJualCtrl.text.replaceAll(RegExp(r'[^0-9]'), ''));
+      final hargaBeli =
+          int.tryParse(hargaBeliCtrl.text.replaceAll(RegExp(r'[^0-9]'), ''));
+      final disc = int.tryParse(clean);
+
+      if (hargaJual == null || hargaBeli == null) {
+        return 'Isi harga beli & harga jual terlebih dahulu';
+      }
+
+      if (disc != null && disc > hargaJual) {
+        return 'Diskon tidak boleh lebih besar dari harga jual';
+      }
+
+      return null;
+    }
 
     final kodeBarangCtrl = TextEditingController(text: data?.kodeBarang ?? '');
     final kelompokCtrl = TextEditingController(text: data?.kelompok ?? '');
     final satuanCtrl = TextEditingController(text: data?.satuan ?? '');
     final ketranganctrl = TextEditingController(text: data?.keterangan ?? '');
-    final hargaBeliCtrl =
-        TextEditingController(text: data?.hargaBeli.toString() ?? '');
-    final hargaJualCtrl =
-        TextEditingController(text: data?.hargaJual.toString() ?? '');
-    final disc1Ctrl =
-        TextEditingController(text: data?.jualDisc1?.toString() ?? '');
-    final disc2Ctrl =
-        TextEditingController(text: data?.jualDisc2?.toString() ?? '');
-    final disc3Ctrl =
-        TextEditingController(text: data?.jualDisc3?.toString() ?? '');
-    final disc4Ctrl =
-        TextEditingController(text: data?.jualDisc4?.toString() ?? '');
     final jumlahBeliCtrl =
         TextEditingController(text: data?.jumlahBeli?.toString() ?? '');
-    final totalHargaCtrl =
-        TextEditingController(text: data?.totalHarga?.toString() ?? '');
-    final TextEditingController _barangController =
-        TextEditingController(text: data?.namaBarang ?? '');
     final formatCurrency =
         NumberFormat.currency(locale: 'id', symbol: 'Rp ', decimalDigits: 0);
+
+    final hargaBeliCtrl = TextEditingController(
+      text:
+          data?.hargaBeli != null ? formatCurrency.format(data!.hargaBeli) : '',
+    );
+
+    final hargaJualCtrl = TextEditingController(
+      text:
+          data?.hargaJual != null ? formatCurrency.format(data!.hargaJual) : '',
+    );
+
+    final disc1Ctrl = TextEditingController(
+      text:
+          data?.jualDisc1 != null ? formatCurrency.format(data!.jualDisc1) : '',
+    );
+
+    final disc2Ctrl = TextEditingController(
+      text:
+          data?.jualDisc1 != null ? formatCurrency.format(data!.jualDisc2) : '',
+    );
+    final disc3Ctrl = TextEditingController(
+      text:
+          data?.jualDisc3 != null ? formatCurrency.format(data!.jualDisc3) : '',
+    );
+    final disc4Ctrl = TextEditingController(
+      text:
+          data?.jualDisc4 != null ? formatCurrency.format(data!.jualDisc4) : '',
+    );
+
+    final totalHargaCtrl = TextEditingController(
+      text: data?.totalHarga != null
+          ? formatCurrency.format(data!.totalHarga)
+          : '',
+    );
+
+    final TextEditingController _barangController =
+        TextEditingController(text: data?.namaBarang ?? '');
+
     Barang? selectedBarang;
 
     void hitungTotalHarga() {
@@ -502,9 +547,25 @@ class _PembelianScreenState extends State<PembelianScreen> {
                             TextSelection.collapsed(offset: newText.length),
                       );
                     },
-                    validator: (value) => value == null || value.isEmpty
-                        ? 'Wajib diisi tidak boleh kosong'
-                        : null,
+                    validator: (value) {
+                      if (value == null || value.isEmpty)
+                        return 'Wajib diisi tidak boleh kosong';
+
+                      final hargaJual =
+                          int.tryParse(value.replaceAll(RegExp(r'[^0-9]'), ''));
+                      final hargaBeli = int.tryParse(
+                          hargaBeliCtrl.text.replaceAll(RegExp(r'[^0-9]'), ''));
+
+                      if (hargaJual == null || hargaBeli == null) {
+                        return 'Harga beli dan jual harus diisi';
+                      }
+
+                      if (hargaJual < hargaBeli) {
+                        return 'Harga jual tidak boleh lebih kecil dari harga beli';
+                      }
+
+                      return null;
+                    },
                   ),
                   TextFormField(
                     controller: disc1Ctrl,
@@ -525,29 +586,8 @@ class _PembelianScreenState extends State<PembelianScreen> {
                         );
                       }
                     },
-                    validator: (value) {
-                      if (value == null || value.isEmpty)
-                        return 'Harap masukkan angka';
-                      final clean = value.replaceAll(RegExp(r'[^0-9]'), '');
-                      if (clean.isEmpty)
-                        return 'Hanya angka yang diperbolehkan';
-
-                      final hargaJual = int.tryParse(
-                          hargaJualCtrl.text.replaceAll(RegExp(r'[^0-9]'), ''));
-                      final hargaBeli = int.tryParse(
-                          hargaBeliCtrl.text.replaceAll(RegExp(r'[^0-9]'), ''));
-                      final disc = int.tryParse(clean);
-
-                      if (hargaBeli == null || hargaJual == null) {
-                        return 'Isi harga beli & harga jual terlebih dahulu';
-                      }
-
-                      if (disc != null && disc > hargaJual) {
-                        return 'Diskon tidak boleh lebih besar dari harga jual';
-                      }
-
-                      return null;
-                    },
+                    validator: (value) =>
+                        validateDisc(value, hargaJualCtrl, hargaBeliCtrl),
                   ),
                   TextFormField(
                     controller: disc2Ctrl,
@@ -568,29 +608,8 @@ class _PembelianScreenState extends State<PembelianScreen> {
                         );
                       }
                     },
-                    validator: (value) {
-                      if (value == null || value.isEmpty)
-                        return 'Harap masukkan angka';
-                      final clean = value.replaceAll(RegExp(r'[^0-9]'), '');
-                      if (clean.isEmpty)
-                        return 'Hanya angka yang diperbolehkan';
-
-                      final hargaJual = int.tryParse(
-                          hargaJualCtrl.text.replaceAll(RegExp(r'[^0-9]'), ''));
-                      final hargaBeli = int.tryParse(
-                          hargaBeliCtrl.text.replaceAll(RegExp(r'[^0-9]'), ''));
-                      final disc = int.tryParse(clean);
-
-                      if (hargaBeli == null || hargaJual == null) {
-                        return 'Isi harga beli & harga jual terlebih dahulu';
-                      }
-
-                      if (disc != null && disc > hargaJual) {
-                        return 'Diskon tidak boleh lebih besar dari harga jual';
-                      }
-
-                      return null;
-                    },
+                    validator: (value) =>
+                        validateDisc(value, hargaJualCtrl, hargaBeliCtrl),
                   ),
                   TextFormField(
                     controller: disc3Ctrl,
@@ -611,29 +630,8 @@ class _PembelianScreenState extends State<PembelianScreen> {
                         );
                       }
                     },
-                    validator: (value) {
-                      if (value == null || value.isEmpty)
-                        return 'Harap masukkan angka';
-                      final clean = value.replaceAll(RegExp(r'[^0-9]'), '');
-                      if (clean.isEmpty)
-                        return 'Hanya angka yang diperbolehkan';
-
-                      final hargaJual = int.tryParse(
-                          hargaJualCtrl.text.replaceAll(RegExp(r'[^0-9]'), ''));
-                      final hargaBeli = int.tryParse(
-                          hargaBeliCtrl.text.replaceAll(RegExp(r'[^0-9]'), ''));
-                      final disc = int.tryParse(clean);
-
-                      if (hargaBeli == null || hargaJual == null) {
-                        return 'Isi harga beli & harga jual terlebih dahulu';
-                      }
-
-                      if (disc != null && disc > hargaJual) {
-                        return 'Diskon tidak boleh lebih besar dari harga jual';
-                      }
-
-                      return null;
-                    },
+                    validator: (value) =>
+                        validateDisc(value, hargaJualCtrl, hargaBeliCtrl),
                   ),
                   TextFormField(
                     controller: disc4Ctrl,
@@ -654,29 +652,8 @@ class _PembelianScreenState extends State<PembelianScreen> {
                         );
                       }
                     },
-                    validator: (value) {
-                      if (value == null || value.isEmpty)
-                        return 'Harap masukkan angka';
-                      final clean = value.replaceAll(RegExp(r'[^0-9]'), '');
-                      if (clean.isEmpty)
-                        return 'Hanya angka yang diperbolehkan';
-
-                      final hargaJual = int.tryParse(
-                          hargaJualCtrl.text.replaceAll(RegExp(r'[^0-9]'), ''));
-                      final hargaBeli = int.tryParse(
-                          hargaBeliCtrl.text.replaceAll(RegExp(r'[^0-9]'), ''));
-                      final disc = int.tryParse(clean);
-
-                      if (hargaBeli == null || hargaJual == null) {
-                        return 'Isi harga beli & harga jual terlebih dahulu';
-                      }
-
-                      if (disc != null && disc > hargaJual) {
-                        return 'Diskon tidak boleh lebih besar dari harga jual';
-                      }
-
-                      return null;
-                    },
+                    validator: (value) =>
+                        validateDisc(value, hargaJualCtrl, hargaBeliCtrl),
                   ),
                   TextFormField(
                     controller: ketranganctrl,
@@ -1189,10 +1166,10 @@ class _PembelianScreenState extends State<PembelianScreen> {
                       DataColumn(label: Text('Satuan')),
                       DataColumn(label: Text('Harga Beli')),
                       DataColumn(label: Text('Harga Jual')),
-                      DataColumn(label: Text('Harga Disc1')),
-                      DataColumn(label: Text('Harga Disc2')),
-                      DataColumn(label: Text('Harga Disc3')),
-                      DataColumn(label: Text('Harga Disc4')),
+                      DataColumn(label: Text('Disc1')),
+                      DataColumn(label: Text('Disc2')),
+                      DataColumn(label: Text('Disc3')),
+                      DataColumn(label: Text('Disc4')),
                       DataColumn(label: Text('Keterangan')),
                       DataColumn(label: Text('Jumlah')),
                       DataColumn(label: Text('Total')),
@@ -1259,10 +1236,28 @@ class _PembelianScreenState extends State<PembelianScreen> {
                               child: Text(formatter.format(p.jualDisc4 ?? 0)),
                             ),
                           ),
-                          DataCell(Tooltip(
-                            message: 'Ketarangan',
-                            child: Text(p.keterangan ?? ''),
-                          )),
+                          DataCell(
+                            SizedBox(
+                              width: 100,
+                              child: Tooltip(
+                                message: p.keterangan ?? '',
+                                padding: const EdgeInsets.all(8),
+                                margin:
+                                    const EdgeInsets.symmetric(horizontal: 20),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade700,
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                textStyle: const TextStyle(color: Colors.white),
+                                preferBelow: true,
+                                child: Text(
+                                  p.keterangan ?? '',
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ),
+                          ),
                           DataCell(
                             Tooltip(
                               message: 'Jumlah Beli',

@@ -91,7 +91,7 @@ class _LoginScreenState extends State<LoginScreen> {
         await prefs.setString('role', userModel.role);
         await prefs.setBool('aktif', userModel.aktif);
         await prefs.setString('ip', _ipController.text.trim());
-        await prefs.setStringList('akses', userModel.akses);
+        await prefs.setString('akses', jsonEncode(userModel.akses));
         if (userModel.avatar != null) {
           await prefs.setString('avatar', userModel.avatar!);
         }
@@ -105,57 +105,12 @@ class _LoginScreenState extends State<LoginScreen> {
           context,
           MaterialPageRoute(builder: (_) => DashboardScreen(user: userModel)),
         );
-      } else {
-        // Jika login gagal, coba fallback admin
-        if (username == 'admin' && password == 'admin123') {
-          final allMenus = [
-            'dashboard',
-            'supplier',
-            'dokter',
-            'pelanggan',
-            'rak',
-            'obat',
-            'pembelian',
-            'penjualan',
-            'kasir',
-            'resep',
-            'laporan_pembelian',
-            'laporan_penjualan',
-            'laporan_resep',
-            'user',
-            'log_aktivitas',
-            'pesanan',
-          ];
-
-          final fallbackUser = UserModel(
-            id: 0,
-            username: 'admin',
-            password: password,
-            role: 'admin',
-            aktif: true,
-            avatar: null,
-            akses: allMenus,
-          );
-
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setString('ip', _ipController.text.trim());
-          await prefs.setStringList('akses', allMenus);
-
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-                builder: (_) => DashboardScreen(user: fallbackUser)),
-          );
-        } else {
-          final msg = jsonDecode(response.body)['message'] ?? 'Login gagal';
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(msg), backgroundColor: Colors.red),
-          );
-        }
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gagal terhubung ke server: $e')),
+        SnackBar(
+            content: Text('Login gagal username atau password salah'),
+            backgroundColor: Colors.red),
       );
       setState(() => _isLoading = false);
     }

@@ -3,14 +3,17 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:excel/excel.dart';
+import 'package:pms_flutter/database/app_database.dart';
 
 import 'package:pms_flutter/models/pembelian_model.dart';
+import 'package:pms_flutter/models/user_model.dart';
 import 'package:pms_flutter/services/api_service.dart';
 import 'package:printing/printing.dart';
 import 'dart:typed_data';
 
 class LaporanPembelianScreen extends StatefulWidget {
-  const LaporanPembelianScreen({super.key});
+  final UserModel user;
+  const LaporanPembelianScreen({super.key, required this.user});
 
   @override
   State<LaporanPembelianScreen> createState() => _LaporanPembelianScreenState();
@@ -158,6 +161,12 @@ class _LaporanPembelianScreenState extends State<LaporanPembelianScreen> {
           'LaporanPembelian_${DateTime.now().millisecondsSinceEpoch}.xlsx';
       await Printing.sharePdf(
           bytes: Uint8List.fromList(fileBytes), filename: fileName);
+
+      // Logging aktivitas export
+      final now = DateTime.now();
+      final formattedDate = DateFormat('dd-MM-yyyy HH:mm').format(now);
+      await ApiService.logActivity(widget.user.id,
+          'Melakukan export data pembelian pada $formattedDate');
     }
   }
 
@@ -208,7 +217,7 @@ class _LaporanPembelianScreenState extends State<LaporanPembelianScreen> {
                           width: 200,
                           child: TextField(
                             decoration: const InputDecoration(
-                                hintText: 'Kata kunci...'),
+                                hintText: ' 🔍 Kata kunci...'),
                             onChanged: (value) {
                               setState(() {
                                 keyword = value;

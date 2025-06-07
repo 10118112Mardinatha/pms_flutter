@@ -6,11 +6,13 @@ import 'package:intl/intl.dart';
 import 'package:excel/excel.dart';
 
 import 'package:pms_flutter/models/resep_model.dart';
+import 'package:pms_flutter/models/user_model.dart';
 import 'package:pms_flutter/services/api_service.dart';
 import 'package:printing/printing.dart';
 
 class LaporanResepScreen extends StatefulWidget {
-  const LaporanResepScreen({super.key});
+  final UserModel user;
+  const LaporanResepScreen({super.key, required this.user});
 
   @override
   State<LaporanResepScreen> createState() => _LaporanResepScreenState();
@@ -157,6 +159,10 @@ class _LaporanResepScreenState extends State<LaporanResepScreen> {
           'LaporanResep_${DateTime.now().millisecondsSinceEpoch}.xlsx';
       await Printing.sharePdf(
           bytes: Uint8List.fromList(fileBytes), filename: fileName);
+      final now = DateTime.now();
+      final formattedDate = DateFormat('dd-MM-yyyy HH:mm').format(now);
+      await ApiService.logActivity(
+          widget.user.id, 'Melakukan export data resep pada $formattedDate');
     }
   }
 
@@ -207,7 +213,7 @@ class _LaporanResepScreenState extends State<LaporanResepScreen> {
                           width: 200,
                           child: TextField(
                             decoration: const InputDecoration(
-                                hintText: 'Kata kunci...'),
+                                hintText: '🔍 Kata kunci...'),
                             onChanged: (value) {
                               setState(() {
                                 keyword = value;

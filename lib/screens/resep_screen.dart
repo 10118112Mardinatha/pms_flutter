@@ -105,7 +105,7 @@ class _ResepScreenState extends State<ResepScreen> {
 
     if (noresep.isEmpty || namapelanggan.isEmpty || tanggalresep == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(tanggalresep.toString())),
+        SnackBar(content: Text('Lengkapi data untuk simpan resep')),
       );
       return;
     }
@@ -348,8 +348,20 @@ class _ResepScreenState extends State<ResepScreen> {
     final formKey = GlobalKey<FormState>();
     final kodebarangCtrl = TextEditingController(text: data?.kodeBarang ?? '');
     final namabarangCtrl = TextEditingController(text: data?.namaBarang ?? '');
-    final jualdiscCtrl =
-        TextEditingController(text: data?.jualDiscon?.toString() ?? '');
+    final jualdiscCtrl = TextEditingController(
+      text: data?.jualDiscon != null
+          ? NumberFormat.currency(
+                  locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0)
+              .format(data!.jualDiscon)
+          : '',
+    );
+    final hargajual = TextEditingController(
+      text: data?.hargaJual != null
+          ? NumberFormat.currency(
+                  locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0)
+              .format(data!.jualDiscon)
+          : '',
+    );
     final jumlahCtrl =
         TextEditingController(text: data?.jumlahJual.toString() ?? '');
 
@@ -435,86 +447,153 @@ class _ResepScreenState extends State<ResepScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                TextFormField(
-                  controller: kodebarangCtrl,
-                  decoration: InputDecoration(labelText: 'Kode barang'),
-                  readOnly: true,
-                ),
-                TextFormField(
-                  controller: namabarangCtrl,
-                  decoration: InputDecoration(labelText: 'Nama'),
-                  readOnly: true,
-                ),
-                TypeAheadFormField<Map<String, dynamic>>(
-                  textFieldConfiguration: TextFieldConfiguration(
-                    controller: jualdiscCtrl,
-                    focusNode: jualdiscFocusNode,
-                    decoration: InputDecoration(
-                      contentPadding: EdgeInsets.all(5),
-                      labelText: 'Jual Diskon',
-                    ),
-                    textInputAction: TextInputAction.done,
-                    onSubmitted: (value) async {
-                      await _submitForm();
-                    },
+                Padding(
+                  padding:
+                      const EdgeInsets.only(bottom: 12.0), // kasih spasi bawah
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(
+                        width: 110, // lebar label tetap, agar rata
+                        child: Text(
+                          'Kode Barang:',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                          textAlign: TextAlign.right, // ratakan kanan
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(kodebarangCtrl.text),
+                      ),
+                    ],
                   ),
-                  suggestionsCallback: (pattern) {
-                    if (pilihBarang == null) return [];
-
-                    final discs = <Map<String, dynamic>>[];
-
-                    if (pilihBarang.jualDisc1 != null &&
-                        pilihBarang.jualDisc1 != 0) {
-                      discs.add({
-                        'label': 'Diskon 1',
-                        'value': pilihBarang.jualDisc1,
-                      });
-                    }
-                    if (pilihBarang.jualDisc2 != null &&
-                        pilihBarang.jualDisc2 != 0) {
-                      discs.add({
-                        'label': 'Diskon 2',
-                        'value': pilihBarang.jualDisc2,
-                      });
-                    }
-                    if (pilihBarang.jualDisc3 != null &&
-                        pilihBarang.jualDisc3 != 0) {
-                      discs.add({
-                        'label': 'Diskon 3',
-                        'value': pilihBarang.jualDisc3,
-                      });
-                    }
-                    if (pilihBarang.jualDisc4 != null &&
-                        pilihBarang.jualDisc4 != 0) {
-                      discs.add({
-                        'label': 'Diskon 4',
-                        'value': pilihBarang.jualDisc4,
-                      });
-                    }
-
-                    return discs
-                        .where((d) => d['value'].toString().contains(pattern));
-                  },
-                  itemBuilder: (context, suggestion) {
-                    return ListTile(
-                      title: Text(suggestion['value'].toString()),
-                      subtitle: Text(suggestion['label']),
-                    );
-                  },
-                  onSuggestionSelected: (suggestion) {
-                    jualdiscCtrl.text = suggestion['value'].toString();
-                  },
-                  noItemsFoundBuilder: (context) =>
-                      Text('Diskon tidak tersedia'),
                 ),
-                TextFormField(
-                  controller: jumlahCtrl,
-                  decoration: InputDecoration(labelText: 'Jumlah jual'),
-                  onFieldSubmitted: (_) => _submitForm(),
-                  keyboardType: TextInputType.number,
-                  validator: (value) => value == null || value.isEmpty
-                      ? 'Wajib diisi tidak boleh kosong'
-                      : null,
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12.0),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(
+                        width: 110,
+                        child: Text(
+                          'Nama Barang:',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                          textAlign: TextAlign.right,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(namabarangCtrl.text),
+                      ),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12.0),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(
+                        width: 110,
+                        child: Text(
+                          'Harga Jual:',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                          textAlign: TextAlign.right,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          NumberFormat.currency(
+                            locale: 'id_ID',
+                            symbol: 'Rp ',
+                            decimalDigits: 0,
+                          ).format(int.tryParse(hargajual.text) ?? 0),
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12.0),
+                  child: TypeAheadFormField<Map<String, dynamic>>(
+                    textFieldConfiguration: TextFieldConfiguration(
+                      controller: jualdiscCtrl,
+                      onSubmitted: (_) => _showForm(),
+                      decoration: InputDecoration(
+                        contentPadding: EdgeInsets.all(12),
+                        labelText: 'Jual Diskon',
+                        border: OutlineInputBorder(), // kasih border tegas
+                      ),
+                    ),
+                    suggestionsCallback: (pattern) {
+                      if (pilihBarang == null) return [];
+
+                      final discs = <Map<String, dynamic>>[];
+
+                      if (pilihBarang!.jualDisc1 != null &&
+                          pilihBarang!.jualDisc1 != 0) {
+                        discs.add({
+                          'label': 'Diskon 1',
+                          'value': pilihBarang!.jualDisc1
+                        });
+                      }
+                      if (pilihBarang!.jualDisc2 != null &&
+                          pilihBarang!.jualDisc2 != 0) {
+                        discs.add({
+                          'label': 'Diskon 2',
+                          'value': pilihBarang!.jualDisc2
+                        });
+                      }
+                      if (pilihBarang!.jualDisc3 != null &&
+                          pilihBarang!.jualDisc3 != 0) {
+                        discs.add({
+                          'label': 'Diskon 3',
+                          'value': pilihBarang!.jualDisc3
+                        });
+                      }
+                      if (pilihBarang!.jualDisc4 != null &&
+                          pilihBarang!.jualDisc4 != 0) {
+                        discs.add({
+                          'label': 'Diskon 4',
+                          'value': pilihBarang!.jualDisc4
+                        });
+                      }
+
+                      return discs.where(
+                          (d) => d['value'].toString().contains(pattern));
+                    },
+                    itemBuilder: (context, suggestion) {
+                      final formatted =
+                          currencyFormatter.format(suggestion['value']);
+                      return ListTile(
+                        title: Text(formatted),
+                        subtitle: Text(suggestion['label']),
+                      );
+                    },
+                    onSuggestionSelected: (suggestion) {
+                      jualdiscCtrl.text = suggestion['value'].toString();
+                    },
+                    noItemsFoundBuilder: (context) =>
+                        Text('Diskon tidak tersedia'),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12.0),
+                  child: TextFormField(
+                    controller: jumlahCtrl,
+                    decoration: InputDecoration(
+                      labelText: 'Jumlah jual',
+                      border: OutlineInputBorder(), // border tegas
+                      contentPadding:
+                          EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                    ),
+                    onFieldSubmitted: (_) => _submitForm(),
+                    validator: (value) => value == null || value.isEmpty
+                        ? 'Wajib diisi tidak boleh kosong'
+                        : null,
+                  ),
                 ),
               ],
             ),
@@ -792,73 +871,89 @@ class _ResepScreenState extends State<ResepScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
-                SizedBox(
-                  height: 35,
-                  width: 250,
-                  child: TypeAheadField<BarangModel>(
-                    textFieldConfiguration: TextFieldConfiguration(
-                      decoration: InputDecoration(
-                        contentPadding: EdgeInsets.all(5),
-                        border: OutlineInputBorder(),
-                        labelText: 'Masukan barang ke resep',
+                Row(mainAxisAlignment: MainAxisAlignment.start, children: [
+                  SizedBox(
+                    height: 35,
+                    width: 250,
+                    child: TypeAheadField<BarangModel>(
+                      textFieldConfiguration: TextFieldConfiguration(
+                        decoration: InputDecoration(
+                          contentPadding: EdgeInsets.all(5),
+                          border: OutlineInputBorder(),
+                          labelText: 'Masukan barang ke penjualan',
+                        ),
+                        controller: _barangController,
+                        focusNode: _barangFocusNode,
+                        onChanged: (value) {
+                          if (!_isSelectingSuggestion) {
+                            sisaStok = 0;
+                            _jumlahbarangController.clear();
+                            _discController.clear();
+                            selectedBarang = null;
+                            setState(() {
+                              keterangan = null;
+                            });
+                          }
+                        },
+                        maxLines: 1,
+                        // Tambahkan style untuk overflow di textfield supaya teks panjang tidak melebar
+                        style: const TextStyle(overflow: TextOverflow.ellipsis),
                       ),
-                      controller: _barangController,
-                      focusNode: _barangFocusNode,
-                      onChanged: (value) {
-                        if (!_isSelectingSuggestion) {
-                          _jumlahbarangController.clear();
-                          sisaStok = 0;
-                          _discController.clear();
-                          selectedBarang = null;
-                          setState(() {
-                            keterangan = null;
-                          });
+                      suggestionsCallback: (pattern) async {
+                        try {
+                          final response =
+                              await ApiService.searchBarang(pattern);
+                          return response
+                              .map<BarangModel>(
+                                  (json) => BarangModel.fromJson(json))
+                              .toList();
+                        } catch (e) {
+                          return [];
                         }
                       },
+                      itemBuilder: (context, BarangModel suggestion) {
+                        // Gunakan Text dengan overflow dan maxLines agar text panjang tidak error
+                        return ListTile(
+                          title: Text(
+                            suggestion.namaBarang ?? '',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          subtitle: Text(
+                            'Kode: ${suggestion.kodeBarang} || Rak: ${suggestion.noRak}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        );
+                      },
+                      onSuggestionSelected: (BarangModel suggestion) async {
+                        _barangController.text = suggestion.namaBarang ?? '';
+                        kodebarang = suggestion.kodeBarang;
+                        kelompok = suggestion.kelompok ?? '';
+                        satuan = suggestion.satuan ?? '';
+                        sisaStok = suggestion.stokAktual;
+                        hargabeli = suggestion.hargaBeli;
+                        hargajual = suggestion.hargaJual;
+                        keterangan = suggestion.keterangan;
+                        _jumlahbeliFocusNode.requestFocus();
+                        selectedBarang =
+                            await ApiService.fetchBarangByKodefodiscon(
+                                kodebarang);
+                        Future.delayed(const Duration(milliseconds: 100), () {
+                          _isSelectingSuggestion = false;
+                        });
+                        setState(() {});
+                      },
                     ),
-                    suggestionsCallback: (pattern) async {
-                      try {
-                        final response = await ApiService.searchBarang(pattern);
-                        return response
-                            .map<BarangModel>(
-                                (json) => BarangModel.fromJson(json))
-                            .toList();
-                      } catch (e) {
-                        return [];
-                      }
-                    },
-                    itemBuilder: (context, BarangModel suggestion) {
-                      return ListTile(
-                        title: Text(suggestion.namaBarang!),
-                        subtitle: Text('Kode: ${suggestion.kodeBarang}'),
-                      );
-                    },
-                    onSuggestionSelected: (BarangModel suggestion) async {
-                      _barangController.text = suggestion.namaBarang!;
-                      kodebarang = suggestion.kodeBarang;
-                      kelompok = suggestion.kelompok!;
-                      satuan = suggestion.satuan!;
-                      hargabeli = suggestion.hargaBeli;
-                      sisaStok = suggestion.stokAktual;
-                      keterangan = suggestion.keterangan;
-                      hargajual = suggestion.hargaJual;
-                      _jumlahbeliFocusNode.requestFocus();
-                      selectedBarang =
-                          await ApiService.fetchBarangByKodefodiscon(
-                              kodebarang);
-                      Future.delayed(Duration(milliseconds: 100), () {
-                        _isSelectingSuggestion = false;
-                      });
-                      setState(() {});
-                    },
                   ),
-                ),
+                ]),
                 SizedBox(width: 15),
                 SizedBox(
                   height: 35,
                   width: 75,
                   child: TextFormField(
                     controller: _jumlahbarangController,
+                    focusNode: _jumlahbeliFocusNode,
                     decoration: InputDecoration(
                       contentPadding: EdgeInsets.all(5),
                       border: OutlineInputBorder(),
@@ -870,7 +965,7 @@ class _ResepScreenState extends State<ResepScreen> {
                 SizedBox(width: 15),
                 SizedBox(
                   height: 35,
-                  width: 250,
+                  width: 150,
                   child: TypeAheadFormField<Map<String, dynamic>>(
                     textFieldConfiguration: TextFieldConfiguration(
                       controller: _discController,
@@ -878,7 +973,7 @@ class _ResepScreenState extends State<ResepScreen> {
                       decoration: InputDecoration(
                         contentPadding: EdgeInsets.all(5),
                         border: OutlineInputBorder(),
-                        labelText: 'Pilih Diskon',
+                        labelText: 'Jual Diskon',
                       ),
                       onSubmitted: (_) => ProsesTambahresep(),
                     ),
@@ -962,10 +1057,41 @@ class _ResepScreenState extends State<ResepScreen> {
                     shadowColor: Colors.greenAccent.withOpacity(0.4),
                   ),
                 ),
-                SizedBox(width: 25),
+                SizedBox(
+                  width: 10,
+                ),
                 if (keterangan != null) ...[
-                  Text('Keterangan : ${keterangan ?? '-'}'),
-                ]
+                  Tooltip(
+                    message: keterangan!.trim().isNotEmpty
+                        ? keterangan!
+                        : 'Tidak ada keterangan',
+                    padding: const EdgeInsets.all(12),
+                    margin: const EdgeInsets.symmetric(horizontal: 20),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade200,
+                      borderRadius: BorderRadius.circular(6),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2),
+                          blurRadius: 8,
+                          offset: const Offset(2, 2),
+                        ),
+                      ],
+                    ),
+                    textStyle: const TextStyle(
+                      color: Colors.black,
+                      fontSize: 14,
+                    ),
+                    preferBelow: false,
+                    waitDuration: const Duration(milliseconds: 300),
+                    showDuration: const Duration(seconds: 5),
+                    child: const Icon(
+                      Icons.info_outline,
+                      color: Colors.blueAccent,
+                      size: 24,
+                    ),
+                  ),
+                ],
               ],
             ),
             SizedBox(height: 15),

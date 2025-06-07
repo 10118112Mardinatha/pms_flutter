@@ -1,8 +1,11 @@
 // Ganti seluruh isi Sidebar.dart kamu dengan ini
 // Pastikan import dan font tetap
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:pms_flutter/services/api_service.dart';
 
 class Sidebar extends StatefulWidget {
   final Function(String) onMenuTap;
@@ -23,15 +26,19 @@ class Sidebar extends StatefulWidget {
 class _SidebarState extends State<Sidebar> {
   bool _isCollapsed = false;
   bool _isLaporanExpanded = false;
-
+  Timer? _timer;
   final FocusNode _logoFocusNode = FocusNode();
 
   String get _role => widget.role ?? '';
   bool hasAccess(String menuKey) => widget.akses.contains(menuKey);
+  int _jumlahMenunggu = 0;
+  bool _isLoadingMenunggu = true;
 
   @override
   void initState() {
     super.initState();
+    fetchMenungguData();
+    _timer = Timer.periodic(Duration(seconds: 10), (_) => fetchMenungguData());
     _logoFocusNode.addListener(() {
       if (_logoFocusNode.hasFocus) {
         _toggleSidebar();
@@ -39,11 +46,35 @@ class _SidebarState extends State<Sidebar> {
     });
   }
 
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _logoFocusNode.dispose();
+    super.dispose();
+  }
+
+  Future<void> fetchMenungguData() async {
+    try {
+      final all = await ApiService.fetchAllPenjualanlap();
+      final menunggu = all.where((p) => p.status == 'menunggu').toList();
+      setState(() {
+        _jumlahMenunggu = menunggu.length;
+        _isLoadingMenunggu = false;
+      });
+    } catch (e) {
+      debugPrint('Gagal memuat data menunggu: $e');
+      setState(() => _isLoadingMenunggu = false);
+    }
+  }
+
   void _toggleSidebar() {
     setState(() {
       _isCollapsed = !_isCollapsed;
       if (_isCollapsed) _isLaporanExpanded = false;
     });
+
+    // Panggil fetch untuk refresh data
+    fetchMenungguData();
   }
 
   bool get _isAdmin => _role == 'admin';
@@ -146,29 +177,59 @@ class _SidebarState extends State<Sidebar> {
     return ListView(
       children: [
         if (hasAccess('dashboard'))
-          _tooltipItem(capitalizeLabel('dashboard'), Icons.dashboard),
+          _tooltipItem(capitalizeLabel('dashboard'),
+              const Icon(Icons.dashboard, color: Colors.black)),
         if (hasMasterAccess) _divider(),
         if (hasAccess('supplier'))
-          _tooltipItem(capitalizeLabel('supplier'), Icons.trolley),
+          _tooltipItem(capitalizeLabel('supplier'),
+              Icon(Icons.trolley, color: Colors.black)),
         if (hasAccess('dokter'))
-          _tooltipItem(
-              capitalizeLabel('dokter'), Icons.medical_services_outlined),
+          _tooltipItem(capitalizeLabel('dokter'),
+              Icon(Icons.medical_services_outlined, color: Colors.black)),
         if (hasAccess('pelanggan'))
-          _tooltipItem(capitalizeLabel('pelanggan'), Icons.people_alt),
+          _tooltipItem(capitalizeLabel('pelanggan'),
+              Icon(Icons.people_alt, color: Colors.black)),
         if (hasAccess('rak'))
-          _tooltipItem(capitalizeLabel('rak'), Icons.inventory_outlined),
+          _tooltipItem(capitalizeLabel('rak'),
+              Icon(Icons.inventory_outlined, color: Colors.black)),
         if (hasAccess('obat'))
-          _tooltipItem(capitalizeLabel('obat'), Icons.medical_services),
+          _tooltipItem(capitalizeLabel('obat'),
+              Icon(Icons.medical_services, color: Colors.black)),
         if (hasAccess('pembelian'))
-          _tooltipItem(capitalizeLabel('pembelian'), Icons.shopping_cart),
+          _tooltipItem(capitalizeLabel('pembelian'),
+              Icon(Icons.shopping_cart, color: Colors.black)),
         if (hasAccess('penjualan'))
-          _tooltipItem(capitalizeLabel('penjualan'), Icons.point_of_sale),
+          _tooltipItem(capitalizeLabel('penjualan'),
+              Icon(Icons.point_of_sale, color: Colors.black)),
         if (hasAccess('kasir'))
-          _tooltipItem(capitalizeLabel('kasir'), Icons.payment),
+          _tooltipItem(
+            capitalizeLabel('kasir'),
+            Icon(Icons.payment, color: Colors.black),
+            trailing: (!_isLoadingMenunggu && _jumlahMenunggu > 0)
+                ? Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.red,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '$_jumlahMenunggu',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  )
+                : null,
+          ),
         if (hasAccess('resep'))
-          _tooltipItem(capitalizeLabel('resep'), Icons.receipt_long),
+          _tooltipItem(capitalizeLabel('resep'),
+              Icon(Icons.receipt_long, color: Colors.black)),
         if (hasAccess('pesanan'))
-          _tooltipItem(capitalizeLabel('pesanan'), Icons.shopping_bag),
+          _tooltipItem(capitalizeLabel('pesanan'),
+              Icon(Icons.shopping_bag, color: Colors.black)),
         if (hasLaporanAccess) _divider(),
         if (hasLaporanAccess)
           _expansionMenuItem(
@@ -194,22 +255,37 @@ class _SidebarState extends State<Sidebar> {
           ),
         if (hasUserAccess) _divider(),
         if (hasAccess('user'))
-          _tooltipItem(capitalizeLabel('user'), Icons.supervisor_account),
+          _tooltipItem(capitalizeLabel('user'),
+              Icon(Icons.supervisor_account, color: Colors.black)),
         if (hasAccess('log_aktivitas'))
-          _tooltipItem(capitalizeLabel('log_aktivitas'), Icons.history),
+          _tooltipItem(capitalizeLabel('log_aktivitas'),
+              Icon(Icons.history, color: Colors.black)),
       ],
     );
   }
 
-  Widget _tooltipItem(String title, IconData icon) {
+  Widget _tooltipItem(String title, Widget leading, {Widget? trailing}) {
     return Tooltip(
       message: _isCollapsed ? title : '',
       child: ListTile(
-        leading: Icon(icon, color: Colors.black),
+        leading: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            leading,
+            // Tampilkan badge juga saat collapse (kondisi ada trailing dan collapse)
+            if (_isCollapsed && trailing != null)
+              Positioned(
+                right: -6,
+                top: -6,
+                child: trailing,
+              ),
+          ],
+        ),
         title: !_isCollapsed
             ? Text(title,
                 style: GoogleFonts.poppins(fontSize: 14, color: Colors.white))
             : null,
+        trailing: !_isCollapsed ? trailing : null,
         onTap: () {
           widget.onMenuTap(title);
           setState(() => _isLaporanExpanded = false);
@@ -222,19 +298,26 @@ class _SidebarState extends State<Sidebar> {
   }
 
   Widget _submenuItem(String title, IconData icon) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 32),
-      child: ListTile(
-        leading: Icon(icon, size: 20, color: Colors.black),
-        title: !_isCollapsed
-            ? Text(title,
-                style: GoogleFonts.poppins(fontSize: 13, color: Colors.white))
-            : null,
-        onTap: () {
-          widget.onMenuTap(title);
-          setState(() => _isLaporanExpanded = false);
-        },
-        dense: true,
+    return Tooltip(
+      message: _isCollapsed ? title : '',
+      child: Padding(
+        padding: const EdgeInsets.only(left: 32),
+        child: ListTile(
+          leading: Icon(icon, size: 20, color: Colors.black),
+          title: !_isCollapsed
+              ? Text(
+                  title,
+                  style: GoogleFonts.poppins(fontSize: 13, color: Colors.white),
+                )
+              : null,
+          onTap: () {
+            widget.onMenuTap(title);
+            setState(() => _isLaporanExpanded = false);
+          },
+          dense: true,
+          visualDensity: VisualDensity.compact,
+          horizontalTitleGap: 12,
+        ),
       ),
     );
   }

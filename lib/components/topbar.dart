@@ -113,20 +113,41 @@ class _TopBarState extends State<TopBar> {
                       textInputAction: TextInputAction.next,
                     ),
                     const SizedBox(height: 16),
-                    InkWell(
-                      onTap: () async {
-                        final pickedPath = await _pickImage();
-                        if (pickedPath != null) {
-                          setStateDialog(() => tempImagePath = pickedPath);
-                        }
-                      },
-                      child: CircleAvatar(
-                        radius: 40,
-                        backgroundImage: tempImagePath != null
-                            ? FileImage(File(tempImagePath!))
-                            : const AssetImage('assets/images/user_avatar.png')
-                                as ImageProvider,
-                      ),
+                    Stack(
+                      alignment: Alignment.topRight,
+                      children: [
+                        InkWell(
+                          onTap: () async {
+                            final pickedPath = await _pickImage();
+                            if (pickedPath != null) {
+                              setStateDialog(() => tempImagePath = pickedPath);
+                            }
+                          },
+                          child: CircleAvatar(
+                            radius: 40,
+                            backgroundImage: tempImagePath != null &&
+                                    File(tempImagePath!).existsSync()
+                                ? FileImage(File(tempImagePath!))
+                                : const AssetImage(
+                                        'assets/images/user_avatar.png')
+                                    as ImageProvider,
+                          ),
+                        ),
+                        // Tombol reset (X)
+                        if (tempImagePath != null)
+                          Positioned(
+                            top: -6,
+                            right: -6,
+                            child: IconButton(
+                              icon: const Icon(Icons.close,
+                                  size: 20, color: Colors.red),
+                              splashRadius: 20,
+                              onPressed: () {
+                                setStateDialog(() => tempImagePath = null);
+                              },
+                            ),
+                          ),
+                      ],
                     ),
                     const SizedBox(height: 8),
                     const Text('Klik gambar untuk ganti'),

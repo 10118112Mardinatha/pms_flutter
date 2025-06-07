@@ -106,11 +106,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
       case 'Pesanan':
         return PesananScreen(user: widget.user);
       case 'Laporan Pembelian':
-        return LaporanPembelianScreen();
+        return LaporanPembelianScreen(user: widget.user);
       case 'Laporan Penjualan':
-        return LaporanPenjualanScreen();
+        return LaporanPenjualanScreen(user: widget.user);
       case 'Laporan Resep':
-        return LaporanResepScreen();
+        return LaporanResepScreen(user: widget.user);
       case 'Obat':
         return BarangScreen(user: widget.user);
       case 'User':
@@ -185,10 +185,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 Row(
                   children: [
                     Expanded(
-                      child: _buildDashboardCardWelcomeAsync(
-                        Icons.hail,
-                        'Selamat Datang di Dashboard,',
-                        '${widget.user.username}!',
+                      child: _buildAnimatedCard(
+                        child: _buildDashboardCardWelcomeAsync(
+                          Icons.hail,
+                          'Selamat Datang di Dashboard,',
+                          '${widget.user.username}!',
+                        ),
+                        index: 0,
                       ),
                     ),
                   ],
@@ -197,26 +200,44 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 Row(
                   children: [
                     Expanded(
-                      child: _buildDashboardCardAsync(
-                        Icons.people_alt,
-                        'Jumlah Pelanggan',
-                        _getJumlahPelanggan().then((val) => val.toString()),
+                      child: _buildAnimatedCard(
+                        child: GestureDetector(
+                          onTap: () => _onMenuTap('Pelanggan'),
+                          child: _buildDashboardCardAsync(
+                            Icons.people_alt,
+                            'Jumlah Pelanggan',
+                            _getJumlahPelanggan().then((val) => val.toString()),
+                          ),
+                        ),
+                        index: 1,
                       ),
                     ),
                     const SizedBox(width: 16),
                     Expanded(
-                      child: _buildDashboardCardAsync(
-                        Icons.local_hospital,
-                        'Jumlah Dokter',
-                        _getJumlahDoctor().then((val) => val.toString()),
+                      child: _buildAnimatedCard(
+                        child: GestureDetector(
+                          onTap: () => _onMenuTap('Dokter'),
+                          child: _buildDashboardCardAsync(
+                            Icons.local_hospital,
+                            'Jumlah Dokter',
+                            _getJumlahDoctor().then((val) => val.toString()),
+                          ),
+                        ),
+                        index: 2,
                       ),
                     ),
                     const SizedBox(width: 16),
                     Expanded(
-                      child: _buildDashboardCardAsync(
-                        Icons.inventory_2,
-                        'Jumlah Barang',
-                        _getJumlahBarang().then((val) => val.toString()),
+                      child: _buildAnimatedCard(
+                        child: GestureDetector(
+                          onTap: () => _onMenuTap('Obat'),
+                          child: _buildDashboardCardAsync(
+                            Icons.inventory_2,
+                            'Jumlah Barang',
+                            _getJumlahBarang().then((val) => val.toString()),
+                          ),
+                        ),
+                        index: 3,
                       ),
                     ),
                   ],
@@ -225,11 +246,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 Row(
                   children: [
                     Expanded(
-                      child: _buildDashboardCardAsync(
-                        Icons.point_of_sale,
-                        'Total Penjualan hari ini',
-                        updateTotalPenjualan()
-                            .then((val) => formatter.format(val)),
+                      child: _buildAnimatedCard(
+                        child: GestureDetector(
+                          onTap: () => _onMenuTap('Penjualan'),
+                          child: _buildDashboardCardAsync(
+                            Icons.point_of_sale,
+                            'Total Penjualan hari ini',
+                            updateTotalPenjualan()
+                                .then((val) => formatter.format(val)),
+                          ),
+                        ),
+                        index: 4,
                       ),
                     ),
                   ],
@@ -238,11 +265,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 Row(
                   children: [
                     Expanded(
-                      child: _buildDashboardCardAsync(
-                        Icons.shopping_bag,
-                        'Total Pembelian hari ini',
-                        updateTotalPembelian()
-                            .then((val) => formatter.format(val)),
+                      child: _buildAnimatedCard(
+                        child: GestureDetector(
+                          onTap: () => _onMenuTap('Pembelian'),
+                          child: _buildDashboardCardAsync(
+                            Icons.shopping_bag,
+                            'Total Pembelian hari ini',
+                            updateTotalPembelian()
+                                .then((val) => formatter.format(val)),
+                          ),
+                        ),
+                        index: 5,
                       ),
                     ),
                   ],
@@ -253,13 +286,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
           // KANAN: Card Penjualan Menunggu
           SizedBox(
-            width: 600, // Ubah sesuai kebutuhan
+            width: 570, // Ubah sesuai kebutuhan
             child: Card(
               elevation: 3,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16)),
               child: Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(10),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -268,8 +301,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       style:
                           TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
-                    const SizedBox(height: 30),
-                    SizedBox(height: 300, child: _buildRecentFilesTable()),
+                    const SizedBox(height: 20),
+                    SizedBox(height: 500, child: _buildRecentFilesTable()),
                   ],
                 ),
               ),
@@ -392,11 +425,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: DataTable(
-          headingRowColor: MaterialStateProperty.all(Colors.blue.shade300),
+          headingRowColor: MaterialStateProperty.all(Colors.blue.shade600),
           headingTextStyle: const TextStyle(
             color: Colors.white,
-            fontWeight: FontWeight.bold,
+
+            fontSize: 18, // Ukuran heading lebih kecil
           ),
+          dataTextStyle: const TextStyle(
+            fontSize: 15, // Ukuran data lebih kecil
+          ),
+          columnSpacing: 20,
           columns: const [
             DataColumn(label: Text('No Faktur')),
             DataColumn(label: Text('No Resep')),
@@ -430,6 +468,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  Widget _buildAnimatedCard({required Widget child, required int index}) {
+    return TweenAnimationBuilder<double>(
+      duration: Duration(milliseconds: 500 + (index * 100)),
+      tween: Tween(begin: 0.0, end: 1.0),
+      builder: (context, value, _) {
+        return Opacity(
+          opacity: value,
+          child: Transform.translate(
+            offset: Offset(0, (1 - value) * 20), // naik pelan
+            child: child,
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -449,9 +503,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.all(16),
-                    child: _getPage(),
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 300),
+                      transitionBuilder: (child, animation) {
+                        final offsetAnimation = Tween<Offset>(
+                          begin: const Offset(1, 0),
+                          end: Offset.zero,
+                        ).animate(animation);
+                        return SlideTransition(
+                            position: offsetAnimation, child: child);
+                      },
+                      child: _getPage(),
+                    ),
                   ),
-                )
+                ),
               ],
             ),
           ),

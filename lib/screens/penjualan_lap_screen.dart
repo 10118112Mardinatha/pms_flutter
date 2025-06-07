@@ -5,12 +5,16 @@ import 'package:intl/intl.dart';
 import 'package:excel/excel.dart';
 
 import 'package:pms_flutter/models/penjualan_model.dart';
+import 'package:pms_flutter/models/user_model.dart';
+
 import 'package:pms_flutter/services/api_service.dart';
 import 'package:printing/printing.dart';
 import 'dart:typed_data';
 
 class LaporanPenjualanScreen extends StatefulWidget {
-  const LaporanPenjualanScreen({super.key});
+  final UserModel user;
+
+  const LaporanPenjualanScreen({super.key, required this.user});
 
   @override
   State<LaporanPenjualanScreen> createState() => _LaporanPenjualanScreenState();
@@ -114,6 +118,12 @@ class _LaporanPenjualanScreenState extends State<LaporanPenjualanScreen> {
     final excel = Excel.createExcel();
     final sheet = excel['Sheet1'];
 
+    final currencyFormat = NumberFormat.currency(
+      locale: 'id_ID',
+      symbol: 'Rp',
+      decimalDigits: 0,
+    );
+
     sheet.appendRow([
       'No',
       'No Faktur',
@@ -124,11 +134,20 @@ class _LaporanPenjualanScreenState extends State<LaporanPenjualanScreen> {
       'Kelompok',
       'Harga Beli',
       'Harga Jual',
-      'Total Setelah Diskon'
+      'Jumlah Jual',
+      'Total Setelah Diskon',
+      'Status Penjualan',
+      'Profit Penjualan',
     ]);
+
+    double totalProfit = 0;
 
     for (int i = 0; i < data.length; i++) {
       final p = data[i];
+      final harga = p.hargaBeli * p.jumlahJual!;
+      final profit = p.totalHargaSetelahDisc! - harga;
+      totalProfit += profit;
+
       sheet.appendRow([
         i + 1,
         p.noFaktur,
@@ -137,18 +156,45 @@ class _LaporanPenjualanScreenState extends State<LaporanPenjualanScreen> {
         p.namaDoctor,
         DateFormat('dd-MM-yyyy').format(p.tanggalPenjualan),
         p.kelompok,
-        p.hargaBeli,
-        p.hargaJual,
-        p.totalHargaSetelahDisc ?? 0,
+        currencyFormat.format(p.hargaBeli),
+        currencyFormat.format(p.hargaJual),
+        p.jumlahJual,
+        currencyFormat.format(p.totalHargaSetelahDisc),
+        p.status,
+        currencyFormat.format(profit),
       ]);
     }
+
+    // Tambahkan baris kosong lalu baris total profit
+    sheet.appendRow([]);
+    sheet.appendRow([
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      'Total Profit:',
+      currencyFormat.format(totalProfit),
+    ]);
 
     final fileBytes = excel.encode();
     if (fileBytes != null) {
       final fileName =
           'LaporanPenjualan_${DateTime.now().millisecondsSinceEpoch}.xlsx';
       await Printing.sharePdf(
-          bytes: Uint8List.fromList(fileBytes), filename: fileName);
+        bytes: Uint8List.fromList(fileBytes),
+        filename: fileName,
+      );
+      final now = DateTime.now();
+      final formattedDate = DateFormat('dd-MM-yyyy HH:mm').format(now);
+      await ApiService.logActivity(widget.user.id,
+          'Melakukan export data penjualan pada $formattedDate');
     }
   }
 
@@ -199,7 +245,7 @@ class _LaporanPenjualanScreenState extends State<LaporanPenjualanScreen> {
                           width: 200,
                           child: TextField(
                             decoration: const InputDecoration(
-                                hintText: 'Kata kunci...'),
+                                hintText: '🔍 Kata kunci...'),
                             onChanged: (value) {
                               setState(() {
                                 keyword = value;
@@ -364,7 +410,7 @@ class _LaporanPenjualanScreenState extends State<LaporanPenjualanScreen> {
                                                   DataCell(Text(
                                                       'Rp ${NumberFormat("#,##0", "id_ID").format(p.hargaJual)}')),
                                                   DataCell(Text(
-                                                      'Rp ${NumberFormat("#,##0", "id_ID").format(p.totalHargaSetelahDisc ?? 0)}')),
+                                                      'Rp ${NumberFormat("#,##0", "id_ID").format(p.totalHargaSetelahDisc)}')),
                                                   DataCell(Text(p.status)),
                                                 ]);
                                               },

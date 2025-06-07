@@ -29,7 +29,7 @@ class _RiwayatUserScreenState extends State<RiwayatUserScreen> {
   @override
   void initState() {
     super.initState();
-    dateFilter = DateTime.now(); // default: hari ini
+    dateFilter = DateTime.now();
     loadLogs();
   }
 
@@ -105,11 +105,11 @@ class _RiwayatUserScreenState extends State<RiwayatUserScreen> {
         runSpacing: 8,
         children: [
           SizedBox(
-            width: 220,
+            width: 240,
             child: TextField(
               controller: _usernameController,
               decoration: InputDecoration(
-                labelText: 'Cari Username',
+                labelText: '🔍 Cari Username',
                 border: const OutlineInputBorder(),
                 suffixIcon: usernameFilter?.isNotEmpty == true
                     ? IconButton(
@@ -125,6 +125,10 @@ class _RiwayatUserScreenState extends State<RiwayatUserScreen> {
             ),
           ),
           ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue.shade100,
+              foregroundColor: Colors.black87,
+            ),
             onPressed: _selectDate,
             icon: const Icon(Icons.calendar_today, size: 20),
             label: Text(
@@ -133,7 +137,7 @@ class _RiwayatUserScreenState extends State<RiwayatUserScreen> {
                   : DateFormat('dd-MM-yyyy').format(dateFilter!),
             ),
           ),
-          if (dateFilter != null || (usernameFilter?.isNotEmpty ?? false))
+          if ((usernameFilter?.isNotEmpty ?? false))
             TextButton.icon(
               onPressed: _clearFilters,
               icon: const Icon(Icons.refresh),
@@ -147,28 +151,71 @@ class _RiwayatUserScreenState extends State<RiwayatUserScreen> {
   Widget _buildTable() {
     return Card(
       margin: const EdgeInsets.all(16),
-      elevation: 2,
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: DataTable(
-          columnSpacing: 24,
-          headingRowColor: MaterialStateProperty.all(Colors.blueGrey.shade50),
-          columns: const [
-            DataColumn(label: Text('Tanggal')),
-            DataColumn(label: Text('Username')),
-            DataColumn(label: Text('Aktivitas')),
-          ],
-          rows: paginatedLogs
-              .map(
-                (log) => DataRow(cells: [
-                  DataCell(Text(
-                      DateFormat('dd-MM-yyyy HH:mm').format(log.timestamp))),
-                  DataCell(Text(log.username)),
-                  DataCell(Text(log.activity)),
-                ]),
-              )
-              .toList(),
-        ),
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header (tetap)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              children: const [
+                Expanded(
+                    flex: 1,
+                    child: Text('No',
+                        style: TextStyle(fontWeight: FontWeight.bold))),
+                Expanded(
+                    flex: 2,
+                    child: Text('Tanggal',
+                        style: TextStyle(fontWeight: FontWeight.bold))),
+                Expanded(
+                    flex: 3,
+                    child: Text('Username',
+                        style: TextStyle(fontWeight: FontWeight.bold))),
+                Expanded(
+                    flex: 5,
+                    child: Text('Aktivitas',
+                        style: TextStyle(fontWeight: FontWeight.bold))),
+              ],
+            ),
+          ),
+          const Divider(height: 0),
+
+          // Body scrollable secara horizontal dan vertikal
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: SizedBox(
+              width: 800, // Sesuaikan sesuai kebutuhan
+              child: ListView.separated(
+                separatorBuilder: (_, __) => const Divider(height: 0),
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: paginatedLogs.length,
+                itemBuilder: (context, index) {
+                  final log = paginatedLogs[index];
+                  final number = ((currentPage - 1) * rowsPerPage) + index + 1;
+
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
+                    child: Row(
+                      children: [
+                        Expanded(flex: 1, child: Text(number.toString())),
+                        Expanded(
+                            flex: 2,
+                            child: Text(DateFormat('dd-MM-yyyy HH:mm')
+                                .format(log.timestamp))),
+                        Expanded(flex: 3, child: Text(log.username)),
+                        Expanded(flex: 5, child: Text(log.activity)),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -199,7 +246,7 @@ class _RiwayatUserScreenState extends State<RiwayatUserScreen> {
                   }
                 },
               ),
-              const Text(' baris per halaman'),
+              const Text(' entri per halaman'),
             ],
           ),
           Row(
@@ -244,7 +291,9 @@ class _RiwayatUserScreenState extends State<RiwayatUserScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('📜 Riwayat Aktivitas User')),
+      appBar: AppBar(
+        title: const Text('📜 Riwayat Aktivitas User'),
+      ),
       body: Column(
         children: [
           _buildFilterBar(),
@@ -254,7 +303,11 @@ class _RiwayatUserScreenState extends State<RiwayatUserScreen> {
                 ? const Center(child: CircularProgressIndicator())
                 : logs.isEmpty
                     ? const Center(
-                        child: Text('Tidak ada data log untuk hari ini'))
+                        child: Text(
+                          'Tidak ada data log untuk hari ini',
+                          style: TextStyle(fontSize: 16),
+                        ),
+                      )
                     : SingleChildScrollView(child: _buildTable()),
           ),
           if (!isLoading && logs.isNotEmpty) _buildPaginationControls(),

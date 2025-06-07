@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:intl/intl.dart';
-import 'package:pms_flutter/database/app_database.dart';
 import 'package:pms_flutter/models/barang_model.dart';
 import 'package:pms_flutter/models/user_model.dart';
 import 'package:printing/printing.dart';
@@ -294,7 +293,6 @@ class _KasirPenjualanScreenState extends State<KasirPenjualanScreen> {
                               padding: EdgeInsets.symmetric(horizontal: 8),
                               child: Text(
                                 'Terima kasih telah berbelanja di Apotek Segar. '
-                                'Untuk keluhan atau pertanyaan terkait obat, silakan hubungi Apoteker kami. '
                                 'Struk ini harap disimpan sebagai bukti pembelian.',
                                 style: TextStyle(
                                   fontStyle: FontStyle.italic,
@@ -574,7 +572,6 @@ class _KasirPenjualanScreenState extends State<KasirPenjualanScreen> {
                             padding: EdgeInsets.symmetric(horizontal: 8),
                             child: Text(
                               'Terima kasih telah berbelanja di Apotek Segar. '
-                              'Untuk keluhan atau pertanyaan terkait obat, silakan hubungi Apoteker kami. '
                               'Struk ini harap disimpan sebagai bukti pembelian.',
                               style: TextStyle(
                                 fontStyle: FontStyle.italic,
@@ -707,108 +704,281 @@ class _KasirPenjualanScreenState extends State<KasirPenjualanScreen> {
 
     doc.addPage(
       pw.Page(
-        pageFormat: PdfPageFormat.roll80,
+        pageFormat: PdfPageFormat(79 * PdfPageFormat.mm, 297 * PdfPageFormat.mm)
+            .copyWith(
+          marginTop: 0,
+          marginBottom: 0,
+          marginLeft: 0,
+          marginRight: 0,
+        ),
         build: (pw.Context context) {
-          return pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              pw.Center(
-                child: pw.Column(
+          return pw.Center(
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.center,
+              children: [
+                // HEADER
+                pw.Text('APOTEK SEGAR',
+                    style: pw.TextStyle(
+                        fontWeight: pw.FontWeight.bold,
+                        fontSize: 11,
+                        font: pw.Font.courier())),
+                pw.Text('Jl. S Parman Ruko Blok II Cav 29',
+                    style: const pw.TextStyle(fontSize: 8)),
+                pw.Text('RT 01 RW 07 Kel. Langkai Kec. Pahandut',
+                    style: const pw.TextStyle(fontSize: 8)),
+                pw.Text('Kota Palangka Raya 74874',
+                    style: const pw.TextStyle(fontSize: 8)),
+
+                pw.SizedBox(height: 6),
+
+                // INFO TRANSAKSI
+                // INFO TRANSAKSI
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.center,
                   children: [
-                    pw.Text('Apotek Segar',
-                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                    pw.Text('Jl. S.Parman, Kavaleri 29, No. 24'),
-                    pw.Text('Kec. Langkai Kel. Pahandut Kota Palangka Raya'),
-                    pw.Text('Kalimantan Tengah , 74874'),
+                    pw.Container(
+                      width: 150,
+                      child: pw.Row(
+                        children: [
+                          pw.SizedBox(
+                              width: 50,
+                              child: pw.Text('Faktur',
+                                  style: pw.TextStyle(fontSize: 9))),
+                          pw.Text(': ', style: pw.TextStyle(fontSize: 9)),
+                          pw.Expanded(
+                              child: pw.Text(noFaktur,
+                                  style: pw.TextStyle(fontSize: 9))),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
-              ),
-              pw.SizedBox(height: 8),
-              pw.Text('No Faktur : $noFaktur'),
-              pw.Text('Tanggal   : $formattedDateTime'),
-              pw.Text('Kasir     : $username'),
-              pw.Divider(),
-
-              // Tabel header
-              pw.Row(
-                children: [
-                  pw.Expanded(
-                      flex: 1,
-                      child: pw.Text('No',
-                          style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
-                  pw.Expanded(
-                      flex: 3,
-                      child: pw.Text('Nama Barang',
-                          style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
-                  pw.Expanded(
-                      flex: 1,
-                      child: pw.Text('Satuan',
-                          style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
-                  pw.Expanded(
-                      flex: 1,
-                      child: pw.Text('Qty',
-                          style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
-                ],
-              ),
-
-              pw.SizedBox(height: 4),
-
-              // Tabel isi
-              ...items.asMap().entries.map((entry) {
-                final i = entry.key + 1;
-                final item = entry.value;
-
-                final qty = item.jumlahJual ?? 0;
-                final satuan = item.satuan ?? '';
-
-                return pw.Row(
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.center,
                   children: [
-                    pw.Expanded(flex: 1, child: pw.Text('$i')),
-                    pw.Expanded(flex: 3, child: pw.Text(item.namaBarang ?? '')),
-                    pw.Expanded(flex: 1, child: pw.Text(satuan)),
-                    pw.Expanded(flex: 1, child: pw.Text('$qty')),
-                  ],
-                );
-              }).toList(),
-
-              pw.Divider(),
-              pw.Text('Total Harga   : ${formatRupiah.format(totalSebelum)}'),
-              pw.Text('Total Diskon  : ${formatRupiah.format(totalDiskon)}'),
-              pw.Text('Total Dibayar : ${formatRupiah.format(totalBayar)}'),
-              pw.Text('Uang Bayar : ${formatRupiah.format(uang)}'),
-              pw.Text('Kembalian : ${formatRupiah.format(kembalian)}'),
-              pw.SizedBox(height: 10),
-              pw.Divider(),
-              pw.Center(
-                child: pw.Padding(
-                  padding: const pw.EdgeInsets.symmetric(horizontal: 8),
-                  child: pw.Text(
-                    'Terima kasih telah berbelanja di Apotek Segar. '
-                    'Untuk keluhan atau pertanyaan terkait obat, silakan hubungi Apoteker kami. '
-                    'Struk ini harap disimpan sebagai bukti pembelian.',
-                    style: pw.TextStyle(
-                      fontStyle: pw.FontStyle.italic,
-                      fontSize:
-                          9, // bisa kecilkan font supaya tidak terlalu dominan
-                      color: PdfColors.grey600, // warna abu abu agak redup
+                    pw.Container(
+                      width: 150,
+                      child: pw.Row(
+                        children: [
+                          pw.SizedBox(
+                              width: 50,
+                              child: pw.Text('Tanggal',
+                                  style: pw.TextStyle(fontSize: 9))),
+                          pw.Text(': ', style: pw.TextStyle(fontSize: 9)),
+                          pw.Expanded(
+                              child: pw.Text(formattedDateTime,
+                                  style: pw.TextStyle(fontSize: 9))),
+                        ],
+                      ),
                     ),
-                    textAlign: pw.TextAlign.center,
+                  ],
+                ),
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.center,
+                  children: [
+                    pw.Container(
+                      width: 150,
+                      child: pw.Row(
+                        children: [
+                          pw.SizedBox(
+                              width: 50,
+                              child: pw.Text('Kasir',
+                                  style: pw.TextStyle(fontSize: 9))),
+                          pw.Text(': ', style: pw.TextStyle(fontSize: 9)),
+                          pw.Expanded(
+                              child: pw.Text(username,
+                                  style: pw.TextStyle(fontSize: 9))),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                pw.Text('.' * 46),
+
+                // HEADER TABEL
+                pw.SizedBox(height: 2),
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.center,
+                  children: [
+                    pw.SizedBox(
+                        width: 20,
+                        child: pw.Text('No', style: pw.TextStyle(fontSize: 9))),
+                    pw.SizedBox(
+                        width: 80,
+                        child:
+                            pw.Text('Nama', style: pw.TextStyle(fontSize: 9))),
+                    pw.SizedBox(
+                        width: 25,
+                        child:
+                            pw.Text('Sat', style: pw.TextStyle(fontSize: 9))),
+                    pw.SizedBox(
+                        width: 25,
+                        child:
+                            pw.Text('Qty', style: pw.TextStyle(fontSize: 9))),
+                  ],
+                ),
+
+                // BARANG
+                ...items.asMap().entries.map((entry) {
+                  final i = entry.key + 1;
+                  final item = entry.value;
+                  final nama = (item.namaBarang ?? '').length > 12
+                      ? '${(item.namaBarang ?? '').substring(0, 12)}...'
+                      : item.namaBarang ?? '';
+
+                  return pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.center,
+                    children: [
+                      pw.SizedBox(
+                          width: 20,
+                          child:
+                              pw.Text('$i', style: pw.TextStyle(fontSize: 9))),
+                      pw.SizedBox(
+                          width: 80,
+                          child:
+                              pw.Text(nama, style: pw.TextStyle(fontSize: 9))),
+                      pw.SizedBox(
+                          width: 25,
+                          child: pw.Text(item.satuan ?? '',
+                              style: pw.TextStyle(fontSize: 9))),
+                      pw.SizedBox(
+                          width: 25,
+                          child: pw.Text('${item.jumlahJual ?? 0}',
+                              style: pw.TextStyle(fontSize: 9))),
+                    ],
+                  );
+                }),
+
+                pw.Text('.' * 46),
+
+                // TOTAL
+                // TOTAL
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.center,
+                  children: [
+                    pw.Container(
+                      width: 150,
+                      child: pw.Row(
+                        children: [
+                          pw.SizedBox(
+                              width: 50,
+                              child: pw.Text('Total Harga',
+                                  style: pw.TextStyle(fontSize: 9))),
+                          pw.Text(': ', style: pw.TextStyle(fontSize: 9)),
+                          pw.Expanded(
+                              child: pw.Text(formatRupiah.format(totalSebelum),
+                                  style: pw.TextStyle(fontSize: 9))),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.center,
+                  children: [
+                    pw.Container(
+                      width: 150,
+                      child: pw.Row(
+                        children: [
+                          pw.SizedBox(
+                              width: 50,
+                              child: pw.Text('Total Diskon',
+                                  style: pw.TextStyle(fontSize: 9))),
+                          pw.Text(': ', style: pw.TextStyle(fontSize: 9)),
+                          pw.Expanded(
+                              child: pw.Text(formatRupiah.format(totalDiskon),
+                                  style: pw.TextStyle(fontSize: 9))),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.center,
+                  children: [
+                    pw.Container(
+                      width: 150,
+                      child: pw.Row(
+                        children: [
+                          pw.SizedBox(
+                              width: 50,
+                              child: pw.Text('Total Dibayar',
+                                  style: pw.TextStyle(fontSize: 9))),
+                          pw.Text(': ', style: pw.TextStyle(fontSize: 9)),
+                          pw.Expanded(
+                              child: pw.Text(formatRupiah.format(totalBayar),
+                                  style: pw.TextStyle(fontSize: 9))),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.center,
+                  children: [
+                    pw.Container(
+                      width: 150,
+                      child: pw.Row(
+                        children: [
+                          pw.SizedBox(
+                              width: 50,
+                              child: pw.Text('Uang Bayar',
+                                  style: pw.TextStyle(fontSize: 9))),
+                          pw.Text(': ', style: pw.TextStyle(fontSize: 9)),
+                          pw.Expanded(
+                              child: pw.Text(formatRupiah.format(uang),
+                                  style: pw.TextStyle(fontSize: 9))),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.center,
+                  children: [
+                    pw.Container(
+                      width: 150,
+                      child: pw.Row(
+                        children: [
+                          pw.SizedBox(
+                              width: 50,
+                              child: pw.Text('Kembalian',
+                                  style: pw.TextStyle(fontSize: 9))),
+                          pw.Text(': ', style: pw.TextStyle(fontSize: 9)),
+                          pw.Expanded(
+                              child: pw.Text(formatRupiah.format(kembalian),
+                                  style: pw.TextStyle(fontSize: 9))),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+
+                pw.Text('.' * 46),
+                pw.SizedBox(height: 4),
+
+                // FOOTER
+                pw.Text(
+                  'Terima kasih telah berbelanja\nStruk ini harap disimpan sebagai bukti pembelian.',
+                  textAlign: pw.TextAlign.center,
+                  style: pw.TextStyle(
+                    fontStyle: pw.FontStyle.italic,
+                    fontSize: 8,
+                    color: PdfColors.grey700,
                   ),
                 ),
-              )
-            ],
+              ],
+            ),
           );
         },
       ),
     );
+    await ApiService.logActivity(widget.user.id,
+        ' ${widget.user.role} melakukan cetak struk penjualan tanpa resep $noFaktur');
 
-    // Logging aktivitas & cetak
-    await ApiService.logActivity(
-        widget.user.id, 'Melakukan pembayaran $noFaktur');
-
+    // Cetak atau simpan PDF
     await Printing.layoutPdf(
       onLayout: (PdfPageFormat format) async => doc.save(),
-      name: 'Struk Penjualan',
     );
   }
 
@@ -824,8 +994,8 @@ class _KasirPenjualanScreenState extends State<KasirPenjualanScreen> {
         0, (sum, item) => sum + (item.totalHargaSetelahDisc ?? 0));
     final totalDiskon = totalSebelum - totalBayar;
     final namapasien = items.first.namaPelanggan;
-    final namadokter = items.first.namaDoctor;
     final noresep = items.first.noResep;
+    final namadokter = items.first.namaDoctor;
     final now = DateTime.now();
     final formattedDateTime = DateFormat('dd-MM-yyyy HH:mm:ss').format(now);
     final username = widget.user.username;
@@ -833,66 +1003,282 @@ class _KasirPenjualanScreenState extends State<KasirPenjualanScreen> {
 
     doc.addPage(
       pw.Page(
-        pageFormat: PdfPageFormat.roll80,
+        pageFormat: PdfPageFormat(79 * PdfPageFormat.mm, 297 * PdfPageFormat.mm)
+            .copyWith(
+          marginTop: 0,
+          marginBottom: 0,
+          marginLeft: 0,
+          marginRight: 0,
+        ),
         build: (pw.Context context) {
-          return pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              pw.Center(
-                child: pw.Column(
+          return pw.Center(
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.center,
+              children: [
+                // HEADER
+                pw.Text('APOTEK SEGAR',
+                    style: pw.TextStyle(
+                        fontWeight: pw.FontWeight.bold,
+                        fontSize: 11,
+                        font: pw.Font.courier())),
+                pw.Text('Jl. S Parman Ruko Blok II Cav 29',
+                    style: const pw.TextStyle(fontSize: 8)),
+                pw.Text('RT 01 RW 07 Kel. Langkai Kec. Pahandut',
+                    style: const pw.TextStyle(fontSize: 8)),
+                pw.Text('Kota Palangka Raya 74874',
+                    style: const pw.TextStyle(fontSize: 8)),
+
+                pw.SizedBox(height: 6),
+
+                // INFO TRANSAKSI
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.center,
                   children: [
-                    pw.Text('Apotek Segar',
-                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                    pw.Text('Jl. S.Parman, Kavaleri 29, No. 24'),
-                    pw.Text('Kec. Langkai Kel. Pahandut Kota Palangka Raya'),
-                    pw.Text('Kalimantan Tengah , 74874'),
+                    pw.Container(
+                      width: 150,
+                      child: pw.Row(
+                        children: [
+                          pw.SizedBox(
+                              width: 50,
+                              child: pw.Text('Faktur',
+                                  style: pw.TextStyle(fontSize: 9))),
+                          pw.Text(': ', style: pw.TextStyle(fontSize: 9)),
+                          pw.Expanded(
+                              child: pw.Text(noFaktur,
+                                  style: pw.TextStyle(fontSize: 9))),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
-              ),
-              pw.SizedBox(height: 8),
-              pw.Text('No Faktur      : $noFaktur'),
-              pw.Text('No Resep       : $noresep'),
-              pw.Text('Tanggal        : $formattedDateTime'),
-              pw.Text('Nama Pasien    : $namapasien'),
-              pw.Text('Nama Dokter    : $namadokter'),
-              pw.Text('Kasir          : $username'),
-              pw.Text('Total Harga    : ${formatRupiah.format(totalSebelum)}'),
-              pw.Text('Total Diskon   : ${formatRupiah.format(totalDiskon)}'),
-              pw.Text('Total Dibayar  : ${formatRupiah.format(totalBayar)}'),
-              pw.Text('Uang Bayar     : ${formatRupiah.format(uang)}'),
-              pw.Text('Kembalian      : ${formatRupiah.format(kembalian)}'),
-              pw.SizedBox(height: 10),
-              pw.Divider(),
-              pw.Center(
-                child: pw.Padding(
-                  padding: const pw.EdgeInsets.symmetric(horizontal: 8),
-                  child: pw.Text(
-                    'Terima kasih telah berbelanja di Apotek Segar. '
-                    'Untuk keluhan atau pertanyaan terkait obat, silakan hubungi Apoteker kami. '
-                    'Struk ini harap disimpan sebagai bukti pembelian.',
-                    style: pw.TextStyle(
-                      fontStyle: pw.FontStyle.italic,
-                      fontSize:
-                          9, // bisa kecilkan font supaya tidak terlalu dominan
-                      color: PdfColors.grey600, // warna abu abu agak redup
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.center,
+                  children: [
+                    pw.Container(
+                      width: 150,
+                      child: pw.Row(
+                        children: [
+                          pw.SizedBox(
+                              width: 50,
+                              child: pw.Text('Resep',
+                                  style: pw.TextStyle(fontSize: 9))),
+                          pw.Text(': ', style: pw.TextStyle(fontSize: 9)),
+                          pw.Expanded(
+                              child: pw.Text(noresep,
+                                  style: pw.TextStyle(fontSize: 9))),
+                        ],
+                      ),
                     ),
-                    textAlign: pw.TextAlign.center,
+                  ],
+                ),
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.center,
+                  children: [
+                    pw.Container(
+                      width: 150,
+                      child: pw.Row(
+                        children: [
+                          pw.SizedBox(
+                              width: 50,
+                              child: pw.Text('Tanggal',
+                                  style: pw.TextStyle(fontSize: 9))),
+                          pw.Text(': ', style: pw.TextStyle(fontSize: 9)),
+                          pw.Expanded(
+                              child: pw.Text(formattedDateTime,
+                                  style: pw.TextStyle(fontSize: 9))),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.center,
+                  children: [
+                    pw.Container(
+                      width: 150,
+                      child: pw.Row(
+                        children: [
+                          pw.SizedBox(
+                              width: 50,
+                              child: pw.Text('Dokter',
+                                  style: pw.TextStyle(fontSize: 9))),
+                          pw.Text(': ', style: pw.TextStyle(fontSize: 9)),
+                          pw.Expanded(
+                              child: pw.Text(namadokter,
+                                  style: pw.TextStyle(fontSize: 9))),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.center,
+                  children: [
+                    pw.Container(
+                      width: 150,
+                      child: pw.Row(
+                        children: [
+                          pw.SizedBox(
+                              width: 50,
+                              child: pw.Text('Pasien',
+                                  style: pw.TextStyle(fontSize: 9))),
+                          pw.Text(': ', style: pw.TextStyle(fontSize: 9)),
+                          pw.Expanded(
+                              child: pw.Text(namapasien,
+                                  style: pw.TextStyle(fontSize: 9))),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.center,
+                  children: [
+                    pw.Container(
+                      width: 150,
+                      child: pw.Row(
+                        children: [
+                          pw.SizedBox(
+                              width: 50,
+                              child: pw.Text('Kasir',
+                                  style: pw.TextStyle(fontSize: 9))),
+                          pw.Text(': ', style: pw.TextStyle(fontSize: 9)),
+                          pw.Expanded(
+                              child: pw.Text(username,
+                                  style: pw.TextStyle(fontSize: 9))),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                pw.Text('.' * 46),
+                // TOTAL
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.center,
+                  children: [
+                    pw.Container(
+                      width: 150,
+                      child: pw.Row(
+                        children: [
+                          pw.SizedBox(
+                              width: 50,
+                              child: pw.Text('Total Harga',
+                                  style: pw.TextStyle(fontSize: 9))),
+                          pw.Text(': ', style: pw.TextStyle(fontSize: 9)),
+                          pw.Expanded(
+                              child: pw.Text(formatRupiah.format(totalSebelum),
+                                  style: pw.TextStyle(fontSize: 9))),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.center,
+                  children: [
+                    pw.Container(
+                      width: 150,
+                      child: pw.Row(
+                        children: [
+                          pw.SizedBox(
+                              width: 50,
+                              child: pw.Text('Total Diskon',
+                                  style: pw.TextStyle(fontSize: 9))),
+                          pw.Text(': ', style: pw.TextStyle(fontSize: 9)),
+                          pw.Expanded(
+                              child: pw.Text(formatRupiah.format(totalDiskon),
+                                  style: pw.TextStyle(fontSize: 9))),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.center,
+                  children: [
+                    pw.Container(
+                      width: 150,
+                      child: pw.Row(
+                        children: [
+                          pw.SizedBox(
+                              width: 50,
+                              child: pw.Text('Total Dibayar',
+                                  style: pw.TextStyle(fontSize: 9))),
+                          pw.Text(': ', style: pw.TextStyle(fontSize: 9)),
+                          pw.Expanded(
+                              child: pw.Text(formatRupiah.format(totalBayar),
+                                  style: pw.TextStyle(fontSize: 9))),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.center,
+                  children: [
+                    pw.Container(
+                      width: 150,
+                      child: pw.Row(
+                        children: [
+                          pw.SizedBox(
+                              width: 50,
+                              child: pw.Text('Uang Bayar',
+                                  style: pw.TextStyle(fontSize: 9))),
+                          pw.Text(': ', style: pw.TextStyle(fontSize: 9)),
+                          pw.Expanded(
+                              child: pw.Text(formatRupiah.format(uang),
+                                  style: pw.TextStyle(fontSize: 9))),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.center,
+                  children: [
+                    pw.Container(
+                      width: 150,
+                      child: pw.Row(
+                        children: [
+                          pw.SizedBox(
+                              width: 50,
+                              child: pw.Text('Kembalian',
+                                  style: pw.TextStyle(fontSize: 9))),
+                          pw.Text(': ', style: pw.TextStyle(fontSize: 9)),
+                          pw.Expanded(
+                              child: pw.Text(formatRupiah.format(kembalian),
+                                  style: pw.TextStyle(fontSize: 9))),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+
+                pw.Text('.' * 46),
+                pw.SizedBox(height: 4),
+
+                // FOOTER
+                pw.Text(
+                  'Terima kasih telah berbelanja\nStruk ini harap disimpan sebagai bukti pembelian.',
+                  textAlign: pw.TextAlign.center,
+                  style: pw.TextStyle(
+                    fontStyle: pw.FontStyle.italic,
+                    fontSize: 8,
+                    color: PdfColors.grey700,
                   ),
                 ),
-              )
-            ],
+              ],
+            ),
           );
         },
       ),
     );
+    await ApiService.logActivity(widget.user.id,
+        ' ${widget.user.role} melakukan cetak struk resep $noFaktur');
 
-    // Logging aktivitas & cetak
-    await ApiService.logActivity(
-        widget.user.id, 'Melakukan pembayaran $noFaktur');
-
+    // Cetak atau simpan PDF
     await Printing.layoutPdf(
       onLayout: (PdfPageFormat format) async => doc.save(),
-      name: 'Struk Penjualan',
     );
   }
 
@@ -941,247 +1327,283 @@ class _KasirPenjualanScreenState extends State<KasirPenjualanScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          title: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                '💳 Menu Kasir - Pembayaran',
-                style: TextStyle(
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        toolbarHeight: 50,
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '💳 Menu Kasir - Pembayaran',
+                  style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: Colors.black),
-              ),
-              const SizedBox(height: 8),
-              SizedBox(
-                width: 300, // 👉 ubah ukuran sesuai kebutuhan (misalnya 300)
-                child: TextField(
-                  decoration: InputDecoration(
-                    hintText: 'Cari nama pelanggan...',
-                    contentPadding:
-                        EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                    isDense: true,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.blue),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
+                    color: Colors.black,
                   ),
-                  style: const TextStyle(fontSize: 14),
-                  onChanged: (value) {
-                    setState(() {
-                      searchQuery = value.toLowerCase();
-                    });
-                  },
                 ),
+                SizedBox(height: 8),
+              ],
+            ),
+            SizedBox(
+              width: 250,
+              child: TextField(
+                decoration: InputDecoration(
+                  hintText: '🔍 Cari nama pelanggan...',
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  isDense: true,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: const BorderSide(color: Colors.blue),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                style: const TextStyle(fontSize: 14),
+                onChanged: (value) {
+                  setState(() {
+                    searchQuery = value.toLowerCase();
+                  });
+                },
               ),
-            ],
-          ),
-          toolbarHeight: 90,
+            ),
+          ],
         ),
-        body: isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : menunggu.isEmpty
-                ? const Center(child: Text('Tidak ada penjualan menunggu'))
-                : ListView(
-                    padding: const EdgeInsets.all(12),
-                    children: groupedByFaktur.entries.map((entry) {
-                      final faktur = entry.key;
-                      final items = entry.value;
+      ),
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : menunggu.isEmpty
+              ? const Center(child: Text('Tidak ada penjualan menunggu'))
+              : ListView(
+                  padding: const EdgeInsets.all(12),
+                  children: groupedByFaktur.entries.map((entry) {
+                    final faktur = entry.key;
+                    final items = entry.value;
 
-                      final noresep = items.first.noResep;
-                      final pelanggan = items.first.namaPelanggan;
-                      final totalBayar = items.fold<int>(
-                          0, (sum, i) => sum + (i.totalHargaSetelahDisc ?? 0));
-                      final tanggal = items.first.tanggalPenjualan;
+                    final noresep = items.first.noResep;
+                    final pelanggan = items.first.namaPelanggan;
+                    final totalBayar = items.fold<int>(
+                        0, (sum, i) => sum + (i.totalHargaSetelahDisc ?? 0));
+                    final tanggal = items.first.tanggalPenjualan;
 
-                      return Card(
-                        margin: const EdgeInsets.only(bottom: 20),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                        elevation: 3,
-                        child: Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Faktur           : $faktur',
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 20),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                      elevation: 3,
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            /// Header Faktur & Tanggal
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('Faktur         : $faktur',
+                                        style: const TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold)),
+                                    Text(
+                                      'No Resep    : ${noresep.trim().isEmpty ? 'Tidak pakai resep' : noresep}',
+                                      style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold),
+                                    ),
+                                    Text('Pasien             : $pelanggan'),
+                                  ],
+                                ),
+                                Text(
+                                  DateFormat('dd-MM-yyyy').format(tanggal),
                                   style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold)),
-                              Text(
-                                'No Resep      : ${noresep.trim().isEmpty ? 'Tidak pakai resep' : noresep}',
-                                style: const TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.grey,
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+
+                            /// Tabel Penjualan
+                            Table(
+                              columnWidths: const {
+                                0: FixedColumnWidth(40),
+                                1: FlexColumnWidth(2),
+                                2: FlexColumnWidth(1.2),
+                                3: FlexColumnWidth(1),
+                                4: FlexColumnWidth(1),
+                                5: FlexColumnWidth(1),
+                                6: FlexColumnWidth(1.4),
+                                7: FixedColumnWidth(90),
+                              },
+                              border:
+                                  TableBorder.all(color: Colors.grey.shade300),
+                              defaultVerticalAlignment:
+                                  TableCellVerticalAlignment.middle,
+                              children: [
+                                TableRow(
+                                  decoration: BoxDecoration(),
+                                  children: const [
+                                    Padding(
+                                        padding: EdgeInsets.all(6),
+                                        child: Text('No')),
+                                    Padding(
+                                        padding: EdgeInsets.all(6),
+                                        child: Text('Barang')),
+                                    Padding(
+                                        padding: EdgeInsets.all(6),
+                                        child: Text('Harga Jual')),
+                                    Padding(
+                                        padding: EdgeInsets.all(6),
+                                        child: Text('Satuan')),
+                                    Padding(
+                                        padding: EdgeInsets.all(6),
+                                        child: Text('Qty')),
+                                    Padding(
+                                        padding: EdgeInsets.all(6),
+                                        child: Text('Harga Diskon')),
+                                    Padding(
+                                        padding: EdgeInsets.all(6),
+                                        child: Text('Total Bayar')),
+                                    Padding(
+                                        padding: EdgeInsets.all(6),
+                                        child: Text('')),
+                                  ],
+                                ),
+                                ...items.asMap().entries.map((entry) {
+                                  final index = entry.key + 1;
+                                  final item = entry.value;
+                                  return TableRow(children: [
+                                    Padding(
+                                        padding: const EdgeInsets.all(6),
+                                        child: Text('$index')),
+                                    Padding(
+                                        padding: const EdgeInsets.all(6),
+                                        child: Text(item.namaBarang)),
+                                    Padding(
+                                        padding: const EdgeInsets.all(6),
+                                        child: Text(
+                                            'Rp ${formatter.format(item.hargaJual)}')),
+                                    Padding(
+                                        padding: const EdgeInsets.all(6),
+                                        child: Text('${item.satuan ?? ''}')),
+                                    Padding(
+                                        padding: const EdgeInsets.all(6),
+                                        child: Text('${item.jumlahJual ?? 0}')),
+                                    Padding(
+                                        padding: const EdgeInsets.all(6),
+                                        child: Text(
+                                            'Rp ${formatter.format(item.jualDiscon)}')),
+                                    Padding(
+                                        padding: const EdgeInsets.all(6),
+                                        child: Text(
+                                            'Rp ${formatter.format(item.totalHargaSetelahDisc)}')),
+                                    Padding(
+                                      padding: const EdgeInsets.all(4),
+                                      child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          IconButton(
+                                            icon: const Icon(Icons.edit,
+                                                color: Colors.blue, size: 20),
+                                            onPressed: () =>
+                                                _showEditDialog(item),
+                                            tooltip: 'Edit item',
+                                          ),
+                                          IconButton(
+                                            icon: const Icon(Icons.delete,
+                                                color: Colors.red, size: 20),
+                                            onPressed: () =>
+                                                _hapusItem(item.id.toString()),
+                                            tooltip: 'Hapus item',
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ]);
+                                }),
+                              ],
+                            ),
+
+                            const SizedBox(height: 12),
+
+                            /// Total Bayar
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  vertical: 10, horizontal: 12),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                'Total Bayar: Rp ${formatter.format(totalBayar)}',
+                                style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
+                                  color: Colors.red,
                                 ),
                               ),
+                            ),
 
-                              Text(
-                                  'Tanggal             : ${DateFormat('dd-MM-yyyy').format(tanggal)}'),
+                            const SizedBox(height: 10),
 
-                              Text('Pasien               : $pelanggan'),
-                              const SizedBox(height: 12),
-
-                              /// Tabel Header
-                              Table(
-                                columnWidths: const {
-                                  0: FixedColumnWidth(40),
-                                  1: FlexColumnWidth(2),
-                                  2: FlexColumnWidth(1.2),
-                                  3: FlexColumnWidth(1),
-                                  4: FlexColumnWidth(1),
-                                  5: FlexColumnWidth(1),
-                                  6: FlexColumnWidth(1.4),
-                                  7: FixedColumnWidth(90),
+                            /// Tombol Bayar & Cetak
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: ElevatedButton.icon(
+                                onPressed: () {
+                                  if (noresep == null ||
+                                      noresep.trim().isEmpty) {
+                                    _showStrukPreview(items);
+                                  } else {
+                                    _showStrukResepPreview(items);
+                                  }
                                 },
-                                border: TableBorder.all(
-                                    color: Colors.grey.shade300),
-                                defaultVerticalAlignment:
-                                    TableCellVerticalAlignment.middle,
-                                children: [
-                                  TableRow(
-                                    decoration: BoxDecoration(
-                                        color: Colors.grey.shade200),
-                                    children: const [
-                                      Padding(
-                                          padding: EdgeInsets.all(6),
-                                          child: Text('No')),
-                                      Padding(
-                                          padding: EdgeInsets.all(6),
-                                          child: Text('Barang')),
-                                      Padding(
-                                          padding: EdgeInsets.all(6),
-                                          child: Text('Harga Jual')),
-                                      Padding(
-                                          padding: EdgeInsets.all(6),
-                                          child: Text('Satuan')),
-                                      Padding(
-                                          padding: EdgeInsets.all(6),
-                                          child: Text('Qty')),
-                                      Padding(
-                                          padding: EdgeInsets.all(6),
-                                          child: Text('Harga Diskon')),
-                                      Padding(
-                                          padding: EdgeInsets.all(6),
-                                          child: Text('Total Bayar')),
-                                      Padding(
-                                          padding: EdgeInsets.all(6),
-                                          child: Text('Edit')),
-                                    ],
+                                icon: const Icon(Icons.receipt_long_outlined,
+                                    size: 20),
+                                label: const Padding(
+                                  padding: EdgeInsets.symmetric(
+                                      vertical: 10, horizontal: 14),
+                                  child: Text(
+                                    'Bayar & Cetak',
+                                    style: TextStyle(fontSize: 16),
                                   ),
-                                  ...items.asMap().entries.map((entry) {
-                                    final index = entry.key + 1;
-                                    final item = entry.value;
-                                    return TableRow(children: [
-                                      Padding(
-                                          padding: const EdgeInsets.all(6),
-                                          child: Text('$index')),
-                                      Padding(
-                                          padding: const EdgeInsets.all(6),
-                                          child: Text(item.namaBarang)),
-                                      Padding(
-                                          padding: const EdgeInsets.all(6),
-                                          child: Text(
-                                              'Rp ${formatter.format(item.hargaJual)}')),
-                                      Padding(
-                                          padding: const EdgeInsets.all(6),
-                                          child: Text('${item.satuan ?? ''}')),
-                                      Padding(
-                                          padding: const EdgeInsets.all(6),
-                                          child:
-                                              Text('${item.jumlahJual ?? 0}')),
-                                      Padding(
-                                          padding: const EdgeInsets.all(6),
-                                          child: Text(
-                                              'Rp ${formatter.format(item.jualDiscon)}')),
-                                      Padding(
-                                          padding: const EdgeInsets.all(6),
-                                          child: Text(
-                                              'Rp ${formatter.format(item.totalHargaSetelahDisc)}')),
-                                      Padding(
-                                        padding: const EdgeInsets.all(4),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            IconButton(
-                                              icon: const Icon(Icons.edit,
-                                                  color: Colors.blue),
-                                              onPressed: () =>
-                                                  _showEditDialog(item),
-                                              tooltip: 'Edit item',
-                                            ),
-                                            IconButton(
-                                              icon: const Icon(Icons.delete,
-                                                  color: Colors.red),
-                                              onPressed: () => _hapusItem(
-                                                  item.id.toString()),
-                                              tooltip: 'Hapus item',
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ]);
-                                  }),
-                                ],
-                              ),
-                              const SizedBox(height: 12),
-                              Text(
-                                'Total Bayar     : Rp ${formatter.format(totalBayar)}',
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.bold, fontSize: 16),
-                              ),
-                              const SizedBox(height: 10),
-
-                              /// Tombol Bayar & Cetak
-                              Align(
-                                alignment: Alignment.centerRight,
-                                child: ElevatedButton.icon(
-                                  onPressed: () {
-                                    if (noresep == null ||
-                                        noresep.trim().isEmpty) {
-                                      _showStrukPreview(items);
-                                    } else {
-                                      _showStrukResepPreview(items);
-                                    }
-                                  },
-                                  icon: const Icon(Icons.receipt_long_outlined,
-                                      size: 20),
-                                  label: const Padding(
-                                    padding: EdgeInsets.symmetric(
-                                        vertical: 10, horizontal: 14),
-                                    child: Text(
-                                      'Bayar & Cetak',
-                                      style: TextStyle(fontSize: 16),
-                                    ),
-                                  ),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.blue.shade600,
-                                    foregroundColor: Colors.white,
-                                    shape: RoundedRectangleBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(10)),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.blue.shade600,
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
                                   ),
                                 ),
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
-                      );
-                    }).toList(),
-                  ));
+                      ),
+                    );
+                  }).toList(),
+                ),
+    );
   }
 
   Future<void> _showEditDialog(PenjualanModel penjualan) async {
     final formKey = GlobalKey<FormState>();
     final jumlahCtrl =
         TextEditingController(text: penjualan.jumlahJual?.toString() ?? '0');
-    final diskonCtrl =
-        TextEditingController(text: penjualan.jualDiscon?.toString() ?? '0');
+    final diskonCtrl = TextEditingController(
+      text: currencyFormatter.format(penjualan.jualDiscon ?? 0),
+    );
     BarangModel? pilihBarang =
         await ApiService.fetchBarangByKodefodiscon(penjualan.kodeBarang);
     showDialog(

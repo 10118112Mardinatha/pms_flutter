@@ -17,7 +17,7 @@ void main() async {
     size: Size(1350, 700),
     center: true,
     title:
-        "Jl. S.Parman, Kavaleri 29, No. 24, Langkai, Pahandut, Kota Palangka Raya, Kalimantan Tengah, 74874",
+        "Jl. S Parman Ruko Blok II Cav 29, RT 01 RW 07 Kel. Langkai Kec. Pahandut, Kota Palangka Raya, 74874",
     backgroundColor: Colors.white,
   );
 
@@ -49,6 +49,24 @@ void main() async {
 
   UserModel? user;
   if (userId != null && username != null && role != null && aktif != null) {
+    final allMenus = [
+      'dashboard',
+      'supplier',
+      'dokter',
+      'pelanggan',
+      'rak',
+      'obat',
+      'pembelian',
+      'penjualan',
+      'kasir',
+      'resep',
+      'laporan_pembelian',
+      'laporan_penjualan',
+      'laporan_resep',
+      'user',
+      'log_aktivitas',
+      'pesanan',
+    ];
     user = UserModel(
       id: userId,
       username: username,
@@ -56,7 +74,7 @@ void main() async {
       role: role,
       aktif: aktif,
       avatar: avatar != '' ? avatar : null,
-      akses: [],
+      akses: allMenus,
     );
   }
 

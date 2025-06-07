@@ -24,6 +24,7 @@ class _TambahUserScreenState extends State<TambahUserScreen> {
   final TextEditingController _confirmPasswordController =
       TextEditingController();
   String? _selectedRole;
+  bool _selectAll = false;
   List<UserModel> users = [];
   final List<String> _allMenus = [
     'dashboard',
@@ -41,6 +42,7 @@ class _TambahUserScreenState extends State<TambahUserScreen> {
     'laporan_resep',
     'user',
     'log_aktivitas',
+    'pesanan',
   ];
   final Set<String> _selectedMenus = {};
 
@@ -49,7 +51,7 @@ class _TambahUserScreenState extends State<TambahUserScreen> {
   bool _obscureConfirmPassword = true;
   String? _ipAddress;
 
-  final List<String> _roles = ['admin', 'kasir', 'counter'];
+  final List<String> _roles = ['admin', 'kasir', 'counter', 'pembeli'];
 
   @override
   void initState() {
@@ -198,7 +200,8 @@ class _TambahUserScreenState extends State<TambahUserScreen> {
                             ),
                             DropdownButton<String>(
                               value: user.role,
-                              items: ['admin', 'kasir', 'counter'].map((role) {
+                              items: ['admin', 'kasir', 'counter', 'pembeli']
+                                  .map((role) {
                                 return DropdownMenuItem(
                                     value: role, child: Text(role));
                               }).toList(),
@@ -539,20 +542,56 @@ class _TambahUserScreenState extends State<TambahUserScreen> {
           key: _formKey,
           child: Column(
             children: [
-              GestureDetector(
-                onTap: _pickImage,
-                child: CircleAvatar(
-                  radius: 50,
-                  backgroundColor: Colors.grey[300],
-                  backgroundImage: _pickedImage != null
-                      ? FileImage(_pickedImage!)
-                      : const AssetImage('assets/images/user_avatar.png')
-                          as ImageProvider,
-                  child: _pickedImage == null
-                      ? const Icon(Icons.add_a_photo,
-                          size: 40, color: Colors.white70)
-                      : null,
-                ),
+              Stack(
+                alignment: Alignment.center,
+                children: [
+                  GestureDetector(
+                    onTap: () async {
+                      final pickedFile = await ImagePicker()
+                          .pickImage(source: ImageSource.gallery);
+                      if (pickedFile != null) {
+                        setState(() {
+                          _pickedImage = File(pickedFile.path);
+                        });
+                      }
+                    },
+                    child: CircleAvatar(
+                      radius: 50,
+                      backgroundColor: Colors.grey[300],
+                      backgroundImage: _pickedImage != null
+                          ? FileImage(_pickedImage!)
+                          : const AssetImage('assets/images/user_avatar.png')
+                              as ImageProvider,
+                      child: _pickedImage == null
+                          ? const Icon(Icons.add_a_photo,
+                              size: 40, color: Colors.white70)
+                          : null,
+                    ),
+                  ),
+
+                  // Tombol "X" untuk reset foto
+                  if (_pickedImage != null)
+                    Positioned(
+                      top: 0,
+                      right: 0,
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _pickedImage = null; // reset ke default
+                          });
+                        },
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.red,
+                            shape: BoxShape.circle,
+                          ),
+                          padding: const EdgeInsets.all(4),
+                          child: const Icon(Icons.close,
+                              size: 16, color: Colors.white),
+                        ),
+                      ),
+                    ),
+                ],
               ),
               const SizedBox(height: 20),
               TextFormField(
@@ -633,52 +672,83 @@ class _TambahUserScreenState extends State<TambahUserScreen> {
                 validator: (value) => value == null ? 'Pilih role' : null,
               ),
               const SizedBox(height: 16),
-              const Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'Akses Menu',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                ),
-              ),
-              const SizedBox(height: 8),
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final double maxWidth = constraints.maxWidth;
-                  final int itemsPerRow = (maxWidth / 160).floor();
-                  return Wrap(
-                    spacing: 10,
-                    runSpacing: 4,
-                    children: _allMenus.map((menu) {
-                      final label = menu
-                          .split('_')
-                          .map((word) =>
-                              word[0].toUpperCase() + word.substring(1))
-                          .join(' ');
-
-                      return SizedBox(
-                        width: maxWidth / itemsPerRow - 12,
-                        child: CheckboxListTile(
-                          contentPadding: EdgeInsets.zero,
-                          title:
-                              Text(label, style: const TextStyle(fontSize: 13)),
-                          value: _selectedMenus.contains(menu),
-                          onChanged: (selected) {
-                            setState(() {
-                              if (selected ?? false) {
-                                _selectedMenus.add(menu);
-                              } else {
-                                _selectedMenus.remove(menu);
-                              }
-                            });
-                          },
-                          controlAffinity: ListTileControlAffinity.leading,
-                          dense: true,
-                          visualDensity: VisualDensity.compact,
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Akses Menu',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
+                      TextButton.icon(
+                        onPressed: () {
+                          setState(() {
+                            _selectAll = !_selectAll;
+                            if (_selectAll) {
+                              _selectedMenus.addAll(_allMenus);
+                            } else {
+                              _selectedMenus.clear();
+                            }
+                          });
+                        },
+                        icon: Icon(
+                          _selectAll ? Icons.remove_done : Icons.done_all,
+                          size: 18,
                         ),
+                        label: Text(_selectAll ? 'Hapus Semua' : 'Pilih Semua'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final double maxWidth = constraints.maxWidth;
+                      final int itemsPerRow =
+                          (maxWidth / 160).floor().clamp(1, 4); // max 4 kolom
+
+                      return Wrap(
+                        spacing: 10,
+                        runSpacing: 6,
+                        children: _allMenus.map((menu) {
+                          final label = menu
+                              .split('_')
+                              .map((word) =>
+                                  word[0].toUpperCase() + word.substring(1))
+                              .join(' ');
+
+                          return SizedBox(
+                            width: maxWidth / itemsPerRow - 12,
+                            child: CheckboxListTile(
+                              contentPadding: EdgeInsets.zero,
+                              title: Text(label,
+                                  style: const TextStyle(fontSize: 13)),
+                              value: _selectedMenus.contains(menu),
+                              onChanged: (selected) {
+                                setState(() {
+                                  if (selected ?? false) {
+                                    _selectedMenus.add(menu);
+                                  } else {
+                                    _selectedMenus.remove(menu);
+                                  }
+
+                                  // Sync tombol "pilih semua"
+                                  _selectAll =
+                                      _selectedMenus.length == _allMenus.length;
+                                });
+                              },
+                              controlAffinity: ListTileControlAffinity.leading,
+                              dense: true,
+                              visualDensity: VisualDensity.compact,
+                            ),
+                          );
+                        }).toList(),
                       );
-                    }).toList(),
-                  );
-                },
+                    },
+                  ),
+                ],
               ),
               const SizedBox(height: 24),
               ElevatedButton.icon(

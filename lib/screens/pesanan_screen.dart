@@ -109,7 +109,7 @@ class _PesananScreenState extends State<PesananScreen> {
 
     if (nopesanan.isEmpty || namapelanggan.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(tanggal.toString())),
+        SnackBar(content: Text('Isi nama anda terlebih dahulu')),
       );
       return;
     }
@@ -126,13 +126,48 @@ class _PesananScreenState extends State<PesananScreen> {
       ///jgn lupa
 
       if (!mounted) return; // <-- ini cek awal, sebelum lanjut
+
       if (response.statusCode == 200 || response.statusCode == 201) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Pesanan berhasil disimpan')),
+        await ApiService.logActivity(widget.user.id,
+            '${namapelanggan} membeli barang ${nopesanan} tanggal ${tanggal}');
+        // Tampilkan alert dialog
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(15),
+              ),
+              title: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.check_circle, color: Colors.green, size: 60),
+                  const SizedBox(height: 10),
+                  const Text(
+                    'Berhasil',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+              content: const Text(
+                'Pesanan telah anda masuk dan segera melakukan pembayaran atas nama anda di kasir.',
+                textAlign: TextAlign.center,
+              ),
+              actionsAlignment: MainAxisAlignment.center,
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop(); // Tutup dialog
+                    Navigator.of(context)
+                        .maybePop(); // Kembali ke halaman sebelumnya
+                  },
+                  child: const Text('Tutup'),
+                ),
+              ],
+            );
+          },
         );
-        if (Navigator.canPop(context)) {
-          Navigator.pop(context);
-        }
+
         // Refresh tampilan
         _namaPemesanController.clear();
         _loadPesanan();
@@ -362,17 +397,19 @@ class _PesananScreenState extends State<PesananScreen> {
             key: formKey,
             child: Column(
               mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                TextFormField(
-                  controller: kodebarangCtrl,
-                  decoration: InputDecoration(labelText: 'Kode barang'),
-                  readOnly: true,
-                ),
-                TextFormField(
-                  controller: namabarangCtrl,
-                  decoration: InputDecoration(labelText: 'Nama'),
-                  readOnly: true,
-                ),
+                Text("Kode Barang",
+                    style: TextStyle(fontWeight: FontWeight.bold)),
+                Text(kodebarangCtrl.text),
+                SizedBox(height: 12),
+                Text("Nama Barang",
+                    style: TextStyle(fontWeight: FontWeight.bold)),
+                Text(namabarangCtrl.text),
+                SizedBox(height: 12),
+                Text("Satuan", style: TextStyle(fontWeight: FontWeight.bold)),
+                Text(data2?.satuan ?? ''),
+                SizedBox(height: 12),
                 TextFormField(
                   controller: jumlahCtrl,
                   decoration: InputDecoration(labelText: 'Jumlah'),
@@ -522,7 +559,7 @@ class _PesananScreenState extends State<PesananScreen> {
                       ),
                     ],
                   ),
-
+                  const SizedBox(height: 10),
                   // Tabel barang + pagination
                   Expanded(
                     child: Column(
@@ -546,7 +583,7 @@ class _PesananScreenState extends State<PesananScreen> {
                                       fontSize: 11,
                                       fontWeight: FontWeight.bold),
                                   dataTextStyle: const TextStyle(fontSize: 13),
-                                  columnSpacing: 10,
+                                  columnSpacing: 15,
                                   columns: const [
                                     DataColumn(label: Text('No')),
                                     DataColumn(label: Text('Nama')),
@@ -567,15 +604,18 @@ class _PesananScreenState extends State<PesananScreen> {
                                               await _showForm(
                                                   data: null, data2: s);
                                             },
-                                            child: Container(
-                                              width: double.infinity,
-                                              height: double.infinity,
-                                              alignment: Alignment.centerLeft,
-                                              padding: EdgeInsets.symmetric(
-                                                  horizontal: 8.0,
-                                                  vertical: 16.0),
-                                              child: Text(
-                                                  '${_currentPage * _rowsPerPage + index + 1}'),
+                                            child: Tooltip(
+                                              message: 'Tambah Pesanan',
+                                              child: Container(
+                                                width: double.infinity,
+                                                height: double.infinity,
+                                                alignment: Alignment.centerLeft,
+                                                padding: EdgeInsets.symmetric(
+                                                    horizontal: 8.0,
+                                                    vertical: 16.0),
+                                                child: Text(
+                                                    '${_currentPage * _rowsPerPage + index + 1}'),
+                                              ),
                                             ),
                                           ),
                                         ),
@@ -585,20 +625,24 @@ class _PesananScreenState extends State<PesananScreen> {
                                               await _showForm(
                                                   data: null, data2: s);
                                             },
-                                            child: Container(
-                                              width: double.infinity,
-                                              height: double.infinity,
-                                              alignment: Alignment.centerLeft,
-                                              padding: EdgeInsets.symmetric(
-                                                  horizontal: 8.0,
-                                                  vertical: 16.0),
-                                              child: SizedBox(
-                                                width: 150,
-                                                child: Text(
-                                                  s.namaBarang ?? '',
-                                                  maxLines: 2,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
+                                            child: Tooltip(
+                                              message: 'Tambah Pesanan',
+                                              child: ConstrainedBox(
+                                                constraints: BoxConstraints(
+                                                    minHeight: 40),
+                                                child: Container(
+                                                  alignment: Alignment.topLeft,
+                                                  padding: const EdgeInsets
+                                                      .symmetric(
+                                                      horizontal: 8.0,
+                                                      vertical: 8.0),
+                                                  child: Text(
+                                                    s.namaBarang ?? '',
+                                                    softWrap: true,
+                                                    maxLines: null,
+                                                    overflow:
+                                                        TextOverflow.visible,
+                                                  ),
                                                 ),
                                               ),
                                             ),
@@ -610,14 +654,17 @@ class _PesananScreenState extends State<PesananScreen> {
                                               await _showForm(
                                                   data: null, data2: s);
                                             },
-                                            child: Container(
-                                              width: double.infinity,
-                                              height: double.infinity,
-                                              alignment: Alignment.centerLeft,
-                                              padding: EdgeInsets.symmetric(
-                                                  horizontal: 8.0,
-                                                  vertical: 16.0),
-                                              child: Text(s.kelompok ?? ''),
+                                            child: Tooltip(
+                                              message: 'Tambah Pesanan',
+                                              child: Container(
+                                                width: double.infinity,
+                                                height: double.infinity,
+                                                alignment: Alignment.centerLeft,
+                                                padding: EdgeInsets.symmetric(
+                                                    horizontal: 8.0,
+                                                    vertical: 16.0),
+                                                child: Text(s.kelompok ?? ''),
+                                              ),
                                             ),
                                           ),
                                         ),
@@ -627,14 +674,17 @@ class _PesananScreenState extends State<PesananScreen> {
                                               await _showForm(
                                                   data: null, data2: s);
                                             },
-                                            child: Container(
-                                              width: double.infinity,
-                                              height: double.infinity,
-                                              alignment: Alignment.centerLeft,
-                                              padding: EdgeInsets.symmetric(
-                                                  horizontal: 8.0,
-                                                  vertical: 16.0),
-                                              child: Text(s.satuan ?? ''),
+                                            child: Tooltip(
+                                              message: 'Tambah Pesanan',
+                                              child: Container(
+                                                width: double.infinity,
+                                                height: double.infinity,
+                                                alignment: Alignment.centerLeft,
+                                                padding: EdgeInsets.symmetric(
+                                                    horizontal: 8.0,
+                                                    vertical: 16.0),
+                                                child: Text(s.satuan ?? ''),
+                                              ),
                                             ),
                                           ),
                                         ),
@@ -705,74 +755,32 @@ class _PesananScreenState extends State<PesananScreen> {
                 ],
               ),
             ),
-
-            const SizedBox(width: 16), // Spasi antar kolom
+            Container(
+              width: 1,
+              height: double.infinity,
+              color: Colors.grey.shade900,
+              margin: const EdgeInsets.symmetric(horizontal: 8),
+            ),
+            const SizedBox(width: 10), // Spasi antar kolom
             // === KOLOM KANAN ===
             Expanded(
               flex: 2,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        '📦 Daftar Pesanan',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.grey[800],
-                        ),
-                      ),
-                      Row(
-                        children: [
-                          ElevatedButton.icon(
-                            onPressed: prosesbatal,
-                            icon: const Icon(Icons.close,
-                                color: Colors.white, size: 20),
-                            label: const Text('Batal',
-                                style: TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 14,
-                                    color: Colors.white)),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red.shade600,
-                              minimumSize: const Size(100, 40),
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 8),
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10)),
-                              elevation: 4,
-                              shadowColor: Colors.redAccent.withOpacity(0.4),
-                            ),
-                          ),
-                          const SizedBox(width: 15),
-                          ElevatedButton.icon(
-                            onPressed:
-                                prosesSimpan, // Ganti dengan fungsi simpan kalau ada
-                            icon: const Icon(Icons.save,
-                                color: Colors.white, size: 20),
-                            label: const Text('Simpan',
-                                style: TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 14,
-                                    color: Colors.white)),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blue.shade600,
-                              minimumSize: const Size(130, 40),
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 8),
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12)),
-                              elevation: 8,
-                              shadowColor: Colors.blueAccent.withOpacity(0.5),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+                  // Header Daftar Pesanan
+                  Text(
+                    '📦 Daftar Pesanan',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.grey[800],
+                    ),
                   ),
-                  const SizedBox(height: 15),
+                  Divider(thickness: 1.2, color: Colors.grey.shade300),
+                  const SizedBox(height: 10),
+
+                  // Form input No Pesanan dan Nama
                   Row(
                     children: [
                       SizedBox(
@@ -802,62 +810,129 @@ class _PesananScreenState extends State<PesananScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
-                  Expanded(
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.vertical,
-                      child: DataTable(
-                        headingRowColor:
-                            MaterialStateProperty.all(Colors.blue.shade300),
-                        dataRowColor: MaterialStateProperty.all(Colors.white),
-                        border: TableBorder.all(color: Colors.grey.shade300),
-                        headingRowHeight: 40,
-                        headingTextStyle: const TextStyle(fontSize: 12),
-                        dataTextStyle: const TextStyle(fontSize: 11),
-                        columnSpacing: 20,
-                        columns: const [
-                          DataColumn(label: Text('Nama')),
-                          DataColumn(label: Text('Kelompok')),
-                          DataColumn(label: Text('Satuan')),
-                          DataColumn(label: Text('Jumlah')),
-                          DataColumn(label: Text('Aksi')),
-                        ],
-                        rows: allPesanantmp.map((p) {
-                          return DataRow(
-                            cells: [
-                              DataCell(SizedBox(
-                                width: 150,
-                                child: Text(p.namaBarang,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis),
-                              )),
-                              DataCell(Text(p.kelompok)),
-                              DataCell(Text(p.satuan)),
-                              DataCell(Text((p.jumlahJual).toString())),
-                              DataCell(Row(
-                                children: [
-                                  IconButton(
-                                    tooltip: 'Edit Data',
-                                    icon: const Icon(Icons.edit,
-                                        color: Colors.blue),
-                                    onPressed: () =>
-                                        _showForm(data: p, data2: null),
-                                  ),
-                                  IconButton(
-                                    tooltip: 'Hapus Data',
-                                    icon: const Icon(Icons.delete,
-                                        color: Colors.red),
-                                    onPressed: () =>
-                                        _deletePesanan(p.id.toString()),
-                                  ),
-                                ],
-                              )),
-                            ],
-                          );
-                        }).toList(),
-                      ),
+                  const SizedBox(height: 12),
+
+                  // Header kolom
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 10, horizontal: 10),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: const [
+                        Expanded(
+                            flex: 3,
+                            child: Text('Nama',
+                                style: TextStyle(fontWeight: FontWeight.bold))),
+                        Expanded(
+                            flex: 2,
+                            child: Text('Satuan',
+                                style: TextStyle(fontWeight: FontWeight.bold))),
+                        Expanded(
+                            flex: 1,
+                            child: Text('Jumlah',
+                                style: TextStyle(fontWeight: FontWeight.bold))),
+                        Expanded(
+                            flex: 2,
+                            child: Text('',
+                                style: TextStyle(fontWeight: FontWeight.bold))),
+                      ],
                     ),
                   ),
+                  const SizedBox(height: 6),
+
+                  // List Pesanan (scrollable)
+                  Expanded(
+                    child: ListView.separated(
+                      itemCount: allPesanantmp.length,
+                      separatorBuilder: (_, __) =>
+                          const Divider(height: 1, color: Colors.grey),
+                      itemBuilder: (context, index) {
+                        final p = allPesanantmp[index];
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 10, horizontal: 6),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Nama Barang dengan WRAP
+                              Expanded(
+                                flex: 3,
+                                child: Text(
+                                  p.namaBarang,
+                                  style: const TextStyle(height: 1.3),
+                                ),
+                              ),
+
+                              Expanded(
+                                flex: 2,
+                                child: Text(p.satuan),
+                              ),
+                              Expanded(
+                                flex: 1,
+                                child: Text(p.jumlahJual.toString()),
+                              ),
+                              Expanded(
+                                flex: 2,
+                                child: Row(
+                                  children: [
+                                    IconButton(
+                                      tooltip: 'Edit Data',
+                                      icon: const Icon(Icons.edit,
+                                          color: Colors.blue),
+                                      onPressed: () =>
+                                          _showForm(data: p, data2: null),
+                                    ),
+                                    IconButton(
+                                      tooltip: 'Hapus Data',
+                                      icon: const Icon(Icons.delete,
+                                          color: Colors.red),
+                                      onPressed: () =>
+                                          _deletePesanan(p.id.toString()),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+
+                  // Tombol Simpan dan Batal muncul hanya kalau ada pesanan
+                  if (allPesanantmp.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        ElevatedButton.icon(
+                          onPressed: prosesbatal,
+                          icon: const Icon(Icons.close, color: Colors.white),
+                          label: const Text('Batal'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red.shade600,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10)),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        ElevatedButton.icon(
+                          onPressed: prosesSimpan,
+                          icon: const Icon(Icons.save, color: Colors.white),
+                          label: const Text('Simpan'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue.shade600,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ),
